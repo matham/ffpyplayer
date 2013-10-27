@@ -32,7 +32,7 @@ When passing a string to c code which is kept, you have to keep python string in
 '''
 
 from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
-int16_t, uint8_t, int8_t
+int16_t, uint8_t, int8_t, uintptr_t
 
 ctypedef int (*lockmgr_func)(void **, AVLockOp)
 ctypedef int (*int_void_func)(void *)
@@ -336,6 +336,7 @@ cdef:
             uint64_t channel_layout
             uint8_t **extended_data
             uint8_t **data
+            int *linesize
         struct AVPicture:
             uint8_t **data
             int *linesize
@@ -423,9 +424,6 @@ cdef:
     #endif
 
 cdef:
-    struct MTMutex
-    struct MTThread
-    struct MTCond
     struct MyAVPacketList:
         AVPacket pkt
         MyAVPacketList *next

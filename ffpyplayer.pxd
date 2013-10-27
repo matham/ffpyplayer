@@ -2,7 +2,7 @@
 include 'ff_defs.pxi'
 
 cimport ffthreading
-from ffthreading cimport MTGenerator
+from ffthreading cimport MTGenerator, MTThread
 cimport ffcore
 from ffcore cimport VideoState, VideoSettings
 
@@ -12,6 +12,7 @@ cdef class FFPyPlayer(object):
         VideoSettings settings
         MTGenerator mt_gen
         VideoState ivs
+        MTThread update_thread
         bytes py_window_title
         bytes py_vfilters
         bytes py_afilters

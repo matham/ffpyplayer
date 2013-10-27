@@ -20,16 +20,13 @@ cdef class FFPacketQueue(object):
         self.mt_gen = mt_gen
         self.first_pkt = self.last_pkt = NULL
         self.nb_packets = self.size = self.serial = 0
-        self.mutex = mt_gen.create_mutex()
-        self.cond = mt_gen.create_cond()
+        self.cond = MTCond(mt_gen.mt_src)
         self.abort_request = 1
     
     def __dealloc__(self):
-        if self.mutex == NULL or self.cond == NULL:
+        if self.cond is None:
             return
         self.packet_queue_flush()
-        self.mt_gen.destroy_mutex(self.mutex)
-        self.mt_gen.destroy_cond(self.cond)
 
     cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil:
         cdef MyAVPacketList *pkt1
@@ -54,7 +51,7 @@ cdef class FFPacketQueue(object):
         self.nb_packets += 1
         self.size += pkt1.pkt.size + sizeof(pkt1[0])
         #/* XXX: should duplicate packet data in DV case */
-        self.cond.cond_signal(self.cond.cond)
+        self.cond.cond_signal()
         return 0
 
     cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil:
@@ -64,9 +61,9 @@ cdef class FFPacketQueue(object):
         if pkt != &flush_pkt and av_dup_packet(pkt) < 0:
             return -1
      
-        self.mutex.lock_mutex(self.mutex.mutex)
+        self.cond.lock()
         ret = self.packet_queue_put_private(pkt)
-        self.mutex.unlock_mutex(self.mutex.mutex)
+        self.cond.unlock()
      
         if pkt != &flush_pkt and ret < 0:
             av_free_packet(pkt)
@@ -76,7 +73,7 @@ cdef class FFPacketQueue(object):
     cdef void packet_queue_flush(FFPacketQueue self) nogil:
         cdef MyAVPacketList *pkt, *pkt1
 
-        self.mutex.lock_mutex(self.mutex.mutex)
+        self.cond.lock()
         pkt = self.first_pkt
         while pkt != NULL:
             pkt1 = pkt.next
@@ -87,26 +84,26 @@ cdef class FFPacketQueue(object):
         self.first_pkt = NULL
         self.nb_packets = 0
         self.size = 0
-        self.mutex.unlock_mutex(self.mutex.mutex)
+        self.cond.unlock()
      
     cdef void packet_queue_abort(FFPacketQueue self) nogil:
-        self.mutex.lock_mutex(self.mutex.mutex)
+        self.cond.lock()
         self.abort_request = 1
-        self.cond.cond_signal(self.cond)
-        self.mutex.unlock_mutex(self.mutex.mutex)
+        self.cond.cond_signal()
+        self.cond.unlock()
      
     cdef void packet_queue_start(FFPacketQueue self) nogil:
-        self.mutex.lock_mutex(self.mutex.mutex)
+        self.cond.lock()
         self.abort_request = 0
         self.packet_queue_put_private(&flush_pkt)
-        self.mutex.unlock_mutex(self.mutex.mutex)
+        self.cond.unlock()
  
     # return < 0 if aborted, 0 if no packet and > 0 if packet.
     cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil:
         cdef MyAVPacketList *pkt1
         cdef int ret
         
-        self.mutex.lock_mutex(self.mutex.mutex)
+        self.cond.lock()
         
         while True:
             if self.abort_request:
@@ -130,6 +127,6 @@ cdef class FFPacketQueue(object):
                 ret = 0
                 break
             else:
-                self.cond.cond_wait(self.cond.cond, self.mutex.mutex)
-        self.mutex.unlock_mutex(self.mutex.mutex)
+                self.cond.cond_wait()
+        self.cond.unlock()
         return ret

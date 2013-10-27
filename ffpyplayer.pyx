@@ -9,7 +9,7 @@ cdef extern from "Python.h":
     void PyEval_InitThreads()
     
 cimport ffthreading
-from ffthreading cimport MTGenerator, SDL_MT
+from ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread
 cimport ffqueue
 from ffqueue cimport FFPacketQueue
 cimport ffcore
@@ -161,18 +161,24 @@ cdef class FFPyPlayer(object):
         self.py_filename = filename # keep filename in memory until closing
         settings.input_filename = self.py_filename
         if sink != 'SDL':
+            if not CONFIG_SDL:
+                raise Exception('FFPyPlayer extension not compiled with SDL support.')
             raise Exception('Currently, only SDL is supported as a sink.')
         if thread_lib == 'SDL':
+            if not CONFIG_SDL:
+                raise Exception('FFPyPlayer extension not compiled with SDL support.')
             self.mt_gen = MTGenerator(SDL_MT)
-        else:
-            raise Exception('Currently, only SDL is supported as the thread library.')
+        elif thread_lib == 'python':
+            self.mt_gen = MTGenerator(Py_MT)
         if av_lockmgr_register(self.mt_gen.get_lockmgr()):
             raise ValueError('Could not initialize lock manager.')
         self.ivs = VideoState()
         self.ivs.cInit(self.mt_gen, settings.input_filename, settings.file_iformat,
                               settings.av_sync_type, settings)
+        self.update_thread = None
         if sink == 'SDL':
-            self.mt_gen.create_thread(event_loop, <PyObject*>self)
+            self.update_thread = MTThread(self.mt_gen.mt_src)
+            self.update_thread.create_thread(event_loop, <PyObject*>self)
     
     def __dealloc__(self):
         cdef const char *empty = ''

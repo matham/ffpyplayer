@@ -71,8 +71,8 @@ cdef struct VideoSettings:
 
 cdef class VideoState(object):
     cdef:
-        MTThread *read_tid
-        MTThread *video_tid
+        MTThread read_tid
+        MTThread video_tid
         AVInputFormat *iformat
         int no_background
         int abort_request
@@ -139,14 +139,13 @@ cdef class VideoState(object):
         int xpos
         double last_vis_time
     
-        MTThread *subtitle_tid
+        MTThread subtitle_tid
         int subtitle_stream
         AVStream *subtitle_st
         FFPacketQueue subtitleq
         SubPicture subpq[SUBPICTURE_QUEUE_SIZE]
         int subpq_size, subpq_rindex, subpq_windex
-        MTMutex *subpq_mutex
-        MTCond *subpq_cond
+        MTCond subpq_cond
     
         double frame_timer
         double frame_last_pts
@@ -163,8 +162,7 @@ cdef class VideoState(object):
         double max_frame_duration      # maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
         VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE]
         int pictq_size, pictq_rindex, pictq_windex
-        MTMutex *pictq_mutex
-        MTCond *pictq_cond
+        MTCond pictq_cond
         IF not CONFIG_AVFILTER:
             SwsContext *img_convert_ctx
         SDL_Rect last_display_rect
@@ -182,7 +180,7 @@ cdef class VideoState(object):
     
         int last_video_stream, last_audio_stream, last_subtitle_stream
     
-        MTCond *continue_read_thread
+        MTCond continue_read_thread
         MTGenerator mt_gen
         VideoSettings *player
         int64_t last_time
@@ -232,7 +230,7 @@ cdef class VideoState(object):
     cdef int stream_component_open(VideoState self, int stream_index) nogil
     cdef void stream_component_close(VideoState self, int stream_index) nogil
     cdef int read_thread(VideoState self) nogil
-    cdef inline int failed(VideoState self, MTMutex *wait_mutex, int ret) nogil
+    cdef inline int failed(VideoState self, int ret) nogil
     cdef void stream_cycle_channel(VideoState self, int codec_type) nogil
     cdef void toggle_full_screen(VideoState self) nogil
     cdef void toggle_audio_display(VideoState self) nogil

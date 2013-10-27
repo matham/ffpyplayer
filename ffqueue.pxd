@@ -2,7 +2,7 @@
 include 'ff_defs.pxi'
 
 cimport ffthreading
-from ffthreading cimport MTGenerator, MTMutex, MTCond
+from ffthreading cimport MTGenerator, MTCond
 
 cdef AVPacket * get_flush_packet() nogil
 
@@ -15,8 +15,7 @@ cdef class FFPacketQueue(object):
         int size
         int abort_request
         int serial
-        MTMutex *mutex
-        MTCond *cond
+        MTCond cond
     
     cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil
     
