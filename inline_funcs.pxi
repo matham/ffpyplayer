@@ -65,43 +65,4 @@ cdef inline int64_t get_valid_channel_layout(int64_t channel_layout, int channel
     if channel_layout and av_get_channel_layout_nb_channels(channel_layout) == channels:
         return channel_layout
     else:
-        return 0
-
-cdef inline uint8_t ALPHA_BLEND(int a, uint8_t oldp, int newp, uint8_t s) nogil:
-    return ((((oldp << s) * (255 - (a))) + (newp * (a))) / (255 << s)) 
- 
-cdef inline void RGBA_IN(int *r, int *g, int *b, int *a, uint32_t* s) nogil:
-    cdef unsigned int v = (<const uint32_t *>s)[0]
-    a[0] = (v >> 24) & 0xff
-    r[0] = (v >> 16) & 0xff
-    g[0] = (v >> 8) & 0xff
-    b[0] = v & 0xff
- 
-cdef inline void YUVA_IN(int *y, int *u, int *v, int *a, const uint8_t *s, const uint32_t *pal) nogil:
-    cdef unsigned int val = pal[s[0]]
-    a[0] = (val >> 24) & 0xff
-    y[0] = (val >> 16) & 0xff
-    u[0] = (val >> 8) & 0xff
-    v[0] = val & 0xff
- 
-cdef inline void YUVA_OUT(uint32_t *d, int y, int u, int v, int a) nogil:
-    d[0] = (a << 24) | (y << 16) | (u << 8) | v
-
-
-DEF SCALEBITS = 10
-DEF ONE_HALF = 1 << (SCALEBITS - 1)
-cdef inline int FIX(double x) nogil:
-    return <int>(<int>x * (1 << SCALEBITS) + 0.5)
-
-cdef inline int RGB_TO_Y_CCIR(int r, int g, int b) nogil:
-    return (FIX(0.29900*219.0/255.0) * r + FIX(0.58700*219.0/255.0) * g +\
-    FIX(0.11400*219.0/255.0) * b + (ONE_HALF + (16 << SCALEBITS))) >> SCALEBITS
-
-cdef inline int RGB_TO_U_CCIR(int r1, int g1, int b1, int shift) nogil:
-    return ((- FIX(0.16874*224.0/255.0) * r1 - FIX(0.33126*224.0/255.0) * g1 +\
-    FIX(0.50000*224.0/255.0) * b1 + (ONE_HALF << shift) - 1) >> (SCALEBITS + shift)) + 128
-
-cdef inline int RGB_TO_V_CCIR(int r1, int g1, int b1, int shift) nogil:
-    return ((FIX(0.50000*224.0/255.0) * r1 - FIX(0.41869*224.0/255.0) * g1 -\
-    FIX(0.08131*224.0/255.0) * b1 + (ONE_HALF << shift) - 1) >> (SCALEBITS + shift)) + 128
-
+        return 0 

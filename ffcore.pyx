@@ -1004,29 +1004,24 @@ cdef class VideoState(object):
                 pts = av_q2d(self.subtitle_st.time_base) * pkt.pts
     
             avcodec_decode_subtitle2(self.subtitle_st.codec, &sp.sub, &got_subtitle, pkt)
-            if got_subtitle and sp.sub.format == 0:
-                if sp.sub.pts != AV_NOPTS_VALUE:
-                    pts = sp.sub.pts / <double>AV_TIME_BASE
-                sp.pts = pts
-                sp.serial = serial
-    
-                if self.vid_sink.lib == SDL_Video:
-                    for i in range(sp.sub.num_rects):
-                        for j in range(sp.sub.rects[i].nb_colors):
-                            RGBA_IN(&r, &g, &b, &a, <uint32_t*>sp.sub.rects[i].pict.data[1] + j)
-                            y = RGB_TO_Y_CCIR(r, g, b)
-                            u = RGB_TO_U_CCIR(r, g, b, 0)
-                            v = RGB_TO_V_CCIR(r, g, b, 0)
-                            YUVA_OUT(<uint32_t*>sp.sub.rects[i].pict.data[1] + j, y, u, v, a)
-    
-                # now we can update the picture count
-                self.subpq_windex += 1
-                if self.subpq_windex == SUBPICTURE_QUEUE_SIZE:
-                    self.subpq_windex = 0
-                self.subpq_cond.lock()
-                self.subpq_size += 1
-                self.subpq_cond.unlock()
-            elif got_subtitle:
+#             if got_subtitle and sp.sub.format == 0:
+#                 if sp.sub.pts != AV_NOPTS_VALUE:
+#                     pts = sp.sub.pts / <double>AV_TIME_BASE
+#                 sp.pts = pts
+#                 sp.serial = serial
+# 
+# #                 for i in range(sp.sub.num_rects):
+# #                     for j in range(sp.sub.rects[i].nb_colors):
+# #                         sp.sub.rects[i]
+#     
+#                 # now we can update the picture count
+#                 self.subpq_windex += 1
+#                 if self.subpq_windex == SUBPICTURE_QUEUE_SIZE:
+#                     self.subpq_windex = 0
+#                 self.subpq_cond.lock()
+#                 self.subpq_size += 1
+#                 self.subpq_cond.unlock()
+            if got_subtitle:
                 avsubtitle_free(&sp.sub)
             av_free_packet(pkt)
         return 0
