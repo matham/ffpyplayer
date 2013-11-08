@@ -2,17 +2,21 @@
 include 'ff_defs.pxi'
 
 cimport ffthreading
-from ffthreading cimport MTGenerator, MTThread
+from ffthreading cimport MTGenerator, MTThread, MTMutex
 cimport ffcore
-from ffcore cimport VideoState, VideoSettings
+from ffcore cimport VideoState
+cimport sink
+from sink cimport VideoSettings, VideoSink
 
 
 cdef class FFPyPlayer(object):
     cdef:
         VideoSettings settings
         MTGenerator mt_gen
+        VideoSink vid_sink
         VideoState ivs
         MTThread update_thread
+        MTMutex settings_mutex
         bytes py_window_title
         bytes py_vfilters
         bytes py_afilters
@@ -20,5 +24,3 @@ cdef class FFPyPlayer(object):
         bytes py_video_codec_name
         bytes py_subtitle_codec_name
         bytes py_filename
-    cdef void event_loop(FFPyPlayer self) nogil
-    

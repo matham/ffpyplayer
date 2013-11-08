@@ -3,41 +3,355 @@
 include "ff_defs_comp.pxi"
 include "inline_funcs.pxi"
 
+from cpython.ref cimport PyObject
+
+cdef extern from "Python.h":
+    PyObject* PyByteArray_FromStringAndSize(const char *string, Py_ssize_t len)
+    PyObject* PyString_FromStringAndSize(const char *v, Py_ssize_t len)
+    void Py_DECREF(PyObject *)
+
 cdef extern from "limits.h" nogil:
     int INT_MIN
 
 cdef extern from "math.h" nogil:
     float rint(float)
     double sqrt(double)
+    
+cdef extern from "string.h" nogil:
+    void * memset(void *, int, size_t)
 
 
 cimport ffcore
 from ffcore cimport VideoState
+cimport ffthreading
+from ffthreading cimport MTMutex
 
-
+cdef AVPixelFormat *pix_fmts_sdl = [AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE]
+cdef AVPixelFormat *pix_fmts_py = [AV_PIX_FMT_RGB24, AV_PIX_FMT_NONE]
 pydummy_videodriver = 'SDL_VIDEODRIVER=dummy' # does SDL_putenv copy the string?
 cdef char *dummy_videodriver = pydummy_videodriver
-cdef void SDL_initialize(int display_disable, int audio_disable, int *fs_screen_width,
-                         int *fs_screen_height) nogil:
-    cdef const SDL_VideoInfo *vi
-    cdef unsigned flags
-    flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER
-    if audio_disable:
-        flags &= ~SDL_INIT_AUDIO
-    if display_disable:
-        SDL_putenv(dummy_videodriver) # For the event queue, we always need a video driver.
-    if NOT_WIN_MAC:
-        flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
-    with gil:
-        if SDL_Init(flags):
-            raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
-    if not display_disable:
-        vi = SDL_GetVideoInfo()
-        fs_screen_width[0] = vi.current_w
-        fs_screen_height[0] = vi.current_h
-    SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE)
-    SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE)
-    SDL_EventState(SDL_USEREVENT, SDL_IGNORE)
+
+cdef class VideoSink(object):
+
+    def __cinit__(VideoSink self, Video_lib lib, MTMutex settings_mutex, MTMutex mutex=None,
+                  object callback=None, **kwargs):
+        self.lib = lib
+        self.alloc_mutex = mutex
+        self.settings_mutex = settings_mutex
+        self.callback = callback
+        self.requested_alloc = 0
+
+    cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil:
+        if self.lib == SDL_Video:
+            return pix_fmts_sdl
+        elif self.lib == Py_Video:
+            return pix_fmts_py
+
+    cdef void request_thread(VideoSink self, void *data, uint8_t request) nogil:
+        cdef SDL_Event event
+        if self.lib == SDL_Video:
+            event.type = request
+            event.user.data1 = data
+            SDL_PushEvent(&event)
+        elif self.lib == Py_Video:
+            if request == FF_ALLOC_EVENT:
+                self.alloc_mutex.lock()
+                self.requested_alloc = 1
+                self.alloc_mutex.unlock()
+                with gil:
+                    self.callback('refresh', 0.0)
+            elif request == FF_QUIT_EVENT:
+                with gil:
+                    self.callback('quit', None)
+            elif request == FF_EOF_EVENT:
+                with gil:
+                    self.callback('eof', None)
+
+    cdef int peep_alloc(VideoSink self) nogil:
+        cdef SDL_Event event
+        if self.lib == SDL_Video:
+            return SDL_PeepEvents(&event, 1, SDL_GETEVENT, EVENTMASK(FF_ALLOC_EVENT)) != 1
+        elif self.lib == Py_Video:
+            self.alloc_mutex.lock()
+            self.requested_alloc = 0
+            self.alloc_mutex.unlock()
+            return 0
+
+    cdef int video_open(VideoSink self, int force_set_video_mode, VideoPicture *vp,
+                        VideoSettings *player, int *width, int *height) nogil:
+        cdef uint32_t flags
+        cdef int w,h
+        cdef Rect rect
+    
+        if vp != NULL and vp.width:
+            calculate_display_rect(&rect, 0, 0, INT_MAX, vp.height, vp);
+            player.default_width  = rect.w
+            player.default_height = rect.h
+    
+        if player.is_full_screen and player.fs_screen_width:
+            w = player.fs_screen_width
+            h = player.fs_screen_height
+        elif (not player.is_full_screen) and player.screen_width:
+            w = player.screen_width
+            h = player.screen_height
+        else:
+            w = player.default_width
+            h = player.default_height
+        w = FFMIN(16383, w)
+        if self.lib == SDL_Video:
+            if player.screen != NULL and width[0] == player.screen.w and player.screen.w == w\
+            and height[0] == player.screen.h and player.screen.h == h and not force_set_video_mode:
+                return 0
+            flags = SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL
+            if player.is_full_screen:
+                flags |= SDL_FULLSCREEN
+            else:
+                flags |= SDL_RESIZABLE
+            player.screen = SDL_SetVideoMode(w, h, 0, flags)
+            if player.screen == NULL:
+                av_log(NULL, AV_LOG_FATAL, "SDL: could not set video mode - exiting\n")
+                with gil:
+                    raise Exception('SDL: could not set video mode - exiting')
+            if player.window_title == NULL:
+                player.window_title = player.input_filename
+            SDL_WM_SetCaption(player.window_title, player.window_title)
+            width[0] = player.screen.w
+            height[0] = player.screen.h
+        elif self.lib == Py_Video:
+            width[0] = w
+            height[0] = h
+    
+        return 0
+
+    cdef void alloc_picture(VideoSink self, VideoPicture *vp,
+                            VideoSettings *player, int *width, int *height) nogil:
+        cdef int64_t bufferdiff = 0
+        self.video_open(0, vp, player, width, height)
+        if self.lib == SDL_Video:
+            vp.pict = NULL
+            if vp.bmp != NULL:
+                SDL_FreeYUVOverlay(vp.bmp)
+            vp.bmp = SDL_CreateYUVOverlay(vp.width, vp.height, SDL_YV12_OVERLAY,
+                                          player.screen)
+            if vp.bmp != NULL:
+                bufferdiff = FFMAXptr(vp.bmp.pixels[0], vp.bmp.pixels[1]) -\
+                FFMINptr(vp.bmp.pixels[0], vp.bmp.pixels[1])
+            if (vp.bmp == NULL or vp.bmp.pitches[0] < vp.width or
+                bufferdiff < <int64_t>vp.height * vp.bmp.pitches[0]):
+                ''' SDL allocates a buffer smaller than requested if the video
+                overlay hardware is unable to support the requested size. '''
+                #msg = 
+                av_log(NULL, AV_LOG_FATAL,
+                       "Error: the video system does not support an image\n\
+                       size of %dx%d pixels. Try using -lowres or -vf \"scale=w:h\"\n\
+                       to reduce the image size.\n", vp.width, vp.height)
+                with gil:
+                    raise Exception('The video system does not support an image of size\
+                 %dx%d pixels' % (vp.width, vp.height))
+        elif self.lib == Py_Video:
+            vp.bmp = NULL
+            vp.pict = av_frame_alloc()
+            if vp.pict == NULL:
+                av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe.\n")
+                with gil:
+                    raise Exception('Could not allocate avframe.')
+            if (av_image_alloc(vp.pict.data, vp.pict.linesize, vp.width,
+                               vp.height, pix_fmts_py[0], 1) < 0):
+                av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
+                with gil:
+                    raise Exception('Could not allocate avframe buffer.')
+
+    cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil:
+        if vp.bmp != NULL:
+            SDL_FreeYUVOverlay(vp.bmp)
+            vp.bmp = NULL
+        if vp.pict != NULL:
+            av_frame_unref(vp.pict)
+            av_freep(&vp.pict.data[0])
+            av_frame_free(&vp.pict)
+        
+    cdef void copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
+                           VideoSettings *player) nogil:
+        cdef AVPicture pict
+        cdef AVPicture *pictp
+        cdef AVPixelFormat out_fmt
+        if self.lib == SDL_Video:
+            memset(&pict, 0, sizeof(AVPicture))
+            # get a pointer on the bitmap
+            SDL_LockYUVOverlay(vp.bmp)
+    
+            pict.data[0] = vp.bmp.pixels[0]
+            pict.data[1] = vp.bmp.pixels[2]
+            pict.data[2] = vp.bmp.pixels[1]
+    
+            pict.linesize[0] = vp.bmp.pitches[0]
+            pict.linesize[1] = vp.bmp.pitches[2]
+            pict.linesize[2] = vp.bmp.pitches[1]
+            
+            pictp = &pict
+            out_fmt = pix_fmts_sdl[0]
+        elif self.lib == Py_Video:
+            pictp = <AVPicture *>vp.pict
+            out_fmt = pix_fmts_py[0]
+
+        IF CONFIG_AVFILTER:
+            # FIXME use direct rendering
+            av_picture_copy(pictp, <AVPicture *>src_frame,
+                            <AVPixelFormat>src_frame.format, vp.width, vp.height)
+        ELSE:
+            av_opt_get_int(player.sws_opts, 'sws_flags', 0, &player.sws_flags)
+            player.img_convert_ctx = sws_getCachedContext(player.img_convert_ctx,\
+            vp.width, vp.height, <AVPixelFormat>src_frame.format, vp.width, vp.height,\
+            out_fmt, player.sws_flags, NULL, NULL, NULL)
+            if player.img_convert_ctx == NULL:
+                av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n")
+                with gil:
+                    raise Exception('Cannot initialize the conversion context.')
+            sws_scale(player.img_convert_ctx, src_frame.data, src_frame.linesize,
+                      0, vp.height, pict.data, pict.linesize)
+        if self.lib == SDL_Video:
+            # workaround SDL PITCH_WORKAROUND 
+            duplicate_right_border_pixels(vp.bmp)
+            # update the bitmap content
+            SDL_UnlockYUVOverlay(vp.bmp)
+
+    cdef void video_image_display(VideoSink self, SDL_Surface *screen, VideoState ist) nogil:
+        cdef VideoPicture *vp
+        cdef SubPicture *sp
+        cdef AVPicture pict
+        cdef SDL_Rect rect
+        cdef int i, bgcolor
+        cdef PyObject *buff
+    
+        vp = &(ist.pictq[ist.pictq_rindex])
+        if vp.pict != NULL:
+            with gil:
+                buff = PyString_FromStringAndSize(<const char *>\
+                vp.pict.data[0], 3 *vp.width * vp.height)
+                self.callback('display', (<object>buff, (vp.width, vp.height)))
+                # XXX doesn't python automatically free?
+                Py_DECREF(buff)
+        elif vp.bmp != NULL:
+            if ist.subtitle_st:
+                if ist.subpq_size > 0:
+                    sp = &ist.subpq[ist.subpq_rindex]
+    
+                    if vp.pts >= sp.pts + (<float> sp.sub.start_display_time / 1000.):
+                        SDL_LockYUVOverlay(vp.bmp)
+    
+                        pict.data[0] = vp.bmp.pixels[0]
+                        pict.data[1] = vp.bmp.pixels[2]
+                        pict.data[2] = vp.bmp.pixels[1]
+    
+                        pict.linesize[0] = vp.bmp.pitches[0]
+                        pict.linesize[1] = vp.bmp.pitches[2]
+                        pict.linesize[2] = vp.bmp.pitches[1]
+    
+                        for i from 0 <= i < sp.sub.num_rects:
+                            blend_subrect(&pict, sp.sub.rects[i], vp.bmp.w, vp.bmp.h)
+    
+                        SDL_UnlockYUVOverlay(vp.bmp)
+    
+            calculate_display_rect(&rect, ist.xleft, ist.ytop, ist.width, ist.height, vp)
+    
+            SDL_DisplayYUVOverlay(vp.bmp, &rect)
+    
+            if (rect.x != ist.last_display_rect.x or rect.y != ist.last_display_rect.y or
+                rect.w != ist.last_display_rect.w or rect.h != ist.last_display_rect.h or
+                ist.force_refresh):
+                bgcolor = SDL_MapRGB(screen.format, 0x00, 0x00, 0x00)
+                fill_border(screen, ist.xleft, ist.ytop, ist.width, ist.height, rect.x,
+                            rect.y, rect.w, rect.h, bgcolor, 1)
+                ist.last_display_rect = rect
+
+    cdef void SDL_Initialize(VideoSink self, VideoState vs) nogil:
+        cdef unsigned flags
+        cdef const SDL_VideoInfo *vi
+        flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER
+        if vs.player.audio_disable:# or audio_sink != 'SDL':
+            flags &= ~SDL_INIT_AUDIO
+        if vs.player.display_disable or self.lib != SDL_Video:
+            SDL_putenv(dummy_videodriver) # For the event queue, we always need a video driver.
+        if NOT_WIN_MAC:
+            flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
+        with gil:
+            if SDL_Init(flags):
+                raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
+        if (not vs.player.display_disable) and self.lib == SDL_Video:
+            vi = SDL_GetVideoInfo()
+            vs.player.fs_screen_width = vi.current_w
+            vs.player.fs_screen_height = vi.current_h
+        SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE)
+        SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE)
+        SDL_EventState(SDL_USEREVENT, SDL_IGNORE)
+        self.remaining_time = 0.0
+
+    cdef void event_loop(VideoSink self, VideoState vs) nogil:
+        cdef SDL_Event event
+        cdef double incr, pos, frac
+        cdef double x
+        cdef double remaining_time
+
+        if self.lib == Py_Video:
+            while 1:
+                if self.remaining_time > 0.0:
+                    remaining_time = self.remaining_time
+                    self.remaining_time = 0.
+                    with gil:
+                        self.callback('refresh', remaining_time)
+                    break
+                self.remaining_time = REFRESH_RATE
+                self.settings_mutex.lock()
+                if <ShowMode>vs.show_mode != SHOW_MODE_NONE and ((not vs.paused) or vs.force_refresh):
+                    vs.video_refresh(&self.remaining_time)
+                self.settings_mutex.unlock()
+            self.alloc_mutex.lock()
+            if self.requested_alloc:
+                #self.settings_mutex.lock()
+                vs.alloc_picture()
+                #self.settings_mutex.unlock()
+                self.requested_alloc = 0
+            self.alloc_mutex.unlock()
+            return 
+
+        while 1:
+            remaining_time = 0.0
+            SDL_PumpEvents()
+            while not SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_ALLEVENTS):
+                self.settings_mutex.lock()
+                if (not vs.player.cursor_hidden) and av_gettime() -\
+                vs.player.cursor_last_shown > CURSOR_HIDE_DELAY:
+                    SDL_ShowCursor(0)
+                    vs.player.cursor_hidden = 1
+                self.settings_mutex.unlock()
+                if remaining_time > 0.0:
+                    av_usleep(<int64_t>(remaining_time * 1000000.0))
+                remaining_time = REFRESH_RATE
+                self.settings_mutex.lock()
+                if <ShowMode>vs.show_mode != SHOW_MODE_NONE and ((not vs.paused) or vs.force_refresh):
+                    vs.video_refresh(&remaining_time)
+                self.settings_mutex.unlock()
+                SDL_PumpEvents()
+            if event.type == SDL_VIDEOEXPOSE:
+                self.settings_mutex.lock()
+                vs.force_refresh = 1
+                self.settings_mutex.unlock()
+            elif event.type == SDL_VIDEORESIZE:
+                self.settings_mutex.lock()
+                vs.player.screen = SDL_SetVideoMode(FFMIN(16383, event.resize.w), event.resize.h, 0,
+                                                        SDL_HWSURFACE|SDL_RESIZABLE|SDL_ASYNCBLIT|SDL_HWACCEL)
+                if vs.player.screen == NULL:
+                    av_log(NULL, AV_LOG_FATAL, "Failed to set video mode\n")
+                    self.settings_mutex.unlock()
+                    break
+                vs.player.screen_width  = vs.width  = vs.player.screen.w
+                vs.player.screen_height = vs.height = vs.player.screen.h
+                vs.force_refresh = 1
+                self.settings_mutex.unlock()
+            elif event.type == SDL_QUIT or event.type == FF_QUIT_EVENT:
+                break
+            elif event.type == FF_ALLOC_EVENT:
+                vs.alloc_picture()
 
 cdef inline void fill_rectangle(SDL_Surface *screen, int x, int y, int w,
                                 int h, int color, int update) nogil:
@@ -308,48 +622,6 @@ cdef void calculate_display_rect(SDL_Rect *rect, int scr_xleft, int scr_ytop,
     rect.y = scr_ytop  + y
     rect.w = FFMAX(width,  1)
     rect.h = FFMAX(height, 1)
-
-
-cdef void video_image_display(SDL_Surface *screen, VideoState ist) nogil:
-    cdef VideoPicture *vp
-    cdef SubPicture *sp
-    cdef AVPicture pict
-    cdef SDL_Rect rect
-    cdef int i, bgcolor
-
-    vp = &(ist.pictq[ist.pictq_rindex])
-    if vp.bmp:
-        if ist.subtitle_st:
-            if ist.subpq_size > 0:
-                sp = &ist.subpq[ist.subpq_rindex]
-
-                if vp.pts >= sp.pts + (<float> sp.sub.start_display_time / 1000.):
-                    SDL_LockYUVOverlay(vp.bmp)
-
-                    pict.data[0] = vp.bmp.pixels[0]
-                    pict.data[1] = vp.bmp.pixels[2]
-                    pict.data[2] = vp.bmp.pixels[1]
-
-                    pict.linesize[0] = vp.bmp.pitches[0]
-                    pict.linesize[1] = vp.bmp.pitches[2]
-                    pict.linesize[2] = vp.bmp.pitches[1]
-
-                    for i from 0 <= i < sp.sub.num_rects:
-                        blend_subrect(&pict, sp.sub.rects[i], vp.bmp.w, vp.bmp.h)
-
-                    SDL_UnlockYUVOverlay(vp.bmp)
-
-        calculate_display_rect(&rect, ist.xleft, ist.ytop, ist.width, ist.height, vp)
-
-        SDL_DisplayYUVOverlay(vp.bmp, &rect)
-
-        if (rect.x != ist.last_display_rect.x or rect.y != ist.last_display_rect.y or
-            rect.w != ist.last_display_rect.w or rect.h != ist.last_display_rect.h or
-            ist.force_refresh):
-            bgcolor = SDL_MapRGB(screen.format, 0x00, 0x00, 0x00)
-            fill_border(screen, ist.xleft, ist.ytop, ist.width, ist.height, rect.x,
-                        rect.y, rect.w, rect.h, bgcolor, 1)
-            ist.last_display_rect = rect
 
 
 cdef void video_audio_display(SDL_Surface *screen, VideoState s, int64_t *audio_callback_time) nogil:

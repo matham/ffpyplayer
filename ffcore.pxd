@@ -7,66 +7,9 @@ cimport ffthreading
 from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
 cimport ffclock
 from ffclock cimport Clock
+cimport sink
+from sink cimport VideoSettings, VideoSink
 from cpython.ref cimport PyObject
-
-
-cdef struct VideoSettings:
-    int64_t sws_flags
-
-    AVInputFormat *file_iformat
-    char *input_filename
-    char *window_title
-    int fs_screen_width
-    int fs_screen_height
-    int default_width
-    int default_height
-    int screen_width
-    int screen_height
-    int audio_disable
-    int video_disable
-    int subtitle_disable
-    int wanted_stream[<int>AVMEDIA_TYPE_NB]
-    int seek_by_bytes
-    int display_disable
-    int show_status
-    int av_sync_type
-    int64_t start_time
-    int64_t duration
-    int workaround_bugs
-    int fast
-    int genpts
-    int lowres
-    int error_concealment
-    int decoder_reorder_pts
-    int autoexit
-    int exit_on_keydown
-    int exit_on_mousedown
-    int loop
-    int framedrop
-    int infinite_buffer
-    ShowMode show_mode
-    char *audio_codec_name
-    char *subtitle_codec_name
-    char *video_codec_name
-    double rdftspeed
-    int64_t cursor_last_shown
-    int cursor_hidden
-    #IF CONFIG_AVFILTER:
-    char *vfilters
-    char *afilters
-    
-    #/* current context */
-    int is_full_screen
-    int64_t audio_callback_time
-    
-    
-    SDL_Surface *screen
-    
-    SwsContext *sws_opts
-    AVDictionary *swr_opts
-    AVDictionary *format_opts, *codec_opts, *resample_opts
-    int dummy
-
 
 
 cdef class VideoState(object):
@@ -163,8 +106,6 @@ cdef class VideoState(object):
         VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE]
         int pictq_size, pictq_rindex, pictq_windex
         MTCond pictq_cond
-        IF not CONFIG_AVFILTER:
-            SwsContext *img_convert_ctx
         SDL_Rect last_display_rect
     
         char filename[1024]
@@ -182,6 +123,7 @@ cdef class VideoState(object):
     
         MTCond continue_read_thread
         MTGenerator mt_gen
+        VideoSink vid_sink
         VideoSettings *player
         int64_t last_time
         
@@ -192,9 +134,9 @@ cdef class VideoState(object):
         bytes py_m
         
         
-    cdef void cInit(VideoState self, MTGenerator mt_gen, char *input_filename,
+    cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink, char *input_filename,
                     AVInputFormat *file_iformat, int av_sync_type, VideoSettings *player) nogil
-    cdef int video_open(VideoState self, int force_set_video_mode, VideoPicture *vp) nogil
+    cdef void cquit(VideoState self) nogil
     cdef void video_display(VideoState self) nogil
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil
@@ -234,4 +176,3 @@ cdef class VideoState(object):
     cdef void stream_cycle_channel(VideoState self, int codec_type) nogil
     cdef void toggle_full_screen(VideoState self) nogil
     cdef void toggle_audio_display(VideoState self) nogil
-    cdef void refresh_loop_wait_event(VideoState self, SDL_Event *event) nogil

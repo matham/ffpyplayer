@@ -2,6 +2,7 @@
 __all__ = ('MTGenerator', )
 
 include "ff_defs_comp.pxi"
+include "inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
 
@@ -129,13 +130,18 @@ cdef class MTThread(object):
                 thread.start()
 
     cdef void wait_thread(MTThread self, int *status) nogil:
+        with gil:
+            print 'Gonna wait for thread'
         if self.lib == SDL_MT:
-            if self.thread == NULL:
+            if self.thread != NULL:
+                with gil:
+                    print 'threading thread wait'
                 SDL_WaitThread(<SDL_Thread *>self.thread, status)
         elif self.lib == Py_MT:
             with gil:
                 (<object>self.thread).join()
-                status[0] = 0
+                if status != NULL:
+                    status[0] = 0
 
 
 cdef int lockmgr(void ** mtx, AVLockOp op, MT_lib lib) with gil:

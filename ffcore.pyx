@@ -12,8 +12,8 @@ from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
 cimport ffclock
 from ffclock cimport Clock
 cimport sink
-from sink cimport calculate_display_rect, duplicate_right_border_pixels,\
-video_image_display, video_audio_display, fill_rectangle
+from sink cimport video_audio_display, fill_rectangle,\
+VideoSink, SDL_Video, Py_Video
 from cpython.ref cimport PyObject
 
 
@@ -64,7 +64,6 @@ ctypedef enum LoopState:
     display
 
 # XXX: const
-cdef AVPixelFormat *pix_fmts = [AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE]
 cdef AVSampleFormat *sample_fmts = [AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE]
 cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 
@@ -189,13 +188,17 @@ cdef class VideoState(object):
 
     def __cinit__(VideoState self):
         self.self_id = <PyObject*>self
-    cdef void cInit(VideoState self, MTGenerator mt_gen, char *input_filename,
+    cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink, char *input_filename,
                   AVInputFormat *file_iformat, int av_sync_type, VideoSettings *player) nogil:
         self.player = player
         IF not CONFIG_AVFILTER:
-            self.img_convert_ctx = NULL
+            self.player.img_convert_ctx = NULL
         with gil:
+            self.subtitle_tid = None
+            self.read_tid = None
+            self.video_tid = None
             self.mt_gen = mt_gen
+            self.vid_sink = vid_sink
             self.audioq = FFPacketQueue(mt_gen)
             self.subtitleq = FFPacketQueue(mt_gen)
             self.videoq = FFPacketQueue(mt_gen)
@@ -204,7 +207,7 @@ cdef class VideoState(object):
         self.iformat = file_iformat
         self.ytop = 0
         self.xleft = 0
-    
+
         with gil:
             # start video display
             self.pictq_cond  = MTCond(mt_gen.mt_src)
@@ -227,74 +230,38 @@ cdef class VideoState(object):
             self.read_tid.create_thread(read_thread, self.self_id)
 
     def __dealloc__(VideoState self):
+        self.cquit()
+
+    cdef void cquit(VideoState self) nogil:
         cdef VideoPicture *vp
         cdef int i
         # XXX: use a special url_shutdown call to abort parse cleanly
+        if self.read_tid is None:
+            return
         self.abort_request = 1
         self.read_tid.wait_thread(NULL)
+        with gil:
+            self.read_tid = None
     
         # free all pictures
         for i in range(VIDEO_PICTURE_QUEUE_SIZE):
             vp = &self.pictq[i]
-            if vp.bmp:
-                SDL_FreeYUVOverlay(vp.bmp)
-                vp.bmp = NULL
+            self.vid_sink.free_alloc(vp)
         for i in range(SUBPICTURE_QUEUE_SIZE):
             free_subpicture(&self.subpq[i])
         IF not CONFIG_AVFILTER:
-            sws_freeContext(self.img_convert_ctx)
+            sws_freeContext(self.player.img_convert_ctx)
         
 
-
-    cdef int video_open(VideoState self, int force_set_video_mode, VideoPicture *vp) nogil:
-        cdef uint32_t flags = SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL
-        cdef int w,h
-        cdef SDL_Rect rect
-        if self.player.is_full_screen:
-            flags |= SDL_FULLSCREEN
-        else:
-            flags |= SDL_RESIZABLE
-    
-        if vp != NULL and vp.width:
-            calculate_display_rect(&rect, 0, 0, INT_MAX, vp.height, vp);
-            self.player.default_width  = rect.w
-            self.player.default_height = rect.h
-    
-        if self.player.is_full_screen and self.player.fs_screen_width:
-            w = self.player.fs_screen_width
-            h = self.player.fs_screen_height
-        elif (not self.player.is_full_screen) and self.player.screen_width:
-            w = self.player.screen_width
-            h = self.player.screen_height
-        else:
-            w = self.player.default_width
-            h = self.player.default_height
-        w = FFMIN(16383, w)
-        if self.player.screen != NULL and self.width == self.player.screen.w and self.player.screen.w == w\
-        and self.height == self.player.screen.h and self.player.screen.h == h and not force_set_video_mode:
-            return 0
-        self.player.screen = SDL_SetVideoMode(w, h, 0, flags)
-        if self.player.screen == NULL:
-            av_log(NULL, AV_LOG_FATAL, "SDL: could not set video mode - exiting\n")
-            with gil:
-                raise Exception('SDL: could not set video mode - exiting')
-        if self.player.window_title == NULL:
-            self.player.window_title = self.player.input_filename
-        SDL_WM_SetCaption(self.player.window_title, self.player.window_title)
-        self.width  = self.player.screen.w
-        self.height = self.player.screen.h
-    
-        return 0
-    
     # display the current picture, if any
     cdef void video_display(VideoState self) nogil:
         if self.player.screen == NULL:
-            self.video_open(0, NULL)
+            self.vid_sink.video_open(0, NULL, self.player, &self.width, &self.height)
         #with gil:
         if self.audio_st != NULL and self.show_mode != SHOW_MODE_VIDEO:
             video_audio_display(self.player.screen, self, &self.player.audio_callback_time)
         elif self.video_st != NULL:
-            video_image_display(self.player.screen, self)
+            self.vid_sink.video_image_display(self.player.screen, self)
 
 
     cdef int get_master_sync_type(VideoState self) nogil:
@@ -433,11 +400,11 @@ cdef class VideoState(object):
     cdef void video_refresh(VideoState self, double *remaining_time) nogil:
         cdef VideoPicture *vp
         cdef double time
-    
+
         cdef SubPicture *sp, *sp2
-        
+
         cdef int redisplay
-        
+
         cdef LoopState state = retry
         cdef double last_duration, duration, delay
         cdef VideoPicture *nextvp
@@ -605,30 +572,8 @@ cdef class VideoState(object):
     ''' allocate a picture (needs to do that in main thread to avoid
     potential locking problems '''
     cdef void alloc_picture(VideoState self) nogil:
-        cdef VideoPicture *vp
-        cdef int64_t bufferdiff = 0
-        vp = &self.pictq[self.pictq_windex]
-    
-        if vp.bmp != NULL:
-            SDL_FreeYUVOverlay(vp.bmp)
-        self.video_open(0, vp)
-        vp.bmp = SDL_CreateYUVOverlay(vp.width, vp.height, SDL_YV12_OVERLAY,
-                                      self.player.screen)
-        if vp.bmp != NULL:
-            bufferdiff = FFMAXptr(vp.bmp.pixels[0], vp.bmp.pixels[1]) -\
-            FFMINptr(vp.bmp.pixels[0], vp.bmp.pixels[1])
-        if (vp.bmp == NULL or vp.bmp.pitches[0] < vp.width or
-            bufferdiff < <int64_t>vp.height * vp.bmp.pitches[0]):
-            ''' SDL allocates a buffer smaller than requested if the video
-            overlay hardware is unable to support the requested size. '''
-            #msg = 
-            av_log(NULL, AV_LOG_FATAL,
-                   "Error: the video system does not support an image\n\
-                   size of %dx%d pixels. Try using -lowres or -vf \"scale=w:h\"\n\
-                   to reduce the image size.\n", vp.width, vp.height)
-            with gil:
-                raise Exception('The video system does not support an image of size\
-             %dx%d pixels' % (vp.width, vp.height))
+        cdef VideoPicture *vp = &self.pictq[self.pictq_windex]
+        self.vid_sink.alloc_picture(vp, self.player, &self.width, &self.height)
         self.pictq_cond.lock()
         vp.allocated = 1
         self.pictq_cond.cond_signal()
@@ -638,9 +583,6 @@ cdef class VideoState(object):
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
                            int64_t pos, int serial) nogil:
         cdef VideoPicture *vp
-        cdef SDL_Event event
-        cdef AVPicture pict
-        memset(&pict, 0, sizeof(AVPicture))
         
         IF 0:# and defined(DEBUG_SYNC):
             av_log(NULL, AV_LOG_DEBUG, "frame_type=%c pts=%0.3f\n",
@@ -658,28 +600,24 @@ cdef class VideoState(object):
     
         vp = &self.pictq[self.pictq_windex]
         vp.sar = src_frame.sample_aspect_ratio
-    
+        
         # alloc or resize hardware picture buffer
-        if (vp.bmp == NULL or vp.reallocate or (not vp.allocated) or
+        if ((vp.bmp == NULL and vp.pict == NULL) or vp.reallocate or (not vp.allocated) or
             vp.width != src_frame.width or vp.height != src_frame.height):
             vp.allocated = 0
             vp.reallocate = 0
             vp.width = src_frame.width
             vp.height = src_frame.height
-    
             ''' the allocation must be done in the main thread to avoid
             locking problems. '''
-            event.type = FF_ALLOC_EVENT
-            event.user.data1 = self.self_id
-            SDL_PushEvent(&event)
+            self.vid_sink.request_thread(self.self_id, FF_ALLOC_EVENT)
             # wait until the picture is allocated
             self.pictq_cond.lock()
             while (not vp.allocated) and not self.videoq.abort_request:
                 self.pictq_cond.cond_wait()
             ''' if the queue is aborted, we have to pop the pending ALLOC event
             or wait for the allocation to complete '''
-            if self.videoq.abort_request and SDL_PeepEvents(&event, 1,\
-            SDL_GETEVENT, EVENTMASK(FF_ALLOC_EVENT)) != 1:
+            if self.videoq.abort_request and self.vid_sink.peep_alloc():
                 while not vp.allocated:
                     self.pictq_cond.cond_wait()
             self.pictq_cond.unlock()
@@ -688,37 +626,8 @@ cdef class VideoState(object):
                 return -1
     
         # if the frame is not skipped, then display it
-        if vp.bmp != NULL:
-            # get a pointer on the bitmap
-            SDL_LockYUVOverlay(vp.bmp)
-    
-            pict.data[0] = vp.bmp.pixels[0]
-            pict.data[1] = vp.bmp.pixels[2]
-            pict.data[2] = vp.bmp.pixels[1]
-    
-            pict.linesize[0] = vp.bmp.pitches[0]
-            pict.linesize[1] = vp.bmp.pitches[2]
-            pict.linesize[2] = vp.bmp.pitches[1]
-    
-            IF CONFIG_AVFILTER:
-                # FIXME use direct rendering
-                av_picture_copy(&pict, <AVPicture *>src_frame,
-                                <AVPixelFormat>src_frame.format, vp.width, vp.height)
-            ELSE:
-                av_opt_get_int(self.player.sws_opts, 'sws_flags', 0, &self.player.sws_flags)
-                self.img_convert_ctx = sws_getCachedContext(self.img_convert_ctx,\
-                vp.width, vp.height, <AVPixelFormat>src_frame.format, vp.width, vp.height,\
-                AV_PIX_FMT_YUV420P, self.player.sws_flags, NULL, NULL, NULL)
-                if self.img_convert_ctx == NULL:
-                    av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n")
-                    with gil:
-                        raise Exception('Cannot initialize the conversion context.')
-                sws_scale(self.img_convert_ctx, src_frame.data, src_frame.linesize,
-                          0, vp.height, pict.data, pict.linesize)
-            # workaround SDL PITCH_WORKAROUND 
-            duplicate_right_border_pixels(vp.bmp)
-            # update the bitmap content
-            SDL_UnlockYUVOverlay(vp.bmp)
+        if vp.bmp != NULL or vp.pict != NULL:
+            self.vid_sink.copy_picture(vp, src_frame, self.player)
     
             vp.pts = pts
             vp.pos = pos
@@ -833,10 +742,12 @@ cdef class VideoState(object):
             
             cdef char sws_flags_str[128]
             cdef char buffersrc_args[256]
+            cdef char scale_args[256]
             cdef int ret
-            cdef AVFilterContext *filt_src = NULL, *filt_out = NULL, *filt_crop
+            cdef AVFilterContext *filt_src = NULL, *filt_out = NULL, *filt_crop, *filt_scale
             cdef AVCodecContext *codec = self.video_st.codec
             cdef AVRational fr = av_guess_frame_rate(self.ic, self.video_st, NULL)
+            cdef AVPixelFormat * pix_fmts = self.vid_sink.get_out_pix_fmts()
             with gil:
                 pystr = "flags=%"+PRId64
         
@@ -856,21 +767,23 @@ cdef class VideoState(object):
                                                "ffplay_buffer", buffersrc_args, NULL, graph)
             if ret < 0:
                 return ret
-        
+
             ret = avfilter_graph_create_filter(&filt_out, avfilter_get_by_name("buffersink"),
                                                "ffplay_buffersink", NULL, NULL, graph)
+            fflush(stderr)
             if ret < 0:
                 return ret
         
-            ret = av_opt_set_int_list(filt_out, "pix_fmts", pix_fmts, sizeof(pix_fmts[0]),
-                                      AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN)
+            ret = av_opt_set_int_list(filt_out, "pix_fmts", pix_fmts,
+                                      sizeof(pix_fmts[0]), AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN)
             if ret < 0:
                 return ret
+            
         
             ''' SDL YUV code is not handling odd width/height for some driver
             combinations, therefore we crop the picture to an even width/height. '''
             ret = avfilter_graph_create_filter(&filt_crop, avfilter_get_by_name("crop"),
-                                               "ffplay_crop", "floor(in_w/2)*2:floor(in_h/2)*2",
+                                               "ffpyplayer_crop", "floor(in_w/2)*2:floor(in_h/2)*2",
                                                NULL, graph)
             if ret < 0:
                 return ret
@@ -878,9 +791,25 @@ cdef class VideoState(object):
             if ret < 0:
                 return ret
 
-            ret = self.configure_filtergraph(graph, vfilters, filt_src, filt_crop)
-            if ret < 0:
-                return ret
+            if self.vid_sink.lib == Py_Video and (self.player.screen_height or self.player.screen_width):
+                snprintf(scale_args, sizeof(scale_args), "%d:%d", self.player.screen_width,
+                         self.player.screen_height)
+                ret = avfilter_graph_create_filter(&filt_scale, avfilter_get_by_name("scale"),
+                                                   "ffpyplayer_scale", scale_args,
+                                                   NULL, graph)
+                if ret < 0:
+                    return ret
+                ret = avfilter_link(filt_src, 0, filt_scale, 0)
+                if ret < 0:
+                    return ret
+                # this needs to be here in case user provided filter at the input
+                ret = self.configure_filtergraph(graph, vfilters, filt_scale, filt_crop)
+                if ret < 0:
+                    return ret
+            else:
+                ret = self.configure_filtergraph(graph, vfilters, filt_src, filt_crop)
+                if ret < 0:
+                    return ret
         
             self.in_video_filter  = filt_src
             self.out_video_filter = filt_out
@@ -954,9 +883,9 @@ cdef class VideoState(object):
             cdef AVFilterContext *filt_out = NULL, *filt_in = NULL
             cdef int last_w = 0
             cdef int last_h = 0
+            cdef int last_scr_h = 0, last_scr_w = 0
             cdef AVPixelFormat last_format = <AVPixelFormat>-2
             cdef int last_serial = -1
-            cdef SDL_Event event
         memset(&pkt, 0, sizeof(pkt))
         
         while 1:
@@ -973,6 +902,8 @@ cdef class VideoState(object):
     
             IF CONFIG_AVFILTER:
                 if (last_w != frame.width or last_h != frame.height
+                    or last_scr_h != self.player.screen_height
+                    or last_scr_w != self.player.screen_width
                     or last_format != frame.format or last_serial != serial):
                     av_log(NULL, AV_LOG_DEBUG,
                            "Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
@@ -984,15 +915,15 @@ cdef class VideoState(object):
                     graph = avfilter_graph_alloc()
                     ret = self.configure_video_filters(graph, self.player.vfilters, frame)
                     if ret < 0:
-                        event.type = FF_QUIT_EVENT;
-                        event.user.data1 = self.self_id
-                        SDL_PushEvent(&event)
+                        self.vid_sink.request_thread(self.self_id, FF_QUIT_EVENT)
                         av_free_packet(&pkt)
                         break
                     filt_in  = self.in_video_filter
                     filt_out = self.out_video_filter
                     last_w = frame.width
                     last_h = frame.height
+                    last_scr_h = self.player.screen_height
+                    last_scr_w = self.player.screen_width
                     last_format = <AVPixelFormat>frame.format
                     last_serial = serial
                 ret = av_buffersrc_add_frame(filt_in, frame)
@@ -1079,13 +1010,14 @@ cdef class VideoState(object):
                 sp.pts = pts
                 sp.serial = serial
     
-                for i in range(sp.sub.num_rects):
-                    for j in range(sp.sub.rects[i].nb_colors):
-                        RGBA_IN(&r, &g, &b, &a, <uint32_t*>sp.sub.rects[i].pict.data[1] + j)
-                        y = RGB_TO_Y_CCIR(r, g, b)
-                        u = RGB_TO_U_CCIR(r, g, b, 0)
-                        v = RGB_TO_V_CCIR(r, g, b, 0)
-                        YUVA_OUT(<uint32_t*>sp.sub.rects[i].pict.data[1] + j, y, u, v, a)
+                if self.vid_sink.lib == SDL_Video:
+                    for i in range(sp.sub.num_rects):
+                        for j in range(sp.sub.rects[i].nb_colors):
+                            RGBA_IN(&r, &g, &b, &a, <uint32_t*>sp.sub.rects[i].pict.data[1] + j)
+                            y = RGB_TO_Y_CCIR(r, g, b)
+                            u = RGB_TO_U_CCIR(r, g, b, 0)
+                            v = RGB_TO_V_CCIR(r, g, b, 0)
+                            YUVA_OUT(<uint32_t*>sp.sub.rects[i].pict.data[1] + j, y, u, v, a)
     
                 # now we can update the picture count
                 self.subpq_windex += 1
@@ -1634,9 +1566,7 @@ cdef class VideoState(object):
             self.pictq_cond.lock()
             self.pictq_cond.cond_signal()
             self.pictq_cond.unlock()
-    
             self.video_tid.wait_thread(NULL)
-    
             self.videoq.packet_queue_flush()
         elif avctx.codec_type == AVMEDIA_TYPE_SUBTITLE:
             self.subtitleq.packet_queue_abort()
@@ -1867,6 +1797,7 @@ cdef class VideoState(object):
                     else:
                         temp64 = 0
                     if not self.player.loop:
+                        
                         self.stream_seek(temp64, 0, 0)
                     else:
                         self.player.loop = self.player.loop - 1
@@ -1874,6 +1805,10 @@ cdef class VideoState(object):
                             self.stream_seek(temp64, 0, 0)
                 elif self.player.autoexit:
                     return self.failed(AVERROR_EOF)
+                else:
+                    if not self.paused:
+                        self.stream_toggle_pause()
+                    self.vid_sink.request_thread(self.self_id, FF_EOF_EVENT)
             if eof:
                 if self.video_stream >= 0:
                     av_init_packet(pkt)
@@ -1929,7 +1864,6 @@ cdef class VideoState(object):
         return self.failed(ret)
     
     cdef inline int failed(VideoState self, int ret) nogil:
-        cdef SDL_Event event
         # close each stream
         if self.audio_stream >= 0:
             self.stream_component_close(self.audio_stream)
@@ -1939,11 +1873,8 @@ cdef class VideoState(object):
             self.stream_component_close(self.subtitle_stream)
         if self.ic != NULL:
             avformat_close_input(&self.ic)
-    
         if ret != 0:
-            event.type = FF_QUIT_EVENT
-            event.user.data1 = self.self_id
-            SDL_PushEvent(&event)
+            self.vid_sink.request_thread(self.self_id, FF_QUIT_EVENT)
         return 0
 
     cdef void stream_cycle_channel(VideoState self, int codec_type) nogil:
@@ -1993,7 +1924,7 @@ cdef class VideoState(object):
             for i from 0 <= i < VIDEO_PICTURE_QUEUE_SIZE:
                 self.pictq[i].reallocate = 1
         self.player.is_full_screen = not self.player.is_full_screen
-        self.video_open(1, NULL)
+        self.vid_sink.video_open(1, NULL, self.player, &self.width, &self.height)
     
     cdef void toggle_audio_display(VideoState self) nogil:
         cdef int bgcolor = SDL_MapRGB(self.player.screen.format, 0xFA, 0x00, 0x00)
@@ -2007,18 +1938,3 @@ cdef class VideoState(object):
                            self.height, bgcolor, 1)
             self.force_refresh = 1
             self.show_mode = <ShowMode>next
-    
-    cdef void refresh_loop_wait_event(VideoState self, SDL_Event *event) nogil:
-        cdef double remaining_time = 0.0
-        SDL_PumpEvents()
-        while not SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_ALLEVENTS):
-            if (not self.player.cursor_hidden) and av_gettime() -\
-            self.player.cursor_last_shown > CURSOR_HIDE_DELAY:
-                SDL_ShowCursor(0)
-                self.player.cursor_hidden = 1
-            if remaining_time > 0.0:
-                av_usleep(<int64_t>(remaining_time * 1000000.0))
-            remaining_time = REFRESH_RATE
-            if self.show_mode != SHOW_MODE_NONE and ((not self.paused) or self.force_refresh):
-                self.video_refresh(&remaining_time)
-            SDL_PumpEvents()

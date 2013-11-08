@@ -10,6 +10,11 @@ provide full cross format image buffer conversion
 av_dlog ?
 exceptions need to be included in function definition
 rework MT libs
+right now copy occurs at queue, at conversion to python and at blit.
+provide link between audio to video filters
+
+memory leak in video_image_display?
+
 '''
 
 ''' Things to watch out for:
@@ -73,7 +78,7 @@ cdef:
         const char *av_get_pix_fmt_name(AVPixelFormat)
 
     extern from "libavutil/imgutils.h" nogil:
-        pass
+        int av_image_alloc(uint8_t **, int *, int, int, AVPixelFormat, int)
 
     extern from "libavutil/dict.h" nogil:
         int AV_DICT_IGNORE_SUFFIX
@@ -137,6 +142,7 @@ cdef:
         
         enum AVPixelFormat:
             AV_PIX_FMT_YUV420P,
+            AV_PIX_FMT_RGB24,
             AV_PIX_FMT_NONE,
         
         int64_t AV_NOPTS_VALUE
@@ -184,6 +190,7 @@ cdef:
             int (*callback)(void*)
             void *opaque
         int url_feof(AVIOContext *)
+        inline int64_t avio_tell(AVIOContext *)
 
     extern from "libavformat/avformat.h" nogil:
         int AVSEEK_FLAG_BYTE
@@ -210,6 +217,8 @@ cdef:
             AVIOInterruptCB interrupt_callback
             int flags
             int64_t start_time
+            int bit_rate
+            int64_t duration
         struct AVStream:
             AVCodecContext *codec
             AVRational time_base
@@ -266,6 +275,7 @@ cdef:
             pass
         int av_opt_get_int(void *, const char *, int, int64_t *)
         int av_opt_set_int(void *, const char *, int64_t, int)
+        int av_opt_set_image_size(void *, const char *, int, int, int)
         const AVOption *av_opt_find(void *, const char *, const char *, int, int)
 
     extern from "libavcodec/avfft.h" nogil:
@@ -350,6 +360,7 @@ cdef:
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)
+        void avcodec_free_frame(AVFrame **)
         void avsubtitle_free(AVSubtitle *)
         void av_fast_malloc(void *, unsigned int *, size_t)
         void avcodec_register_all()
@@ -432,6 +443,7 @@ cdef:
         double pts             # presentation timestamp for this picture
         int64_t pos            # byte position in file
         SDL_Overlay *bmp
+        AVFrame *pict
         int width, height  # source height & width
         int allocated
         int reallocate
@@ -456,4 +468,10 @@ cdef:
         SHOW_MODE_WAVES,
         SHOW_MODE_RDFT,
         SHOW_MODE_NB
-    
+
+IF CONFIG_SDL:
+    ctypedef SDL_Rect Rect
+ELSE:
+    cdef struct Rect:
+        int16_t x, y
+        uint16_t w, h

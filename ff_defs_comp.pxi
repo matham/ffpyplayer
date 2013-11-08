@@ -5,6 +5,7 @@ are constants defined in the headers and they may change between versions.
 '''
 DEF FF_ALLOC_EVENT = 24 # SDL_USEREVENT
 DEF FF_QUIT_EVENT = FF_ALLOC_EVENT + 2
+DEF FF_EOF_EVENT = FF_ALLOC_EVENT + 3
 '-----------------------------------------------------------------------------'
 include "ffconfig.pxi"
 
