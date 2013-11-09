@@ -19,7 +19,7 @@ from ffqueue cimport FFPacketQueue
 cimport ffcore
 from ffcore cimport VideoState
 cimport sink
-from sink cimport VideoSettings, VideoSink, SDL_Video, Py_Video
+from sink cimport VideoSettings, VideoSink, Py_Video
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
@@ -181,7 +181,7 @@ cdef class FFPyPlayer(object):
         if vid_sink == 'SDL':
             if not CONFIG_SDL:
                 raise Exception('FFPyPlayer extension not compiled with SDL support.')
-            self.vid_sink = VideoSink(SDL_Video, self.settings_mutex)
+            #self.vid_sink = VideoSink(SDL_Video, self.settings_mutex)
         elif callable(vid_sink):
             self.vid_sink = VideoSink(Py_Video, self.settings_mutex, 
                                       MTMutex(self.mt_gen.mt_src), vid_sink)
@@ -243,12 +243,14 @@ cdef class FFPyPlayer(object):
         
     def toggle_pause(self):
         self.settings_mutex.lock()
-        self.ivs.toggle_pause()
+        with nogil:
+            self.ivs.toggle_pause()
         self.settings_mutex.unlock()
     
     def step_frame(self):
         self.settings_mutex.lock()
-        self.ivs.step_to_next_frame()
+        with nogil:
+            self.ivs.step_to_next_frame()
         self.settings_mutex.unlock()
     
     def force_refresh(self):
@@ -261,8 +263,6 @@ cdef class FFPyPlayer(object):
         self.settings_mutex.lock()
         self.settings.screen_width = self.ivs.width = width
         self.settings.screen_height = self.ivs.height = height
-        self.ivs.stream_component_close(self.ivs.video_stream)
-        self.ivs.stream_component_open(self.ivs.video_stream)
         self.settings_mutex.unlock()
     
     'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)'
@@ -276,7 +276,8 @@ cdef class FFPyPlayer(object):
             stream = AVMEDIA_TYPE_SUBTITLE
         else:
             raise Exception('Invalid stream type')
-        self.ivs.stream_cycle_channel(stream)
+        with nogil:
+            self.ivs.stream_cycle_channel(stream)
     
     'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)\
     Only works for SDL currently.'
@@ -290,38 +291,42 @@ cdef class FFPyPlayer(object):
         if relative:
             incr = val
             if seek_by_bytes:
-                if self.ivs.video_stream >= 0 and self.ivs.video_current_pos >= 0:
-                    pos = self.ivs.video_current_pos
-                elif self.ivs.audio_stream >= 0 and self.ivs.audio_pkt.pos >= 0:
-                    pos = self.ivs.audio_pkt.pos
-                else:
-                    pos = avio_tell(self.ivs.ic.pb)
-                if self.ivs.ic.bit_rate:
-                    incr *= self.ivs.ic.bit_rate / 8.0
-                else:
-                    incr *= 180000.0;
-                pos += incr
-                self.ivs.stream_seek(<int64_t>pos, <int64_t>incr, 1)
+                with nogil:
+                    if self.ivs.video_stream >= 0 and self.ivs.video_current_pos >= 0:
+                        pos = self.ivs.video_current_pos
+                    elif self.ivs.audio_stream >= 0 and self.ivs.audio_pkt.pos >= 0:
+                        pos = self.ivs.audio_pkt.pos
+                    else:
+                        pos = avio_tell(self.ivs.ic.pb)
+                    if self.ivs.ic.bit_rate:
+                        incr *= self.ivs.ic.bit_rate / 8.0
+                    else:
+                        incr *= 180000.0;
+                    pos += incr
+                    self.ivs.stream_seek(<int64_t>pos, <int64_t>incr, 1)
             else:
-                pos = self.ivs.get_master_clock()
-                if isnan(pos):
-                    # seek_pos might never have been set
-                    pos = <double>self.ivs.seek_pos / <double>AV_TIME_BASE
-                pos += incr
-                if self.ivs.ic.start_time != AV_NOPTS_VALUE and pos < self.ivs.ic.start_time / <double>AV_TIME_BASE:
-                    pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
-                self.ivs.stream_seek(<int64_t>(pos * AV_TIME_BASE), <int64_t>(incr * AV_TIME_BASE), 0)
+                with nogil:
+                    pos = self.ivs.get_master_clock()
+                    if isnan(pos):
+                        # seek_pos might never have been set
+                        pos = <double>self.ivs.seek_pos / <double>AV_TIME_BASE
+                    pos += incr
+                    if self.ivs.ic.start_time != AV_NOPTS_VALUE and pos < self.ivs.ic.start_time / <double>AV_TIME_BASE:
+                        pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
+                    self.ivs.stream_seek(<int64_t>(pos * AV_TIME_BASE), <int64_t>(incr * AV_TIME_BASE), 0)
         else:
             pos = val
             if seek_by_bytes:
-                if self.ivs.ic.bit_rate:
-                    pos *= self.ivs.ic.bit_rate / 8.0
-                else:
-                    pos *= 180000.0;
-                self.ivs.stream_seek(<int64_t>pos, 0, 1)
+                with nogil:
+                    if self.ivs.ic.bit_rate:
+                        pos *= self.ivs.ic.bit_rate / 8.0
+                    else:
+                        pos *= 180000.0;
+                    self.ivs.stream_seek(<int64_t>pos, 0, 1)
             else:
-                t = <int64_t>(pos * AV_TIME_BASE)
-                if self.ivs.ic.start_time != AV_NOPTS_VALUE and t < self.ivs.ic.start_time:
-                    t = self.ivs.ic.start_time
-                self.ivs.stream_seek(t, 0, 0)
+                with nogil:
+                    t = <int64_t>(pos * AV_TIME_BASE)
+                    if self.ivs.ic.start_time != AV_NOPTS_VALUE and t < self.ivs.ic.start_time:
+                        t = self.ivs.ic.start_time
+                    self.ivs.stream_seek(t, 0, 0)
         self.settings_mutex.unlock()

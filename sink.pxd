@@ -2,8 +2,8 @@
 include "ff_defs.pxi"
 
 cdef enum Video_lib:
-    SDL_Video,
     Py_Video
+    SDL_Video
 
 cimport ffcore
 from ffcore cimport VideoState
@@ -95,7 +95,6 @@ cdef struct VideoSettings:
 
 cdef void calculate_display_rect(SDL_Rect *rect, int scr_xleft, int scr_ytop,
                                  int scr_width, int scr_height, VideoPicture *vp) nogil
-cdef void duplicate_right_border_pixels(SDL_Overlay *bmp) nogil
 cdef void video_audio_display(SDL_Surface *screen, VideoState s, int64_t *audio_callback_time) nogil
 cdef inline void fill_rectangle(SDL_Surface *screen, int x, int y, int w,
                                 int h, int color, int update) nogil
