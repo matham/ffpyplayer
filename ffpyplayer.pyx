@@ -19,7 +19,7 @@ from ffqueue cimport FFPacketQueue
 cimport ffcore
 from ffcore cimport VideoState
 cimport sink
-from sink cimport VideoSettings, VideoSink, Py_Video
+from sink cimport VideoSettings, VideoSink
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
@@ -37,16 +37,13 @@ cdef class FFPyPlayer(object):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         PyEval_InitThreads()
-        settings.format_opts = settings.codec_opts = settings.resample_opts = settings.swr_opts = NULL
+        settings.format_opts = settings.codec_opts = NULL
         settings.sws_flags = SWS_BICUBIC
-        settings.default_width  = 640
-        settings.default_height = 480
         # set x, or y to -1 to preserve pixel ratio
         settings.screen_width  = ff_opts['x'] if 'x' in ff_opts else 0
         settings.screen_height = ff_opts['y'] if 'y' in ff_opts else 0
         if not CONFIG_AVFILTER and (settings.screen_width or settings.screen_height):
             raise Exception('You can only set the screen size when avfilter is enabled.')
-        settings.is_full_screen = bool(ff_opts['fs']) if 'fs' in ff_opts else 0
         settings.audio_disable = bool(ff_opts['an']) if 'an' in ff_opts else 0
         settings.video_disable = bool(ff_opts['vn']) if 'vn' in ff_opts else 0
         settings.subtitle_disable = bool(ff_opts['sn']) if 'sn' in ff_opts else 0
@@ -61,7 +58,6 @@ cdef class FFPyPlayer(object):
             if val != 1 and val != 0 and val != -1:
                 raise ValueError('Invalid bytes option value.')
             settings.seek_by_bytes = val
-        settings.display_disable = bool(ff_opts['nodisp']) if 'nodisp' in ff_opts else 0
         settings.file_iformat = NULL
         if 'f' in ff_opts:
             settings.file_iformat = av_find_input_format(ff_opts['f'])
@@ -93,23 +89,9 @@ cdef class FFPyPlayer(object):
             else:
                 raise ValueError('Invalid sync option value.')
         settings.autoexit = ff_opts['autoexit'] if 'autoexit' in ff_opts else 0
-        settings.exit_on_keydown = 0
-        settings.exit_on_mousedown = 0
         settings.loop = ff_opts['loop'] if 'loop' in ff_opts else 1
         settings.framedrop = bool(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
         settings.infinite_buffer = bool(ff_opts['infbuf']) if 'infbuf' in ff_opts else -1
-        settings.window_title = NULL
-        if 'window_title' in ff_opts:
-            self.py_window_title = ff_opts['window_title']
-            settings.window_title = self.py_window_title
-        settings.show_mode = SHOW_MODE_NONE
-        if 'showmode' in ff_opts:
-            val = ff_opts['showmode']
-            if val != 0 and val != 1 and val != 2 and val != -1:
-                raise ValueError('Invalid showmode option value.')
-            settings.show_mode = val # xxx might need to cast to ShowMode?
-        settings.rdftspeed = float(ff_opts['rdftspeed']) if 'rdftspeed' in ff_opts else 0.02
-        settings.cursor_hidden = 0
         IF CONFIG_AVFILTER:
             settings.vfilters = NULL
             if 'vf' in ff_opts:
@@ -119,7 +101,10 @@ cdef class FFPyPlayer(object):
             if 'af' in ff_opts:
                 self.py_afilters = ff_opts['af']
                 settings.afilters = self.py_afilters
-        settings.dummy = bool(ff_opts['i']) if 'i' in ff_opts else 0
+            settings.avfilters = NULL
+            if 'avf' in ff_opts:
+                self.py_avfilters = ff_opts['avf']
+                settings.avfilters = self.py_avfilters
         settings.audio_codec_name = NULL
         if 'acodec' in ff_opts:
             self.py_audio_codec_name = ff_opts['acodec']
@@ -139,8 +124,6 @@ cdef class FFPyPlayer(object):
             if av_parse_cpu_caps(&flags, ff_opts['cpuflags']) < 0:
                 raise ValueError('Invalid cpuflags option value.')
             av_force_cpu_flags(flags)
-        if settings.display_disable:
-            settings.video_disable = 1
 
         'see http://ffmpeg.org/ffmpeg.html for log levels'
         loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
@@ -165,8 +148,7 @@ cdef class FFPyPlayer(object):
 
 
         'filename can start with pipe:'
-        self.py_filename = filename # keep filename in memory until closing
-        settings.input_filename = self.py_filename
+        av_strlcpy(settings.input_filename, <char *>filename, sizeof(settings.input_filename))
         if thread_lib == 'SDL':
             if not CONFIG_SDL:
                 raise Exception('FFPyPlayer extension not compiled with SDL support.')
@@ -178,28 +160,16 @@ cdef class FFPyPlayer(object):
         if audio_sink != 'SDL':
             raise Exception('Currently, only SDL is supported as a audio sink.')
         self.settings_mutex = MTMutex(self.mt_gen.mt_src)
-        if vid_sink == 'SDL':
-            if not CONFIG_SDL:
-                raise Exception('FFPyPlayer extension not compiled with SDL support.')
-            #self.vid_sink = VideoSink(SDL_Video, self.settings_mutex)
-        elif callable(vid_sink):
-            self.vid_sink = VideoSink(Py_Video, self.settings_mutex, 
-                                      MTMutex(self.mt_gen.mt_src), vid_sink)
+        if callable(vid_sink):
+            self.vid_sink = VideoSink(self.settings_mutex, MTMutex(self.mt_gen.mt_src), vid_sink)
+            self.vid_sink.set_out_pix_fmt(AV_PIX_FMT_RGB24)
         else:
             raise Exception('Video sink parameter not recognized.')
         if av_lockmgr_register(self.mt_gen.get_lockmgr()):
             raise ValueError('Could not initialize lock manager.')
         self.ivs = VideoState()
-        self.ivs.cInit(self.mt_gen, self.vid_sink, settings.input_filename, settings.file_iformat,
-                              settings.av_sync_type, settings)
-        self.update_thread = None
-        if vid_sink == 'SDL':
-            self.update_thread = MTThread(self.mt_gen.mt_src)
-            self.update_thread.create_thread(event_loop, <PyObject*>self)
-        else:
-            self.vid_sink.SDL_Initialize(self.ivs)
-        #if callable(vid_sink):
-        #    vid_sink('refresh', 0.0)
+        self.ivs.cInit(self.mt_gen, self.vid_sink, settings)
+        self.vid_sink.SDL_Initialize(self.ivs)
 
     def __dealloc__(self):
         cdef const char *empty = ''
@@ -211,10 +181,8 @@ cdef class FFPyPlayer(object):
             sws_freeContext(self.settings.sws_opts)
             self.settings.sws_opts = NULL
 
-        av_dict_free(&self.settings.swr_opts)
         av_dict_free(&self.settings.format_opts)
         av_dict_free(&self.settings.codec_opts)
-        av_dict_free(&self.settings.resample_opts)
         IF CONFIG_AVFILTER:
             av_freep(&self.settings.vfilters)
         avformat_network_deinit()
@@ -226,20 +194,9 @@ cdef class FFPyPlayer(object):
     def refresh(self, *args):
         with nogil:
             self.vid_sink.event_loop(self.ivs)
-            
-    def get_duration(self):
-        if self.ivs.ic.duration < 0:
-            return 0.0
-        else:
-            return self.ivs.ic.duration / <double>AV_TIME_BASE
     
-    def get_size(self):
-        return (self.ivs.width, self.ivs.height)
-    
-    'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)'
-    def toggle_full_screen(self):
-        self.ivs.toggle_full_screen()
-        self.ivs.force_refresh = 1
+    def get_metadata(self):
+        return self.ivs.metadata
         
     def toggle_pause(self):
         self.settings_mutex.lock()
@@ -256,13 +213,16 @@ cdef class FFPyPlayer(object):
     def force_refresh(self):
         self.settings_mutex.lock()
         self.ivs.force_refresh = 1
+        self.ivs.callback('refresh', 0.0)
         self.settings_mutex.unlock()
     
     "Can only be called from the main thread (GUI thread in kivy) Doesn't work with SDL"
     def set_size(self, int width, int height):
+        if not CONFIG_AVFILTER and (width or height):
+            raise Exception('You can only set the screen size when avfilter is enabled.')
         self.settings_mutex.lock()
-        self.settings.screen_width = self.ivs.width = width
-        self.settings.screen_height = self.ivs.height = height
+        self.settings.screen_width = width
+        self.settings.screen_height = height
         self.settings_mutex.unlock()
     
     'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)'
@@ -278,11 +238,6 @@ cdef class FFPyPlayer(object):
             raise Exception('Invalid stream type')
         with nogil:
             self.ivs.stream_cycle_channel(stream)
-    
-    'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)\
-    Only works for SDL currently.'
-    def toggle_audio_display(self):
-        self.ivs.toggle_audio_display()
 
     def seek(self, val, relative=True, seek_by_bytes=False):
         cdef double incr, pos

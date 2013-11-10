@@ -442,7 +442,6 @@ cdef:
     struct VideoPicture:
         double pts             # presentation timestamp for this picture
         int64_t pos            # byte position in file
-        SDL_Overlay *bmp
         AVFrame *pict
         int width, height  # source height & width
         int allocated
@@ -462,16 +461,3 @@ cdef:
         AV_SYNC_AUDIO_MASTER, # default choice
         AV_SYNC_VIDEO_MASTER,
         AV_SYNC_EXTERNAL_CLOCK, # synchronize to an external clock
-    enum ShowMode:
-        SHOW_MODE_NONE = -1,
-        SHOW_MODE_VIDEO = 0,
-        SHOW_MODE_WAVES,
-        SHOW_MODE_RDFT,
-        SHOW_MODE_NB
-
-IF CONFIG_SDL:
-    ctypedef SDL_Rect Rect
-ELSE:
-    cdef struct Rect:
-        int16_t x, y
-        uint16_t w, h

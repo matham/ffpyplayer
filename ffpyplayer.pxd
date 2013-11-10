@@ -15,12 +15,11 @@ cdef class FFPyPlayer(object):
         MTGenerator mt_gen
         VideoSink vid_sink
         VideoState ivs
-        MTThread update_thread
         MTMutex settings_mutex
         bytes py_window_title
         bytes py_vfilters
         bytes py_afilters
+        bytes py_avfilters
         bytes py_audio_codec_name
         bytes py_video_codec_name
         bytes py_subtitle_codec_name
-        bytes py_filename

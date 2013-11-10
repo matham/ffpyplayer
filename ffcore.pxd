@@ -17,7 +17,6 @@ cdef class VideoState(object):
         MTThread read_tid
         MTThread video_tid
         AVInputFormat *iformat
-        int no_background
         int abort_request
         int force_refresh
         int paused
@@ -71,16 +70,9 @@ cdef class VideoState(object):
         int frame_drops_late
         AVFrame *frame
         int64_t audio_frame_next_pts
-        ShowMode show_mode
 
         int16_t sample_array[SAMPLE_ARRAY_SIZE]
         int sample_array_index
-        int last_i_start
-        RDFTContext *rdft
-        int rdft_bits
-        FFTSample *rdft_data
-        int xpos
-        double last_vis_time
     
         MTThread subtitle_tid
         int subtitle_stream
@@ -106,10 +98,7 @@ cdef class VideoState(object):
         VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE]
         int pictq_size, pictq_rindex, pictq_windex
         MTCond pictq_cond
-        SDL_Rect last_display_rect
-    
-        char filename[1024]
-        int width, height, xleft, ytop
+
         int step
     
         IF CONFIG_AVFILTER:
@@ -117,6 +106,7 @@ cdef class VideoState(object):
             AVFilterContext *out_video_filter  # the last filter in the video chain
             AVFilterContext *in_audio_filter   # the first filter in the audio chain
             AVFilterContext *out_audio_filter  # the last filter in the audio chain
+            AVFilterContext *split_audio_filter  # the last filter in the audio chain
             AVFilterGraph *agraph              # audio filter graph
     
         int last_video_stream, last_audio_stream, last_subtitle_stream
@@ -132,12 +122,12 @@ cdef class VideoState(object):
         
         bytes py_pat
         bytes py_m
+        dict metadata
         
         
-    cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink, char *input_filename,
-                    AVInputFormat *file_iformat, int av_sync_type, VideoSettings *player) nogil
+    cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
+                    VideoSettings *player) nogil
     cdef void cquit(VideoState self) nogil
-    cdef void video_display(VideoState self) nogil
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil
     cdef void check_external_clock_speed(VideoState self) nogil
@@ -174,5 +164,3 @@ cdef class VideoState(object):
     cdef int read_thread(VideoState self) nogil
     cdef inline int failed(VideoState self, int ret) nogil
     cdef void stream_cycle_channel(VideoState self, int codec_type) nogil
-    cdef void toggle_full_screen(VideoState self) nogil
-    cdef void toggle_audio_display(VideoState self) nogil
