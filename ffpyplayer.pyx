@@ -23,14 +23,6 @@ from sink cimport VideoSettings, VideoSink
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
-
-cdef int event_loop(void *obj) with gil:
-    cdef FFPyPlayer fp = <object>obj
-    with nogil:
-        fp.vid_sink.SDL_Initialize(fp.ivs)
-        fp.vid_sink.event_loop(fp.ivs)
-    return 0
-
 cdef class FFPyPlayer(object):
 
     def __cinit__(self, filename, loglevel, ff_opts, thread_lib='python', vid_sink='SDL', audio_sink='SDL', **kargs):
@@ -213,7 +205,7 @@ cdef class FFPyPlayer(object):
     def force_refresh(self):
         self.settings_mutex.lock()
         self.ivs.force_refresh = 1
-        self.ivs.callback('refresh', 0.0)
+        self.ivs.callback()('refresh', 0.0)
         self.settings_mutex.unlock()
     
     "Can only be called from the main thread (GUI thread in kivy) Doesn't work with SDL"

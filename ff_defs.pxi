@@ -12,6 +12,7 @@ exceptions need to be included in function definition
 rework MT libs
 right now copy occurs at queue, at conversion to python and at blit.
 provide link between audio to video filters
+display bitmap based subtitles
 
 memory leak in video_image_display?
 
@@ -357,6 +358,14 @@ cdef:
             int h         #///< height           of pict, undefined when pict is not set
             AVPicture pict
             int nb_colors
+            char *text
+            char *ass
+            AVSubtitleType type
+        enum AVSubtitleType:
+            SUBTITLE_NONE
+            SUBTITLE_BITMAP
+            SUBTITLE_TEXT
+            SUBTITLE_ASS
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)

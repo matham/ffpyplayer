@@ -65,7 +65,7 @@ extra_objects = [os.path.join(bin, obj + share) for obj in extra_objects]
 mods = ['ffpyplayer', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock']
 
 ext_modules = [Extension(src_file, [src_file+'.pyx'], include_dirs=include_dirs,
-                         extra_objects=extra_objects) for src_file in mods]
+                         extra_objects=extra_objects, extra_compile_args=["-O3"]) for src_file in mods]
 
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
 

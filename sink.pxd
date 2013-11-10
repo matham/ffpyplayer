@@ -22,6 +22,7 @@ cdef class VideoSink(object):
     cdef void copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil
     cdef void video_image_display(VideoSink self, VideoPicture *vp) nogil
+    cdef void subtitle_display(VideoSink self, AVSubtitle *sub) nogil
     cdef void SDL_Initialize(VideoSink self, VideoState vs) nogil
     cdef void event_loop(VideoSink self, VideoState vs) nogil
     

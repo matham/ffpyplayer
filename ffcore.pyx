@@ -988,6 +988,8 @@ cdef class VideoState(object):
 #                 self.subpq_size += 1
 #                 self.subpq_cond.unlock()
             if got_subtitle:
+                if sp.sub.format != 0:
+                    self.vid_sink.subtitle_display(&sp.sub)
                 avsubtitle_free(&sp.sub)
             av_free_packet(pkt)
         return 0
@@ -1516,19 +1518,13 @@ cdef class VideoState(object):
                 avfilter_graph_free(&self.agraph)
         elif avctx.codec_type == AVMEDIA_TYPE_VIDEO:
             self.videoq.packet_queue_abort()
-            with gil:
-                print 'close vid'
             ''' note: we also signal this mutex to make sure we deblock the
             video thread in all cases '''
             self.pictq_cond.lock()
             self.pictq_cond.cond_signal()
             self.pictq_cond.unlock()
-            with gil:
-                print 'before wait'
             self.video_tid.wait_thread(NULL)
             self.videoq.packet_queue_flush()
-            with gil:
-                print 'after wait'
         elif avctx.codec_type == AVMEDIA_TYPE_SUBTITLE:
             self.subtitleq.packet_queue_abort()
     

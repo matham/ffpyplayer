@@ -6,7 +6,8 @@ include "inline_funcs.pxi"
 from cpython.ref cimport PyObject
 
 cdef extern from "Python.h":
-    PyObject* PyString_FromStringAndSize(const char *v, Py_ssize_t len)
+    PyObject* PyString_FromStringAndSize(const char *, Py_ssize_t)
+    PyObject* PyString_FromString(const char *)
     void Py_DECREF(PyObject *)
 
 cimport ffcore
@@ -18,6 +19,7 @@ from ffthreading cimport MTMutex
 cdef AVPixelFormat *pix_fmts = [AV_PIX_FMT_RGB24, AV_PIX_FMT_NONE]
 pydummy_videodriver = 'SDL_VIDEODRIVER=dummy' # does SDL_putenv copy the string?
 cdef char *dummy_videodriver = pydummy_videodriver
+cdef bytes sub_ass = str('ass'), sub_text = str('text'), sub_fmt
 
 cdef class VideoSink(object):
 
@@ -40,13 +42,13 @@ cdef class VideoSink(object):
             self.requested_alloc = 1
             self.alloc_mutex.unlock()
             with gil:
-                self.callback('refresh', 0.0)
+                self.callback()('refresh', 0.0)
         elif request == FF_QUIT_EVENT:
             with gil:
-                self.callback('quit', None)
+                self.callback()('quit', None)
         elif request == FF_EOF_EVENT:
             with gil:
-                self.callback('eof', None)
+                self.callback()('eof', None)
 
     cdef int peep_alloc(VideoSink self) nogil:
         self.alloc_mutex.lock()
@@ -103,14 +105,34 @@ cdef class VideoSink(object):
                 raise Exception('Invalid output pixel format.')
             buff = PyString_FromStringAndSize(<const char *>\
             vp.pict.data[0], 3 *vp.width * vp.height)
-            self.callback('display', (<object>buff, (vp.width, vp.height), vp.pts))
+            self.callback()('display', (<object>buff, (vp.width, vp.height), vp.pts))
             # XXX doesn't python automatically free?
             Py_DECREF(buff)
-#             if ist.subtitle_st:
-#                 if ist.subpq_size > 0:
-#                     sp = &ist.subpq[ist.subpq_rindex]
-#     
-#                     if vp.pts >= sp.pts + (<float> sp.sub.start_display_time / 1000.):
+
+    cdef void subtitle_display(VideoSink self, AVSubtitle *sub) nogil:
+        cdef PyObject *buff
+        cdef int i
+        cdef double pts
+        with gil:
+            for i in range(sub.num_rects):
+                if sub.rects[i].type == SUBTITLE_ASS:
+                    buff = PyString_FromString(sub.rects[i].ass)
+                    sub_fmt = sub_ass
+                elif sub.rects[i].type == SUBTITLE_TEXT:
+                    buff = PyString_FromString(sub.rects[i].text)
+                    sub_fmt = sub_text
+                else:
+                    buff = NULL
+                    continue
+                if sub.pts != AV_NOPTS_VALUE:
+                    pts = sub.pts / <double>AV_TIME_BASE
+                else:
+                    pts = 0.0
+                self.callback()('display_sub', (<object>buff, sub_fmt, pts,
+                                                sub.start_display_time / 1000.,
+                                                sub.end_display_time / 1000.))
+                if buff != NULL:
+                    Py_DECREF(buff)
 
     cdef void SDL_Initialize(VideoSink self, VideoState vs) nogil:
         cdef unsigned flags
@@ -137,7 +159,7 @@ cdef class VideoSink(object):
                 remaining_time = self.remaining_time
                 self.remaining_time = 0.
                 with gil:
-                    self.callback('refresh', remaining_time)
+                    self.callback()('refresh', remaining_time)
                 break
             self.remaining_time = REFRESH_RATE
             self.settings_mutex.lock()
