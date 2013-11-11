@@ -117,6 +117,7 @@ cdef class VideoState(object):
         VideoSettings *player
         int64_t last_time
         
+        MTCond pause_cond
         double last_clock
         PyObject *self_id
         

@@ -1,9 +1,4 @@
-'''
-------------------------------------------------------------------------------- 
-XXX: this should be checked for every version of SDL since these
-are constants defined in the headers and they may change between versions.
-'''
-DEF FF_ALLOC_EVENT = 24 # SDL_USEREVENT
+DEF FF_ALLOC_EVENT = 24
 DEF FF_QUIT_EVENT = FF_ALLOC_EVENT + 2
 DEF FF_EOF_EVENT = FF_ALLOC_EVENT + 3
 '-----------------------------------------------------------------------------'
@@ -19,7 +14,6 @@ cdef extern from "ffconfig.h":
 A/V sync as SDL does not have hardware buffer fullness info. '''
 DEF SDL_AUDIO_BUFFER_SIZE = 1024
 DEF AUDIO_BUFFER_SIZE = SDL_AUDIO_BUFFER_SIZE
-DEF CURSOR_HIDE_DELAY = 1000000
 
 DEF MAX_QUEUE_SIZE = (15 * 1024 * 1024)
 DEF MIN_FRAMES = 5

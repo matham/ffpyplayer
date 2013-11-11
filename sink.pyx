@@ -58,12 +58,16 @@ cdef class VideoSink(object):
 
     cdef void alloc_picture(VideoSink self, VideoPicture *vp) nogil:
         if vp.pict != NULL:
+            #av_frame_unref(vp.pict)
             self.free_alloc(vp)
+#         else:
         vp.pict = av_frame_alloc()
         if vp.pict == NULL:
             av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe.\n")
             with gil:
                 raise Exception('Could not allocate avframe.')
+#         IF CONFIG_AVFILTER and 0:
+#             return
         if (av_image_alloc(vp.pict.data, vp.pict.linesize, vp.width,
                            vp.height, pix_fmts[0], 1) < 0):
             av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
@@ -73,15 +77,18 @@ cdef class VideoSink(object):
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil:
         if vp.pict != NULL:
             av_frame_unref(vp.pict)
-            av_freep(vp.pict.data)
+            #av_freep(vp.pict.data)
             av_frame_free(&vp.pict)
+            vp.pict = NULL
         
     cdef void copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil:
 
         IF CONFIG_AVFILTER:
+            #av_frame_move_ref(vp.pict, src_frame)
             av_picture_copy(<AVPicture *>vp.pict, <AVPicture *>src_frame,
                             <AVPixelFormat>src_frame.format, vp.width, vp.height)
+            av_frame_unref(src_frame)
         ELSE:
             av_opt_get_int(player.sws_opts, 'sws_flags', 0, &player.sws_flags)
             player.img_convert_ctx = sws_getCachedContext(player.img_convert_ctx,\
@@ -92,7 +99,7 @@ cdef class VideoSink(object):
                 with gil:
                     raise Exception('Cannot initialize the conversion context.')
             sws_scale(player.img_convert_ctx, src_frame.data, src_frame.linesize,
-                      0, vp.height, pict.data, pict.linesize)
+                      0, vp.height, vp.pict.data, vp.pict.linesize)
 
     cdef void video_image_display(VideoSink self, VideoPicture *vp) nogil:
         cdef SubPicture *sp
@@ -103,11 +110,11 @@ cdef class VideoSink(object):
         with gil:
             if pix_fmts[0] != AV_PIX_FMT_RGB24:
                 raise Exception('Invalid output pixel format.')
-            buff = PyString_FromStringAndSize(<const char *>\
-            vp.pict.data[0], 3 *vp.width * vp.height)
+            buff = PyString_FromStringAndSize(<const char *>vp.pict.data[0], 3 *vp.width * vp.height)
             self.callback()('display', (<object>buff, (vp.width, vp.height), vp.pts))
             # XXX doesn't python automatically free?
             Py_DECREF(buff)
+            #av_frame_unref(vp.pict)
 
     cdef void subtitle_display(VideoSink self, AVSubtitle *sub) nogil:
         cdef PyObject *buff

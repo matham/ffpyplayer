@@ -42,9 +42,6 @@ cdef inline int compute_mod(int a, int b) nogil:
     else:
         return a%b
 
-cdef inline unsigned int EVENTMASK(unsigned int X) nogil:
-    return 1 << X
-
 cdef inline int av_opt_set_int_list(void *obj, const char *name, const void *val,
                                     size_t val_deref_size, uint64_t term, int flags) nogil:
     if av_int_list_length_for_size(val_deref_size, val, term) > INT_MAX / val_deref_size:

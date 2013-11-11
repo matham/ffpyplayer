@@ -83,6 +83,7 @@ cdef class FFPyPlayer(object):
         settings.autoexit = ff_opts['autoexit'] if 'autoexit' in ff_opts else 0
         settings.loop = ff_opts['loop'] if 'loop' in ff_opts else 1
         settings.framedrop = bool(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
+        # -1 means not infinite, not respected if real time.
         settings.infinite_buffer = bool(ff_opts['infbuf']) if 'infbuf' in ff_opts else -1
         IF CONFIG_AVFILTER:
             settings.vfilters = NULL

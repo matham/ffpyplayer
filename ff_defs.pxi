@@ -2,23 +2,19 @@
 Check how to deal with errors, and maybe make ffmpeg specific error codes?
 Implement opt_default() so that we can set any user options using av_dict
 Do we need OpenCL support?
-mark everything with @cython.cdivision(True) and nogil
-currently MTMutex is not destroyed
-init VideoState to all zero
 show_banner(argc, argv, options) at start
-provide full cross format image buffer conversion
+provide full cross format image buffer conversion libs
 av_dlog ?
 exceptions need to be included in function definition
-rework MT libs
 right now copy occurs at queue, at conversion to python and at blit.
 provide link between audio to video filters
 display bitmap based subtitles
 
-memory leak in video_image_display?
+need to call Py_DECREF to prevent memory leak in video_image_display is a cython bug, or feature?
 
 '''
 
-''' Things to watch out for:
+''' Things to watch out for when proting from c to cython:
 In c the &,^,| operators are weaker than comparisons (<= etc.), in python it's reversed.
 Macro function gets inlined in c, with variables names replaced to the current context
     variables. Pointers should be used in the macro replacement function to refer to
@@ -27,9 +23,9 @@ In c, a macro can work for arguments of type float, int, etc. simultanously beca
     it just gets substituted. When porting a macro function you have to make a function
     for each input argument type combination that it's used on.
 When you get cython errors about python objects it means you forgot to define some
-    struct variable which you used.
+    struct/variable which you used.
 In c, if either numerator or denominator is a float, the result is also a float.
-    In python, on if the denuminator is a float will the result be a float.
+    In python, only if the denuminator is a float will the result be a float.
 When converting loops from for (x=0;x<10;x++) to for x in range(10) make sure
     the code is not changing x in the loop since it won't work for python.
 In cython you cannot use 0 instead of NULL, so for e.g. int *ptr = ...
@@ -167,6 +163,7 @@ cdef:
         char av_get_picture_type_char(AVPictureType)
         void av_frame_unref(AVFrame *)
         void av_frame_free(AVFrame **)
+        void av_frame_move_ref(AVFrame *, AVFrame *)
         unsigned av_int_list_length_for_size(unsigned, const void *, uint64_t)
         int av_opt_set_bin(void *, const char *, const uint8_t *, int, int)
         

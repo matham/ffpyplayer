@@ -124,7 +124,7 @@ cdef class FFPacketQueue(object):
                 ret = 1
                 break
             elif not block:
-                ret = 0
+                ret = -1
                 break
             else:
                 self.cond.cond_wait()

@@ -194,9 +194,10 @@ cdef class VideoState(object):
 
         with gil:
             # start video display
-            self.pictq_cond  = MTCond(mt_gen.mt_src)
-            self.subpq_cond  = MTCond(mt_gen.mt_src)
+            self.pictq_cond = MTCond(mt_gen.mt_src)
+            self.subpq_cond = MTCond(mt_gen.mt_src)
             self.continue_read_thread = MTCond(mt_gen.mt_src)
+            self.pause_cond = MTCond(mt_gen.mt_src)
         
             self.vidclk = Clock()
             self.vidclk.cInit(&self.videoq.serial)
@@ -223,6 +224,7 @@ cdef class VideoState(object):
         if self.read_tid is None:
             return
         self.abort_request = 1
+        self.pause_cond.cond_signal()
         self.read_tid.wait_thread(NULL)
         with gil:
             self.read_tid = None
@@ -298,6 +300,9 @@ cdef class VideoState(object):
             self.vidclk.set_clock(self.vidclk.get_clock(), self.vidclk.serial)
         self.extclk.set_clock(self.extclk.get_clock(), self.extclk.serial)
         self.paused = self.audclk.paused = self.vidclk.paused = self.extclk.paused = not self.paused
+        self.pause_cond.lock()
+        self.pause_cond.cond_signal()
+        self.pause_cond.unlock()
     
     cdef void toggle_pause(VideoState self) nogil:
         self.stream_toggle_pause()
@@ -916,7 +921,7 @@ cdef class VideoState(object):
                     else:
                         pts = frame.pts * av_q2d(filt_out.inputs[0].time_base)
                     ret = self.queue_picture(frame, pts, av_frame_get_pkt_pos(frame), serial)
-                    av_frame_unref(frame)
+                    #av_frame_unref(frame)
             ELSE:
                 if frame.pts == AV_NOPTS_VALUE:
                     pts = NAN
@@ -1107,7 +1112,7 @@ cdef class VideoState(object):
                         self.audio_finished = self.audio_pkt_temp_serial
                     if not got_frame:
                         continue
-                    
+
                     tb.num = 1
                     tb.den = self.frame.sample_rate
                     if self.frame.pts != AV_NOPTS_VALUE:
@@ -1173,7 +1178,7 @@ cdef class VideoState(object):
                         return ret
                     self.audio_buf_frames_pending = 1
                     tb = self.out_audio_filter.inputs[0].time_base
-    
+
                 data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(self.frame),
                                                        self.frame.nb_samples, <AVSampleFormat>self.frame.format, 1)
                 
@@ -1255,7 +1260,6 @@ cdef class VideoState(object):
                 av_free_packet(pkt)
             memset(pkt_temp, 0, sizeof(pkt_temp[0]))
             pkt_temp.stream_index = -1
-
             if self.audioq.abort_request:
                 return -1
 
@@ -1265,7 +1269,7 @@ cdef class VideoState(object):
                 self.continue_read_thread.unlock()
 
             # read next packet
-            if self.audioq.packet_queue_get(pkt, 1, &self.audio_pkt_temp_serial) < 0:
+            if self.audioq.packet_queue_get(pkt, 0, &self.audio_pkt_temp_serial) < 0:
                 return -1
 
             if pkt.data == get_flush_packet().data:
@@ -1619,7 +1623,7 @@ cdef class VideoState(object):
         if ic.duration >= 0:
             with gil:
                 self.metadata['duration'] = ic.duration / <double>AV_TIME_BASE
-        
+
         # if seeking requested, we execute it
         if self.player.start_time != AV_NOPTS_VALUE:
             timestamp = self.player.start_time
@@ -1670,7 +1674,7 @@ cdef class VideoState(object):
             av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
                    self.player.input_filename)
             return self.failed(-1)
-    
+
         if self.player.infinite_buffer < 0 and self.realtime:
             self.player.infinite_buffer = 1
 
@@ -1688,7 +1692,10 @@ cdef class VideoState(object):
                 ic.pb != NULL and not strncmp(self.player.input_filename, "mmsh:", 5)):
                     # wait 10 ms to avoid trying to get another packet
                     # XXX: horrible
-                    self.mt_gen.delay(10)
+                    self.pause_cond.lock()
+                    self.pause_cond.cond_wait()
+                    self.pause_cond.unlock()
+                    #self.mt_gen.delay(10)
                     continue
             if self.seek_req:
                 seek_target = self.seek_pos
@@ -1766,8 +1773,8 @@ cdef class VideoState(object):
                 elif self.player.autoexit:
                     return self.failed(AVERROR_EOF)
                 else:
-                    if not self.paused:
-                        self.stream_toggle_pause()
+                    #if not self.paused:
+                    #    self.stream_toggle_pause()
                     self.vid_sink.request_thread(self.self_id, FF_EOF_EVENT)
             if eof:
                 if self.video_stream >= 0:

@@ -130,12 +130,8 @@ cdef class MTThread(object):
                 thread.start()
 
     cdef void wait_thread(MTThread self, int *status) nogil:
-        with gil:
-            print 'Gonna wait for thread'
         if self.lib == SDL_MT:
             if self.thread != NULL:
-                with gil:
-                    print 'threading thread wait'
                 SDL_WaitThread(<SDL_Thread *>self.thread, status)
         elif self.lib == Py_MT:
             with gil:
