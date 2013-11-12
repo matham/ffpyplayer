@@ -1,5 +1,5 @@
 
-__all__ = ('FFPyPlayer', )
+__all__ = ('FFPyPlayer', 'set_log_callback')
 
 
 import os
@@ -12,4 +12,4 @@ bin_path = os.path.join(pathname, 'bins')
 if bin_path not in os.pathsep.split(os.environ['PATH']):
     os.environ['PATH'] = bin_path + os.pathsep + os.environ['PATH']
 import ffpyplayer
-from ffpyplayer import FFPyPlayer
+from ffpyplayer import FFPyPlayer, set_log_callback

@@ -12,6 +12,8 @@ cdef extern from "math.h" nogil:
     double NAN
     int isnan(double x)
 
+
+
 cimport ffthreading
 from ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
 cimport ffqueue
@@ -23,9 +25,44 @@ from sink cimport VideoSettings, VideoSink
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
+
+'see http://ffmpeg.org/ffmpeg.html for log levels'
+loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
+             "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
+             "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG}
+loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
+
+cdef object _log_callback = None
+cdef int _print_prefix
+cdef MTMutex _log_mutex= MTMutex(Py_MT)
+
+cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
+    cdef char line[1024]
+    global _print_prefix
+    _log_mutex.lock()
+    _print_prefix = 1
+    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &_print_prefix)
+    if _log_callback is not None:
+        with gil:
+            _log_callback(str(line), loglevel_inverse[level])
+    _log_mutex.unlock()
+
+def set_log_callback(object callback):
+    global _log_callback
+    if callback is not None and not callable(callback):
+         raise Exception('Log callback needs to be callable.')
+    _log_mutex.lock()
+    if callback is None:
+        av_log_set_callback(&av_log_default_callback)
+    else:
+        av_log_set_callback(&_log_callback_func)
+    _log_callback = callback
+    _log_mutex.unlock()
+
 cdef class FFPyPlayer(object):
 
-    def __cinit__(self, filename, loglevel, ff_opts, thread_lib='python', vid_sink='SDL', audio_sink='SDL', **kargs):
+    def __cinit__(self, filename, vid_sink, loglevel='error', ff_opts={},
+                  thread_lib='python', audio_sink='SDL', **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         PyEval_InitThreads()
@@ -70,6 +107,7 @@ cdef class FFPyPlayer(object):
         settings.lowres = ff_opts['lowres'] if 'lowres' in ff_opts else 0
         settings.error_concealment = ff_opts['ec'] if 'ec' in ff_opts else 3
         settings.av_sync_type = AV_SYNC_AUDIO_MASTER
+        settings.volume = SDL_MIX_MAXVOLUME
         if 'sync' in ff_opts:
             val = ff_opts['sync']
             if val == 'audio':
@@ -118,10 +156,6 @@ cdef class FFPyPlayer(object):
                 raise ValueError('Invalid cpuflags option value.')
             av_force_cpu_flags(flags)
 
-        'see http://ffmpeg.org/ffmpeg.html for log levels'
-        loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
-                     "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
-                     "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG}
         if loglevel not in loglevels:
             raise ValueError('Invalid log level option.')
 
@@ -190,6 +224,9 @@ cdef class FFPyPlayer(object):
     
     def get_metadata(self):
         return self.ivs.metadata
+
+    def set_volume(self, volume):
+        self.settings.volume = min(max(volume, 0.), 1.) * SDL_MIX_MAXVOLUME
         
     def toggle_pause(self):
         self.settings_mutex.lock()

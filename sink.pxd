@@ -34,6 +34,7 @@ cdef struct VideoSettings:
     char input_filename[1024]
     int screen_width
     int screen_height
+    uint8_t volume
     int audio_disable
     int video_disable
     int subtitle_disable

@@ -47,11 +47,13 @@ cdef extern from * nogil:
     uint32_t SDL_FULLSCREEN
     uint32_t SDL_RESIZABLE
     uint32_t SDL_YV12_OVERLAY
+    uint8_t SDL_MIX_MAXVOLUME
     
     uint16_t AUDIO_S16SYS
     int SDL_OpenAudio(SDL_AudioSpec *, SDL_AudioSpec *)
     void SDL_PauseAudio(int)
     void SDL_CloseAudio()
+    void SDL_MixAudio(uint8_t *, const uint8_t *, uint32_t, int)
 
     SDL_mutex *SDL_CreateMutex()
     void SDL_DestroyMutex(SDL_mutex *)

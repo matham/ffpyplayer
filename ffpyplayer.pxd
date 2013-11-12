@@ -9,6 +9,7 @@ cimport sink
 from sink cimport VideoSettings, VideoSink
 
 
+
 cdef class FFPyPlayer(object):
     cdef:
         VideoSettings settings

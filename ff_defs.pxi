@@ -33,6 +33,9 @@ In cython you cannot use 0 instead of NULL, so for e.g. int *ptr = ...
 When passing a string to c code which is kept, you have to keep python string in memory
 '''
 
+cdef extern from "stdarg.h":
+    ctypedef struct va_list:
+        pass
 from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
 int16_t, uint8_t, int8_t, uintptr_t
 
@@ -136,6 +139,7 @@ cdef:
         void av_log_set_level(int)
         void av_log_set_callback(void (*)(void*, int, const char*, va_list))
         void av_log_default_callback(void*, int, const char*, va_list)
+        void av_log_format_line(void *, int, const char *, va_list, char *, int, int *)
         
         enum AVPixelFormat:
             AV_PIX_FMT_YUV420P,

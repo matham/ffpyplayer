@@ -224,7 +224,9 @@ cdef class VideoState(object):
         if self.read_tid is None:
             return
         self.abort_request = 1
+        self.pause_cond.lock()
         self.pause_cond.cond_signal()
+        self.pause_cond.unlock()
         self.read_tid.wait_thread(NULL)
         with gil:
             self.read_tid = None
@@ -1305,7 +1307,8 @@ cdef class VideoState(object):
             len1 = self.audio_buf_size - self.audio_buf_index
             if len1 > len:
                 len1 = len
-            memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+            SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1, self.player.volume)
+            #memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
             len -= len1
             stream += len1
             self.audio_buf_index += len1
