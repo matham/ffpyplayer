@@ -1,4 +1,3 @@
-# https://github.com/tito/ffmpeg-android/blob/master/python/ffmpeg/_ffmpeg.pyx
 
 __all__ = ('FFPyPlayer', )
 

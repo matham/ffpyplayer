@@ -1,4 +1,33 @@
+To use:
+-Setup.py and __init__.py is configured for windows where the dlls are in /bin.
+For unix they need to be modified before they can be used. A very recent ffmpeg
+source as well as compiled dlls are included. Only tested with SDL 1.2, so that
+should be used but we can get it to work with v2.
+
+-The ffpyplayer __init__ func shows how it can be configured. It takes most of
+the config paramtaters that ffmpeg's ffplay takes, including arbitrary video and
+audio filters. If you don't use audio we should be able to ignore SDL entirly
+since you can use either SDL or python threading elements.
+
+-This started with a very recent ffmpeg source from which I ported ffplay into
+cython. It accepts most files including network streams (rtsp, etc.), probably
+webcams as well and outputs the video into a python callback. Audio is output
+with SDL. It also supports text based subtitles which it outputs as text strings.
+Alternatively you can show subtitles through filters. You can selectively excelude
+ffmpeg libs when compiling, e.g. avfilter to reduce file size. Because it's
+started with current ffmpeg source, we should be easily able to keep up with any
+changes to ffmpeg by translating any changes to ffplay into cython.  So any bugs
+we are having with the code is likely to also to affect ffmpeg and will probably
+be reproducible with ffplay. So we could probably file bug reports with ffmpeg
+and have them fix stuff which we can then replicate in our code...
+
+-I'd consider the current version alpha, because style and organization can
+probably be improved. Also, it lacks docs. But the library itself, excluding the
+test.py example should be pretty stable. There are still notes and old commented
+code sprinkled around that needs to be removed once the library is satisfiable.
+
 TODO:
+
 -Need to add documentation.
 -Need to make proper setup.y and __init__.py.
 -The larger the frame size the higher the CPU. Currently, a copy occurs in cython

@@ -1,8 +1,8 @@
 import kivy
 from kivy.base import EventLoop
 EventLoop.ensure_window()
-#import ffpyplayer
-from __init__ import FFPyPlayer, set_log_callback
+import ffpyplayer
+from ffpyplayer import FFPyPlayer, set_log_callback
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.image import Image

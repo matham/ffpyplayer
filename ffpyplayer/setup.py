@@ -70,5 +70,4 @@ ext_modules = [Extension(src_file, [src_file+'.pyx'], include_dirs=include_dirs,
 
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
 
-
 #python setup.py build_ext --inplace --force
