@@ -1,0 +1,64 @@
+TODO:
+-Need to add documentation.
+-Need to make proper setup.y and __init__.py.
+-The larger the frame size the higher the CPU. Currently, a copy occurs in cython
+when queing a frame from the decoder. Another copy occurs when converting the
+buffer into a bytes object. And finally another copy occurs in blit when the data
+is copied to GPU. blit_buffer can be hacked to make it take a char*of the buffer
+so that _NO_ copying of data occurrs. When testing, CPU did not go down much.
+So the high CPU usage is because of large RGB buffers passed to GPU. YUV is smaller,
+is that possible? http://stackoverflow.com/a/9337372. This is the biggest issue currently.
+In any case, we can already get rid of the first copy from the end of the filter
+chain by using ffmpeg ref counting. However, in that case we will have to deal with
+buffers which are aligned to 8/16 bytes etc on a row by row basis. This thread
+might explain how we can change kivy to be able to deal with this (maybe)
+http://ffmpeg.org/pipermail/ffmpeg-devel/2013-May/143343.html. Also, if we can
+add a parameter to blit_buffer which will cast to a char *, then the image data
+will not have to be copied at all all!!! But that's not very pythonic, I suppose.
+
+-Check how to deal with errors, and maybe make ffmpeg specific error codes?
+-Right now, errors are not propagated if they occur, they are just written to the
+stderr stream. Need to add except * to function definitions smartly if we want to
+propogate errors. It's a question whether an exception should occur when e.g. a
+audio stream cannot be played or if the other streams, e.g. video should continue playing.
+maybe logging the error is enough?
+-av_dlog probably not needed, remove it?
+-Implement opt_default() so that we can set any user options using av_dict in generic way
+-Do we need OpenCL support?
+-show_banner(argc, argv, options) at start
+-provide full cross format image conversion libs using swsscale
+-gcc complains a lot but they are not actual issues, I believe. Go through them.
+-Test channel cycling with a file with multiple video/audio channels. Add option
+to close audio/subtitle/video streams mid play and allow changing of filters
+dynamically if it's needed.
+-Currently, it only supports text subtitles, bitmap subtitles are ignored.
+You can also not yet visualize audio to video. If that is important it can be
+made to work. The same with bitmap subtitles. Note, alternatively, you can use
+the subtitles filter in the video filter chain. When we add a filter to handle
+bitmap subtitle, most of the subtitle related code can be removed.
+Do this by providing link between audio to video filters, and subtitle to video.
+We can do this by making video stream dependent on subtitle or audio.
+
+
+need to call Py_DECREF to prevent memory leak in video_image_display is a cython bug, or feature?
+
+
+--------------------------------
+
+Things to watch out for when proting from c to cython:
+In c the &,^,| operators are weaker than comparisons (<= etc.), in python it's reversed.
+Macro function gets inlined in c, with variables names replaced to the current context
+    variables. Pointers should be used in the macro replacement function to refer to
+    the original variables. Use inline for them.
+In c, a macro can work for arguments of type float, int, etc. simultanously because
+    it just gets substituted. When porting a macro function you have to make a function
+    for each input argument type combination that it's used on.
+When you get cython errors about python objects it means you forgot to define some
+    struct/variable which you used.
+In c, if either numerator or denominator is a float, the result is also a float.
+    In python, only if the denuminator is a float will the result be a float.
+When converting loops from for (x=0;x<10;x++) to for x in range(10) make sure
+    the code is not changing x in the loop since it won't work for python.
+In cython you cannot use 0 instead of NULL, so for e.g. int *ptr = ...
+    we have to check if ptr == NULL: instead of if not ptr:
+When passing a string to c code which is kept, you have to keep python string in memory
