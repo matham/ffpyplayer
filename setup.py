@@ -31,8 +31,8 @@ with open('ffconfig.h', 'wb') as f:
 #ifndef _FFCONFIG_H
 #define _FFCONFIG_H
 
-''' + 
-'#include "' + os.path.join(sdl_includes, 'SDL_version.h') + '"\n' + 
+''' +
+'#include "' + os.path.join(sdl_includes, 'SDL_version.h') + '"\n' +
 '''
 #define SDL_VERSIONNUM(X, Y, Z) ((X)*1000 + (Y)*100 + (Z))
 #define SDL_VERSION_ATLEAST(X, Y, Z) (SDL_COMPILEDVERSION >= SDL_VERSIONNUM(X, Y, Z))
@@ -50,7 +50,7 @@ with open('ffconfig.h', 'wb') as f:
 
 #endif
 ''')
-    
+
 print 'Generating ffconfig.pxi'
 with open('ffconfig.pxi', 'wb') as f:
     for k, v in c_options.iteritems():

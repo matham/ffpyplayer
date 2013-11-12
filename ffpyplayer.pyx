@@ -59,6 +59,7 @@ def set_log_callback(object callback):
     _log_callback = callback
     _log_mutex.unlock()
 
+
 cdef class FFPyPlayer(object):
 
     def __cinit__(self, filename, vid_sink, loglevel='error', ff_opts={},
@@ -76,7 +77,7 @@ cdef class FFPyPlayer(object):
         settings.audio_disable = bool(ff_opts['an']) if 'an' in ff_opts else 0
         settings.video_disable = bool(ff_opts['vn']) if 'vn' in ff_opts else 0
         settings.subtitle_disable = bool(ff_opts['sn']) if 'sn' in ff_opts else 0
-        settings.wanted_stream[<int>AVMEDIA_TYPE_AUDIO] = ff_opts['ast'] if 'ast' in ff_opts else -1 
+        settings.wanted_stream[<int>AVMEDIA_TYPE_AUDIO] = ff_opts['ast'] if 'ast' in ff_opts else -1
         settings.wanted_stream[<int>AVMEDIA_TYPE_VIDEO] = ff_opts['vst'] if 'vst' in ff_opts else -1
         settings.wanted_stream[<int>AVMEDIA_TYPE_SUBTITLE] = ff_opts['sst'] if 'sst' in ff_opts else -1
         settings.start_time = ff_opts['ss'] * 1000000 if 'ss' in ff_opts else AV_NOPTS_VALUE
@@ -221,31 +222,31 @@ cdef class FFPyPlayer(object):
     def refresh(self, *args):
         with nogil:
             self.vid_sink.event_loop(self.ivs)
-    
+
     def get_metadata(self):
         return self.ivs.metadata
 
     def set_volume(self, volume):
         self.settings.volume = min(max(volume, 0.), 1.) * SDL_MIX_MAXVOLUME
-        
+
     def toggle_pause(self):
         self.settings_mutex.lock()
         with nogil:
             self.ivs.toggle_pause()
         self.settings_mutex.unlock()
-    
+
     def step_frame(self):
         self.settings_mutex.lock()
         with nogil:
             self.ivs.step_to_next_frame()
         self.settings_mutex.unlock()
-    
+
     def force_refresh(self):
         self.settings_mutex.lock()
         self.ivs.force_refresh = 1
         self.ivs.callback()('refresh', 0.0)
         self.settings_mutex.unlock()
-    
+
     "Can only be called from the main thread (GUI thread in kivy) Doesn't work with SDL"
     def set_size(self, int width, int height):
         if not CONFIG_AVFILTER and (width or height):
@@ -254,7 +255,7 @@ cdef class FFPyPlayer(object):
         self.settings.screen_width = width
         self.settings.screen_height = height
         self.settings_mutex.unlock()
-    
+
     'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)'
     def cycle_channel(self, stream_type):
         cdef int stream

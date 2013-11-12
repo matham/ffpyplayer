@@ -11,7 +11,7 @@ cdef extern from "math.h" nogil:
 
 
 cdef class Clock(object):
-        
+
     def __cinit__(Clock self):
         pass
     cdef void cInit(Clock self, int *queue_serial) nogil:
@@ -25,7 +25,7 @@ cdef class Clock(object):
 
     def __dealloc__(Clock self):
         pass
-    
+
     cdef double get_clock(Clock self) nogil:
         cdef double time
         if self.queue_serial[0] != self.serial:

@@ -26,14 +26,14 @@ cdef class MTMutex(object):
             mutex = threading.Lock()
             self.mutex = <PyObject *>mutex
             Py_INCREF(<PyObject *>self.mutex)
-    
+
     def __dealloc__(MTMutex self):
         if self.lib == SDL_MT:
             if self.mutex != NULL:
                 SDL_DestroyMutex(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
             Py_DECREF(<PyObject *>self.mutex)
-    
+
     cdef int lock(MTMutex self) nogil:
         if self.lib == SDL_MT:
             return SDL_mutexP(<SDL_mutex *>self.mutex)
@@ -63,7 +63,7 @@ cdef class MTCond(object):
             cond = threading.Condition(<object>self.mutex.mutex)
             self.cond = <PyObject *>cond
             Py_INCREF(<PyObject *>self.cond)
-    
+
     def __dealloc__(MTCond self):
         if self.lib == SDL_MT:
             if self.cond != NULL:
@@ -73,10 +73,10 @@ cdef class MTCond(object):
 
     cdef int lock(MTCond self) nogil:
         self.mutex.lock()
-        
+
     cdef int unlock(MTCond self) nogil:
         self.mutex.unlock()
-        
+
     cdef int cond_signal(MTCond self) nogil:
         if self.lib == SDL_MT:
             return SDL_CondSignal(<SDL_cond *>self.cond)
@@ -92,7 +92,7 @@ cdef class MTCond(object):
             with gil:
                 (<object>self.cond).wait()
             return 0
-        
+
     cdef int cond_wait_timeout(MTCond self, uint32_t val) nogil:
         if self.lib == SDL_MT:
             return SDL_CondWaitTimeout(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex, val)
@@ -109,11 +109,11 @@ cdef class MTThread(object):
     def __cinit__(MTThread self, MT_lib lib):
         self.lib = lib
         self.thread = NULL
-    
+
     def __dealloc__(MTThread self):
         if self.lib == Py_MT and self.thread != NULL:
             Py_DECREF(<PyObject *>self.thread)
-    
+
     cdef void create_thread(MTThread self, int_void_func func, void *arg) nogil:
         if self.lib == SDL_MT:
             with gil:
@@ -181,7 +181,7 @@ cdef class MTGenerator(object):
             with gil:
                 import time
                 time.sleep(delay / 1000.)
-    
+
     cdef lockmgr_func get_lockmgr(MTGenerator self) nogil:
         if self.mt_src == SDL_MT:
             return SDL_lockmgr

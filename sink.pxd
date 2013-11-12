@@ -25,7 +25,7 @@ cdef class VideoSink(object):
     cdef void subtitle_display(VideoSink self, AVSubtitle *sub) nogil
     cdef void SDL_Initialize(VideoSink self, VideoState vs) nogil
     cdef void event_loop(VideoSink self, VideoState vs) nogil
-    
+
 
 cdef struct VideoSettings:
     int64_t sws_flags
@@ -60,10 +60,10 @@ cdef struct VideoSettings:
     char *vfilters
     char *afilters
     char *avfilters
-    
+
     #/* current context */
     int64_t audio_callback_time
-    
+
     SwsContext *img_convert_ctx
     SwsContext *sws_opts
     AVDictionary *format_opts, *codec_opts

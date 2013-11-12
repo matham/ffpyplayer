@@ -17,7 +17,7 @@ cdef class MTCond(object):
     cdef MT_lib lib
     cdef MTMutex mutex
     cdef void *cond
-    
+
     cdef int lock(MTCond self) nogil
     cdef int unlock(MTCond self) nogil
     cdef int cond_signal(MTCond self) nogil
@@ -27,11 +27,11 @@ cdef class MTCond(object):
 cdef class MTThread(object):
     cdef MT_lib lib
     cdef void* thread
-    
+
     cdef void create_thread(MTThread self, int_void_func func, void *arg) nogil
     cdef void wait_thread(MTThread self, int *status) nogil
-    
-    
+
+
 cdef class MTGenerator(object):
     cdef MT_lib mt_src
 

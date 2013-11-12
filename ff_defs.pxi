@@ -1,37 +1,3 @@
-''' TODO:
-Check how to deal with errors, and maybe make ffmpeg specific error codes?
-Implement opt_default() so that we can set any user options using av_dict
-Do we need OpenCL support?
-show_banner(argc, argv, options) at start
-provide full cross format image buffer conversion libs
-av_dlog ?
-exceptions need to be included in function definition
-right now copy occurs at queue, at conversion to python and at blit.
-provide link between audio to video filters
-display bitmap based subtitles
-
-need to call Py_DECREF to prevent memory leak in video_image_display is a cython bug, or feature?
-
-'''
-
-''' Things to watch out for when proting from c to cython:
-In c the &,^,| operators are weaker than comparisons (<= etc.), in python it's reversed.
-Macro function gets inlined in c, with variables names replaced to the current context
-    variables. Pointers should be used in the macro replacement function to refer to
-    the original variables. Use inline for them.
-In c, a macro can work for arguments of type float, int, etc. simultanously because
-    it just gets substituted. When porting a macro function you have to make a function
-    for each input argument type combination that it's used on.
-When you get cython errors about python objects it means you forgot to define some
-    struct/variable which you used.
-In c, if either numerator or denominator is a float, the result is also a float.
-    In python, only if the denuminator is a float will the result be a float.
-When converting loops from for (x=0;x<10;x++) to for x in range(10) make sure
-    the code is not changing x in the loop since it won't work for python.
-In cython you cannot use 0 instead of NULL, so for e.g. int *ptr = ...
-    we have to check if ptr == NULL: instead of if not ptr:
-When passing a string to c code which is kept, you have to keep python string in memory
-'''
 
 cdef extern from "stdarg.h":
     ctypedef struct va_list:
@@ -119,7 +85,7 @@ cdef:
         int64_t av_get_default_channel_layout(int)
         int av_clip(int a, int amin, int amax)
         int64_t AV_CH_LAYOUT_STEREO_DOWNMIX
-        
+
         struct AVRational:
             int num #///< numerator
             int den #///< denominator
@@ -140,28 +106,28 @@ cdef:
         void av_log_set_callback(void (*)(void*, int, const char*, va_list))
         void av_log_default_callback(void*, int, const char*, va_list)
         void av_log_format_line(void *, int, const char *, va_list, char *, int, int *)
-        
+
         enum AVPixelFormat:
             AV_PIX_FMT_YUV420P,
             AV_PIX_FMT_RGB24,
             AV_PIX_FMT_NONE,
-        
+
         int64_t AV_NOPTS_VALUE
-        
+
         struct AVDictionary:
             pass
         int av_dict_set(AVDictionary **, const char *, const char *, int)
-        
+
         void av_max_alloc(size_t)
-        
+
         int av_get_cpu_flags()
         int av_parse_cpu_caps(unsigned *, const char *)
         void av_force_cpu_flags(int)
         void *av_mallocz(size_t)
-        
+
         int AVERROR(int)
         int AVUNERROR(int)
-        
+
         enum AVPictureType:
             pass
         char av_get_picture_type_char(AVPictureType)
@@ -170,19 +136,19 @@ cdef:
         void av_frame_move_ref(AVFrame *, AVFrame *)
         unsigned av_int_list_length_for_size(unsigned, const void *, uint64_t)
         int av_opt_set_bin(void *, const char *, const uint8_t *, int, int)
-        
+
         AVFrame *av_frame_alloc()
         int64_t av_frame_get_pkt_pos(const AVFrame *)
         int av_frame_get_channels(const AVFrame *)
-        
+
         int AVERROR_EOF
         int AVERROR_OPTION_NOT_FOUND
         int av_strerror(int, char *, size_t)
-        
+
         inline void *av_x_if_null(const void *p, const void *x)
-        
+
         int64_t AV_TIME_BASE
-        
+
         struct AVClass:
             pass
         struct AVIOContext:

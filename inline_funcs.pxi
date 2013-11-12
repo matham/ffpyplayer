@@ -62,4 +62,4 @@ cdef inline int64_t get_valid_channel_layout(int64_t channel_layout, int channel
     if channel_layout and av_get_channel_layout_nb_channels(channel_layout) == channels:
         return channel_layout
     else:
-        return 0 
+        return 0

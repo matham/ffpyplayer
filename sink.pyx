@@ -80,7 +80,7 @@ cdef class VideoSink(object):
             #av_freep(vp.pict.data)
             av_frame_free(&vp.pict)
             vp.pict = NULL
-        
+
     cdef void copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil:
 

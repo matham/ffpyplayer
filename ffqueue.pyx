@@ -22,7 +22,7 @@ cdef class FFPacketQueue(object):
         self.nb_packets = self.size = self.serial = 0
         self.cond = MTCond(mt_gen.mt_src)
         self.abort_request = 1
-    
+
     def __dealloc__(self):
         if self.cond is None:
             return
@@ -30,10 +30,10 @@ cdef class FFPacketQueue(object):
 
     cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil:
         cdef MyAVPacketList *pkt1
-    
+
         if self.abort_request:
            return -1
-    
+
         pkt1 = <MyAVPacketList*>av_malloc(sizeof(MyAVPacketList))
         if pkt1 == NULL:
             return -1
@@ -42,7 +42,7 @@ cdef class FFPacketQueue(object):
         if pkt == &flush_pkt:
             self.serial += 1
         pkt1.serial = self.serial
-    
+
         if self.last_pkt == NULL:
             self.first_pkt = pkt1
         else:
@@ -60,16 +60,16 @@ cdef class FFPacketQueue(object):
         #/* duplicate the packet */
         if pkt != &flush_pkt and av_dup_packet(pkt) < 0:
             return -1
-     
+
         self.cond.lock()
         ret = self.packet_queue_put_private(pkt)
         self.cond.unlock()
-     
+
         if pkt != &flush_pkt and ret < 0:
             av_free_packet(pkt)
-     
+
         return ret
- 
+
     cdef void packet_queue_flush(FFPacketQueue self) nogil:
         cdef MyAVPacketList *pkt, *pkt1
 
@@ -85,31 +85,31 @@ cdef class FFPacketQueue(object):
         self.nb_packets = 0
         self.size = 0
         self.cond.unlock()
-     
+
     cdef void packet_queue_abort(FFPacketQueue self) nogil:
         self.cond.lock()
         self.abort_request = 1
         self.cond.cond_signal()
         self.cond.unlock()
-     
+
     cdef void packet_queue_start(FFPacketQueue self) nogil:
         self.cond.lock()
         self.abort_request = 0
         self.packet_queue_put_private(&flush_pkt)
         self.cond.unlock()
- 
+
     # return < 0 if aborted, 0 if no packet and > 0 if packet.
     cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil:
         cdef MyAVPacketList *pkt1
         cdef int ret
-        
+
         self.cond.lock()
-        
+
         while True:
             if self.abort_request:
                 ret = -1
                 break
-     
+
             pkt1 = self.first_pkt
             if pkt1 != NULL:
                 self.first_pkt = pkt1.next

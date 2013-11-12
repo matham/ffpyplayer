@@ -31,15 +31,15 @@ cdef class VideoState(object):
         int realtime
         int audio_finished
         int video_finished
-    
+
         Clock audclk
         Clock vidclk
         Clock extclk
-    
+
         int audio_stream
-    
+
         int av_sync_type
-    
+
         double audio_clock
         int audio_clock_serial
         double audio_diff_cum # used for AV difference average computation
@@ -73,7 +73,7 @@ cdef class VideoState(object):
 
         int16_t sample_array[SAMPLE_ARRAY_SIZE]
         int sample_array_index
-    
+
         MTThread subtitle_tid
         int subtitle_stream
         AVStream *subtitle_st
@@ -81,7 +81,7 @@ cdef class VideoState(object):
         SubPicture subpq[SUBPICTURE_QUEUE_SIZE]
         int subpq_size, subpq_rindex, subpq_windex
         MTCond subpq_cond
-    
+
         double frame_timer
         double frame_last_pts
         double frame_last_duration
@@ -100,7 +100,7 @@ cdef class VideoState(object):
         MTCond pictq_cond
 
         int step
-    
+
         IF CONFIG_AVFILTER:
             AVFilterContext *in_video_filter   # the first filter in the video chain
             AVFilterContext *out_video_filter  # the last filter in the video chain
@@ -108,24 +108,24 @@ cdef class VideoState(object):
             AVFilterContext *out_audio_filter  # the last filter in the audio chain
             AVFilterContext *split_audio_filter  # the last filter in the audio chain
             AVFilterGraph *agraph              # audio filter graph
-    
+
         int last_video_stream, last_audio_stream, last_subtitle_stream
-    
+
         MTCond continue_read_thread
         MTGenerator mt_gen
         VideoSink vid_sink
         VideoSettings *player
         int64_t last_time
-        
+
         MTCond pause_cond
         double last_clock
         PyObject *self_id
-        
+
         bytes py_pat
         bytes py_m
         dict metadata
-        
-        
+
+
     cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                     VideoSettings *player) nogil
     cdef void cquit(VideoState self) nogil

@@ -3,9 +3,9 @@ cdef extern from "SDL.h" nogil:
     int SDL_INIT_AUDIO
     int SDL_INIT_TIMER
     int SDL_INIT_EVENTTHREAD
-    
+
     void SDL_Delay(int)
-    
+
     SDL_Thread *SDL_CreateThread(int_void_func, void *) with gil
     void SDL_WaitThread(SDL_Thread *, int *)
     struct SDL_mutex:
@@ -14,14 +14,14 @@ cdef extern from "SDL.h" nogil:
         pass
     struct SDL_cond:
         pass
-    
+
     char *SDL_GetError()
-    
+
     SDL_cond *SDL_CreateCond()
     void SDL_DestroyCond(SDL_cond *)
     int SDL_CondSignal(SDL_cond *)
     int SDL_CondWait(SDL_cond *, SDL_mutex *)
-    
+
     void SDL_Quit()
     int SDL_Init(int) with gil
 
@@ -48,7 +48,7 @@ cdef extern from * nogil:
     uint32_t SDL_RESIZABLE
     uint32_t SDL_YV12_OVERLAY
     uint8_t SDL_MIX_MAXVOLUME
-    
+
     uint16_t AUDIO_S16SYS
     int SDL_OpenAudio(SDL_AudioSpec *, SDL_AudioSpec *)
     void SDL_PauseAudio(int)
@@ -106,7 +106,7 @@ cdef extern from * nogil:
         SDL_PixelFormat *format
         int w, h
 
-    
+
     struct SDL_UserEvent:
         uint8_t type
         int code
@@ -126,5 +126,5 @@ cdef extern from * nogil:
         SDL_GETEVENT,
     int SDL_PushEvent(SDL_Event *event)
     int SDL_PeepEvents(SDL_Event *, int, SDL_eventaction, uint32_t)
-    
+
     int SDL_ShowCursor(int)
