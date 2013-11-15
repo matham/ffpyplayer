@@ -164,4 +164,4 @@ cdef class VideoState(object):
     cdef int stream_component_close(VideoState self, int stream_index) nogil except 1
     cdef int read_thread(VideoState self) nogil except 1
     cdef inline int failed(VideoState self, int ret) nogil except 1
-    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1
+    cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1

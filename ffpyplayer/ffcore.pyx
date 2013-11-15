@@ -1896,11 +1896,14 @@ cdef class VideoState(object):
             self.vid_sink.request_thread(self.self_id, FF_QUIT_EVENT)
         return 0
 
-    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1:
+    cdef int stream_cycle_channel(VideoState self, int codec_type,
+                                  int requested_stream) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef int start_index, stream_index
-        cdef int old_index
+        cdef int old_index, was_closed = 0
         cdef AVStream *st
+        cdef double pos
+        cdef int sync_type = self.get_master_sync_type()
 
         if codec_type == AVMEDIA_TYPE_VIDEO:
             start_index = self.last_video_stream
@@ -1911,9 +1914,11 @@ cdef class VideoState(object):
         else:
             start_index = self.last_subtitle_stream
             old_index = self.subtitle_stream
+        was_closed = old_index == -1
         stream_index = start_index
         while 1:
-            stream_index += 1
+            if not was_closed:
+                stream_index += 1
             if stream_index >= self.ic.nb_streams:
                 if codec_type == AVMEDIA_TYPE_SUBTITLE:
                     stream_index = -1
@@ -1922,10 +1927,11 @@ cdef class VideoState(object):
                 if start_index == -1:
                     return 0
                 stream_index = 0
-            if stream_index == start_index:
+            if stream_index == start_index and not was_closed:
                 return 0
             st = ic.streams[stream_index]
-            if st.codec.codec_type == codec_type:
+            if (requested_stream == -1 or stream_index == requested_stream) and\
+            st.codec.codec_type == codec_type:
                 # check that parameters are OK
                 if codec_type == AVMEDIA_TYPE_AUDIO:
                     if st.codec.sample_rate != 0 and st.codec.channels != 0:
@@ -1934,4 +1940,20 @@ cdef class VideoState(object):
                     break
         self.stream_component_close(old_index)
         self.stream_component_open(stream_index)
+        if was_closed:
+            if (sync_type == AV_SYNC_VIDEO_MASTER and
+                codec_type != AVMEDIA_TYPE_VIDEO and
+                self.video_stream != -1):
+                pos = self.vidclk.get_clock()
+            elif (sync_type == AV_SYNC_AUDIO_MASTER and
+                codec_type != AVMEDIA_TYPE_AUDIO and
+                self.audio_stream != -1):
+                pos = self.audclk.get_clock()
+            else:
+                pos = self.extclk.get_clock()
+            if isnan(pos):
+                pos = <double>self.seek_pos / <double>AV_TIME_BASE
+            if self.ic.start_time != AV_NOPTS_VALUE and pos < self.ic.start_time / <double>AV_TIME_BASE:
+                pos = self.ic.start_time / <double>AV_TIME_BASE
+            self.stream_seek(<int64_t>(pos * AV_TIME_BASE), 0, 0)
         return 0

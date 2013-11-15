@@ -246,7 +246,7 @@ cdef class FFPyPlayer(object):
         self.ivs.callback()('refresh', 0.0)
         self.settings_mutex.unlock()
 
-    "Can only be called from the main thread (GUI thread in kivy) Doesn't work with SDL"
+    "Can only be called from the main thread."
     def set_size(self, int width, int height):
         if not CONFIG_AVFILTER and (width or height):
             raise Exception('You can only set the screen size when avfilter is enabled.')
@@ -255,19 +255,28 @@ cdef class FFPyPlayer(object):
         self.settings.screen_height = height
         self.settings_mutex.unlock()
 
-    'Can only be called from the main thread (GUI thread in kivy, eventloop in SDL)'
-    def cycle_channel(self, stream_type):
-        cdef int stream
+    'Can only be called from the main thread.'
+    # Currently, if a stream is re-opened when the stream was not open before
+    # it'l cause some seeking. We can probably remove it by setting a seek flag
+    # only for this stream and not for all, provided is not the master clock stream.
+    def request_channel(self, stream_type, action='cycle', int requested_stream=-1):
+        cdef int stream, old_index
         if stream_type == 'audio':
             stream = AVMEDIA_TYPE_AUDIO
+            old_index = self.ivs.audio_stream
         elif stream_type == 'video':
             stream = AVMEDIA_TYPE_VIDEO
+            old_index = self.ivs.video_stream
         elif stream_type == 'subtitle':
             stream = AVMEDIA_TYPE_SUBTITLE
+            old_index = self.ivs.subtitle_stream
         else:
             raise Exception('Invalid stream type')
-        with nogil:
-            self.ivs.stream_cycle_channel(stream)
+        if action == 'open' or action == 'cycle':
+            with nogil:
+                self.ivs.stream_cycle_channel(stream, requested_stream)
+        elif action == 'close':
+            self.ivs.stream_component_close(old_index)
 
     def seek(self, val, relative=True, seek_by_bytes=False):
         cdef double incr, pos

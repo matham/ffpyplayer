@@ -2,7 +2,7 @@ import kivy
 from kivy.base import EventLoop
 EventLoop.ensure_window()
 import ffpyplayer
-from ffpyplayer import FFPyPlayer, set_log_callback
+from ffpyplayer import FFPyPlayer, set_log_callback, loglevels
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.image import Image
@@ -44,8 +44,10 @@ Builder.load_string('''
 class Root(RelativeLayout):
     pass
 
+loglevel_emit = 'error'
 def log_callback(message, level):
-    print '%s: %s' %(level, message.strip())
+    if loglevels[level] <= loglevels[loglevel_emit]:
+        print '%s: %s' %(level, message.strip())
 
 
 class PlayerApp(App):
@@ -61,6 +63,8 @@ class PlayerApp(App):
         return self.root
 
     def on_start(self):
+        global loglevel_emit
+        loglevel_emit = 'debug'
         self.callback_ref = WeakMethod(self.callback)
         # Download the test video from here:
         #http://www.auby.no/files/video_tests/h264_720p_hp_5.1_3mbps_vorbis_styled_and_unstyled_subs_suzumiya.mkv
@@ -87,16 +91,17 @@ class PlayerApp(App):
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if not self.ffplayer:
             return False
+        ctrl = 'ctrl' in modifiers
         if keycode[1] == 'p' or keycode[1] == 'spacebar':
             self.ffplayer.toggle_pause()
         elif keycode[1] == 's':
             self.ffplayer.step_frame()
         elif keycode[1] == 'v':
-            self.ffplayer.cycle_channel('video')
+            self.ffplayer.request_channel('video', 'close' if ctrl else 'cycle')
         elif keycode[1] == 'a':
-            self.ffplayer.cycle_channel('audio')
+            self.ffplayer.request_channel('audio', 'close' if ctrl else 'cycle')
         elif keycode[1] == 't':
-            self.ffplayer.cycle_channel('subtitle')
+            self.ffplayer.request_channel('subtitle', 'close' if ctrl else 'cycle')
         elif keycode[1] == 'right':
             self.ffplayer.seek(10.)
         elif keycode[1] == 'left':
