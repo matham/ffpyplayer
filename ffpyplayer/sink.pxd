@@ -15,16 +15,16 @@ cdef class VideoSink(object):
 
     cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil
-    cdef void request_thread(VideoSink self, void *data, uint8_t type) nogil
-    cdef int peep_alloc(VideoSink self) nogil
-    cdef void alloc_picture(VideoSink self, VideoPicture *vp) nogil
+    cdef int request_thread(VideoSink self, void *data, uint8_t type) nogil except 1
+    cdef int peep_alloc(VideoSink self) nogil except 1
+    cdef int alloc_picture(VideoSink self, VideoPicture *vp) nogil except 1
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil
-    cdef void copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
-                           VideoSettings *player) nogil
-    cdef void video_image_display(VideoSink self, VideoPicture *vp) nogil
-    cdef void subtitle_display(VideoSink self, AVSubtitle *sub) nogil
-    cdef void SDL_Initialize(VideoSink self, VideoState vs) nogil
-    cdef void event_loop(VideoSink self, VideoState vs) nogil
+    cdef int copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
+                           VideoSettings *player) nogil except 1
+    cdef int video_image_display(VideoSink self, VideoPicture *vp) nogil except 1
+    cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1
+    cdef int SDL_Initialize(VideoSink self, VideoState vs) nogil except 1
+    cdef int event_loop(VideoSink self, VideoState vs) nogil except 1
 
 
 cdef struct VideoSettings:

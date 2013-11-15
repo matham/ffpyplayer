@@ -170,6 +170,7 @@ if __name__ == '__main__':
     if a.ffplayer is not None:
         Clock.unschedule(a.ffplayer.refresh)
     # why do we need to set this to None in order to call dealloc on ffplayer?
-    # shouldn't it automatically be deallocated?
+    # shouldn't it automatically be deallocated? In any case, it should only be
+    # called from the main thread.
     a.ffplayer = None
     set_log_callback(None)

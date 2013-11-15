@@ -6,7 +6,7 @@ from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
 int16_t, uint8_t, int8_t, uintptr_t
 
 ctypedef int (*lockmgr_func)(void **, AVLockOp)
-ctypedef int (*int_void_func)(void *)
+ctypedef int (*int_void_func)(void *) except? 1
 
 ctypedef float FFTSample
 

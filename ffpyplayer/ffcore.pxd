@@ -126,42 +126,42 @@ cdef class VideoState(object):
         dict metadata
 
 
-    cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                    VideoSettings *player) nogil
-    cdef void cquit(VideoState self) nogil
+    cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
+                   VideoSettings *player) nogil except 1
+    cdef int cquit(VideoState self) nogil except 1
     cdef int get_master_sync_type(VideoState self) nogil
-    cdef double get_master_clock(VideoState self) nogil
-    cdef void check_external_clock_speed(VideoState self) nogil
-    cdef void stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil
-    cdef void stream_toggle_pause(VideoState self) nogil
-    cdef void toggle_pause(VideoState self) nogil
-    cdef void step_to_next_frame(VideoState self) nogil
-    cdef double compute_target_delay(VideoState self, double delay) nogil
-    cdef void pictq_next_picture(VideoState self) nogil
-    cdef int pictq_prev_picture(VideoState self) nogil
+    cdef double get_master_clock(VideoState self) nogil except? 0.0
+    cdef int check_external_clock_speed(VideoState self) nogil except 1
+    cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil except 1
+    cdef int stream_toggle_pause(VideoState self) nogil except 1
+    cdef int toggle_pause(VideoState self) nogil except 1
+    cdef int step_to_next_frame(VideoState self) nogil except 1
+    cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
+    cdef int pictq_next_picture(VideoState self) nogil except 1
+    cdef int pictq_prev_picture(VideoState self) nogil except -1
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
-    cdef void video_refresh(VideoState self, double *remaining_time) nogil
-    cdef void alloc_picture(VideoState self) nogil
+    cdef int video_refresh(VideoState self, double *remaining_time) nogil except 1
+    cdef int alloc_picture(VideoState self) nogil except 1
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           int64_t pos, int serial) nogil
-    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil
+                           int64_t pos, int serial) nogil except 1
+    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
-                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil
+                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1
         cdef int configure_video_filters(VideoState self, AVFilterGraph *graph,
-                                         const char *vfilters, AVFrame *frame) nogil
+                                         const char *vfilters, AVFrame *frame) nogil except? 1
         cdef int configure_audio_filters(VideoState self, const char *afilters,
-                                         int force_output_format) nogil
-    cdef int video_thread(VideoState self) nogil
-    cdef int subtitle_thread(VideoState self) nogil
-    cdef void update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil
-    cdef int synchronize_audio(VideoState self, int nb_samples) nogil
-    cdef int audio_decode_frame(VideoState self) nogil
-    cdef void sdl_audio_callback(VideoState self, uint8_t *stream, int len) nogil
+                                         int force_output_format) nogil except? 1
+    cdef int video_thread(VideoState self) nogil except 1
+    cdef int subtitle_thread(VideoState self) nogil except 1
+    cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1
+    cdef int synchronize_audio(VideoState self, int nb_samples) nogil except -1
+    cdef int audio_decode_frame(VideoState self) nogil except? 1
+    cdef int sdl_audio_callback(VideoState self, uint8_t *stream, int len) nogil except 1
     cdef int audio_open(VideoState self, int64_t wanted_channel_layout, int wanted_nb_channels,
-                        int wanted_sample_rate, AudioParams *audio_hw_params) nogil
-    cdef int stream_component_open(VideoState self, int stream_index) nogil
-    cdef void stream_component_close(VideoState self, int stream_index) nogil
-    cdef int read_thread(VideoState self) nogil
-    cdef inline int failed(VideoState self, int ret) nogil
-    cdef void stream_cycle_channel(VideoState self, int codec_type) nogil
+                        int wanted_sample_rate, AudioParams *audio_hw_params) nogil except? 1
+    cdef int stream_component_open(VideoState self, int stream_index) nogil except 1
+    cdef int stream_component_close(VideoState self, int stream_index) nogil except 1
+    cdef int read_thread(VideoState self) nogil except 1
+    cdef inline int failed(VideoState self, int ret) nogil except 1
+    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1

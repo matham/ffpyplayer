@@ -28,7 +28,7 @@ cdef class FFPacketQueue(object):
             return
         self.packet_queue_flush()
 
-    cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil:
+    cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil except 1:
         cdef MyAVPacketList *pkt1
 
         if self.abort_request:
@@ -54,7 +54,7 @@ cdef class FFPacketQueue(object):
         self.cond.cond_signal()
         return 0
 
-    cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil:
+    cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil except 1:
         cdef int ret
 
         #/* duplicate the packet */
@@ -70,7 +70,7 @@ cdef class FFPacketQueue(object):
 
         return ret
 
-    cdef void packet_queue_flush(FFPacketQueue self) nogil:
+    cdef int packet_queue_flush(FFPacketQueue self) nogil except 1:
         cdef MyAVPacketList *pkt, *pkt1
 
         self.cond.lock()
@@ -85,21 +85,24 @@ cdef class FFPacketQueue(object):
         self.nb_packets = 0
         self.size = 0
         self.cond.unlock()
+        return 0
 
-    cdef void packet_queue_abort(FFPacketQueue self) nogil:
+    cdef int packet_queue_abort(FFPacketQueue self) nogil except 1:
         self.cond.lock()
         self.abort_request = 1
         self.cond.cond_signal()
         self.cond.unlock()
+        return 0
 
-    cdef void packet_queue_start(FFPacketQueue self) nogil:
+    cdef int packet_queue_start(FFPacketQueue self) nogil except 1:
         self.cond.lock()
         self.abort_request = 0
         self.packet_queue_put_private(&flush_pkt)
         self.cond.unlock()
+        return 0
 
     # return < 0 if aborted, 0 if no packet and > 0 if packet.
-    cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil:
+    cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil except 0:
         cdef MyAVPacketList *pkt1
         cdef int ret
 

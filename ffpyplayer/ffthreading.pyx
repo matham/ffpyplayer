@@ -5,6 +5,7 @@ include "ff_defs_comp.pxi"
 include "inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
+import traceback
 
 cdef extern from "Python.h":
     void Py_INCREF(PyObject *)
@@ -34,13 +35,13 @@ cdef class MTMutex(object):
         elif self.lib == Py_MT:
             Py_DECREF(<PyObject *>self.mutex)
 
-    cdef int lock(MTMutex self) nogil:
+    cdef int lock(MTMutex self) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_mutexP(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
             with gil:
                 return not (<object>self.mutex).acquire()
-    cdef int unlock(MTMutex self) nogil:
+    cdef int unlock(MTMutex self) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_mutexV(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
@@ -71,13 +72,13 @@ cdef class MTCond(object):
         elif self.lib == Py_MT:
             Py_DECREF(<PyObject *>self.cond)
 
-    cdef int lock(MTCond self) nogil:
+    cdef int lock(MTCond self) nogil except 2:
         self.mutex.lock()
 
-    cdef int unlock(MTCond self) nogil:
+    cdef int unlock(MTCond self) nogil except 2:
         self.mutex.unlock()
 
-    cdef int cond_signal(MTCond self) nogil:
+    cdef int cond_signal(MTCond self) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_CondSignal(<SDL_cond *>self.cond)
         elif self.lib == Py_MT:
@@ -85,7 +86,7 @@ cdef class MTCond(object):
                 (<object>self.cond).notify()
             return 0
 
-    cdef int cond_wait(MTCond self) nogil:
+    cdef int cond_wait(MTCond self) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_CondWait(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex)
         elif self.lib == Py_MT:
@@ -93,7 +94,7 @@ cdef class MTCond(object):
                 (<object>self.cond).wait()
             return 0
 
-    cdef int cond_wait_timeout(MTCond self, uint32_t val) nogil:
+    cdef int cond_wait_timeout(MTCond self, uint32_t val) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_CondWaitTimeout(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex, val)
         elif self.lib == Py_MT:
@@ -114,7 +115,7 @@ cdef class MTThread(object):
         if self.lib == Py_MT and self.thread != NULL:
             Py_DECREF(<PyObject *>self.thread)
 
-    cdef void create_thread(MTThread self, int_void_func func, void *arg) nogil:
+    cdef int create_thread(MTThread self, int_void_func func, void *arg) nogil except 2:
         if self.lib == SDL_MT:
             with gil:
                 self.thread = SDL_CreateThread(func, arg)
@@ -128,25 +129,26 @@ cdef class MTThread(object):
                 self.thread = <PyObject *>thread
                 Py_INCREF(<PyObject *>self.thread)
                 thread.start()
+        return 0
 
-    cdef void wait_thread(MTThread self, int *status) nogil:
+    cdef int wait_thread(MTThread self, int *status) nogil except 2:
         if self.lib == SDL_MT:
             if self.thread != NULL:
-                SDL_WaitThread(<SDL_Thread *>self.thread, status)
+                #XXX If sdl wait thread is called the program freezes
+                #SDL_WaitThread(<SDL_Thread *>self.thread, status)
+                pass
         elif self.lib == Py_MT:
             with gil:
                 (<object>self.thread).join()
                 if status != NULL:
                     status[0] = 0
+        return 0
 
 
-cdef int lockmgr(void ** mtx, AVLockOp op, MT_lib lib) with gil:
+cdef int lockmgr(void ** mtx, AVLockOp op, MT_lib lib) except 2 with gil:
     cdef MTMutex mutex
     if op == AV_LOCK_CREATE:
-        try:
-            mutex = MTMutex(lib)
-        except:
-            return 1
+        mutex = MTMutex(lib)
         Py_INCREF(<PyObject *>mutex)
         mtx[0] = <PyObject *>mutex
         return 0
@@ -162,11 +164,31 @@ cdef int lockmgr(void ** mtx, AVLockOp op, MT_lib lib) with gil:
         return 0
     return 1
 
-cdef int SDL_lockmgr(void ** mtx, AVLockOp op) nogil:
-    return lockmgr(mtx, op, SDL_MT)
+cdef int SDL_lockmgr(void ** mtx, AVLockOp op) with gil:
+    cdef int res
+    cdef bytes msg
+    try:
+        with nogil:
+            res = lockmgr(mtx, op, SDL_MT)
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_ERROR, msg)
+        res = 1
+    finally:
+        return res
 
-cdef int Py_lockmgr(void ** mtx, AVLockOp op) nogil:
-    return lockmgr(mtx, op, Py_MT)
+cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
+    cdef int res
+    cdef bytes msg
+    try:
+        with nogil:
+            res = lockmgr(mtx, op, Py_MT)
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_ERROR, msg)
+        res = 1
+    finally:
+        return res
 
 
 cdef class MTGenerator(object):
@@ -174,13 +196,14 @@ cdef class MTGenerator(object):
     def __cinit__(MTGenerator self, MT_lib mt_src, **kwargs):
         self.mt_src = mt_src
 
-    cdef void delay(MTGenerator self, int delay) nogil:
+    cdef int delay(MTGenerator self, int delay) nogil except 2:
         if self.mt_src == SDL_MT:
             SDL_Delay(delay)
         elif self.mt_src == Py_MT:
             with gil:
                 import time
                 time.sleep(delay / 1000.)
+        return 0
 
     cdef lockmgr_func get_lockmgr(MTGenerator self) nogil:
         if self.mt_src == SDL_MT:

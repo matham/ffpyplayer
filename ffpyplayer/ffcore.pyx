@@ -8,12 +8,13 @@ include "inline_funcs.pxi"
 cimport ffqueue
 from ffqueue cimport FFPacketQueue, get_flush_packet
 cimport ffthreading
-from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
+from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
 cimport ffclock
 from ffclock cimport Clock
 cimport sink
 from sink cimport VideoSink
 from cpython.ref cimport PyObject
+import traceback
 
 
 cdef extern from "limits.h" nogil:
@@ -59,26 +60,64 @@ ctypedef enum LoopState:
 cdef AVSampleFormat *sample_fmts = [AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE]
 cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 
-cdef int read_thread(void *obj_id) with gil:
+cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
-    with nogil:
-        return vs.read_thread()
-cdef int video_thread(void *obj_id) with gil:
+    cdef bytes msg
+    try:
+        with nogil:
+            return vs.read_thread()
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        if vs.mt_gen.mt_src == Py_MT:
+            raise
+        else:
+            return 1
+cdef int video_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
-    with nogil:
-        return vs.video_thread()
-cdef int subtitle_thread(void *obj_id) with gil:
+    cdef bytes msg
+    try:
+        with nogil:
+            return vs.video_thread()
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        if vs.mt_gen.mt_src == Py_MT:
+            raise
+        else:
+            return 1
+cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
-    with nogil:
-        return vs.subtitle_thread()
+    cdef bytes msg
+    try:
+        with nogil:
+            return vs.subtitle_thread()
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        if vs.mt_gen.mt_src == Py_MT:
+            raise
+        else:
+            return 1
 cdef int decode_interrupt_cb(void *obj_id) with gil:
     cdef VideoState vs = <VideoState>obj_id
     with nogil:
         return vs.abort_request
 cdef void sdl_audio_callback(void *obj_id, uint8_t *stream, int len) with gil:
     cdef VideoState vs = <VideoState>obj_id
-    with nogil:
-        vs.sdl_audio_callback(stream, len)
+    cdef bytes msg
+    try:
+        with nogil:
+            vs.sdl_audio_callback(stream, len)
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        if vs.mt_gen.mt_src == Py_MT:
+            raise
 
 cdef int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec) nogil:
     cdef int ret = avformat_match_stream_specifier(s, st, spec)
@@ -175,8 +214,8 @@ cdef class VideoState(object):
         self.metadata = {'src_vid_size':(0, 0), 'sink_vid_size':(0, 0),
                          'title':'', 'duration':0.0}
 
-    cdef void cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                  VideoSettings *player) nogil:
+    cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
+                   VideoSettings *player) nogil except 1:
         self.player = player
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
@@ -212,25 +251,26 @@ cdef class VideoState(object):
 
         with gil:
             self.read_tid = MTThread(mt_gen.mt_src)
-            self.read_tid.create_thread(read_thread, self.self_id)
+            self.read_tid.create_thread(read_thread_enter, self.self_id)
+        return 0
 
     def __dealloc__(VideoState self):
         self.cquit()
 
-    cdef void cquit(VideoState self) nogil:
+    cdef int cquit(VideoState self) nogil except 1:
         cdef VideoPicture *vp
         cdef int i
         # XXX: use a special url_shutdown call to abort parse cleanly
         if self.read_tid is None:
-            return
+            return 0
         self.abort_request = 1
         self.pause_cond.lock()
         self.pause_cond.cond_signal()
         self.pause_cond.unlock()
         self.read_tid.wait_thread(NULL)
+
         with gil:
             self.read_tid = None
-
         # free all pictures
         for i in range(VIDEO_PICTURE_QUEUE_SIZE):
             vp = &self.pictq[i]
@@ -239,6 +279,8 @@ cdef class VideoState(object):
             avsubtitle_free(&self.subpq[i].sub)
         IF not CONFIG_AVFILTER:
             sws_freeContext(self.player.img_convert_ctx)
+
+        return 0
 
     cdef int get_master_sync_type(VideoState self) nogil:
         if self.av_sync_type == AV_SYNC_VIDEO_MASTER:
@@ -255,7 +297,7 @@ cdef class VideoState(object):
             return AV_SYNC_EXTERNAL_CLOCK
 
     # get the current master clock value
-    cdef double get_master_clock(VideoState self) nogil:
+    cdef double get_master_clock(VideoState self) nogil except? 0.0:
         cdef double val
         cdef int sync_type = self.get_master_sync_type()
 
@@ -267,7 +309,7 @@ cdef class VideoState(object):
             val = self.extclk.get_clock()
         return val
 
-    cdef void check_external_clock_speed(VideoState self) nogil:
+    cdef int check_external_clock_speed(VideoState self) nogil except 1:
         cdef double speed
         if self.video_stream >= 0 and self.videoq.nb_packets <= MIN_FRAMES / 2 or\
         self.audio_stream >= 0 and self.audioq.nb_packets <= MIN_FRAMES / 2:
@@ -279,9 +321,10 @@ cdef class VideoState(object):
             speed = self.extclk.speed
             if speed != 1.0:
                 self.extclk.set_clock_speed(speed + EXTERNAL_CLOCK_SPEED_STEP * (1.0 - speed) / fabs(1.0 - speed))
+        return 0
 
     # seek in the stream
-    cdef void stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil:
+    cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil except 1:
         if not self.seek_req:
             self.seek_pos = pos
             self.seek_rel = rel
@@ -292,9 +335,10 @@ cdef class VideoState(object):
             self.continue_read_thread.lock()
             self.continue_read_thread.cond_signal()
             self.continue_read_thread.unlock()
+        return 0
 
     # pause or resume the video
-    cdef void stream_toggle_pause(VideoState self) nogil:
+    cdef int stream_toggle_pause(VideoState self) nogil except 1:
         if self.paused:
             self.frame_timer += av_gettime() / 1000000.0 + self.vidclk.pts_drift - self.vidclk.pts
             if self.read_pause_return != AVERROR(ENOSYS):
@@ -305,18 +349,21 @@ cdef class VideoState(object):
         self.pause_cond.lock()
         self.pause_cond.cond_signal()
         self.pause_cond.unlock()
+        return 0
 
-    cdef void toggle_pause(VideoState self) nogil:
+    cdef int toggle_pause(VideoState self) nogil except 1:
         self.stream_toggle_pause()
         self.step = 0
+        return 0
 
-    cdef void step_to_next_frame(VideoState self) nogil:
+    cdef int step_to_next_frame(VideoState self) nogil except 1:
         # if the stream is paused unpause it, then step
         if self.paused:
             self.stream_toggle_pause()
         self.step = 1
+        return 0
 
-    cdef double compute_target_delay(VideoState self, double delay) nogil:
+    cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0:
         cdef double sync_threshold, diff
 
         # update delay to follow master synchronisation source
@@ -339,7 +386,7 @@ cdef class VideoState(object):
         #av_dlog(NULL, "video: delay=%0.3f A-V=%f\n", delay, -diff)
         return delay
 
-    cdef void pictq_next_picture(VideoState self) nogil:
+    cdef int pictq_next_picture(VideoState self) nogil except 1:
         # update queue size and signal for next picture
         self.pictq_rindex += 1
         if self.pictq_rindex == VIDEO_PICTURE_QUEUE_SIZE:
@@ -349,8 +396,9 @@ cdef class VideoState(object):
         self.pictq_size -= 1
         self.pictq_cond.cond_signal()
         self.pictq_cond.unlock()
+        return 0
 
-    cdef int pictq_prev_picture(VideoState self) nogil:
+    cdef int pictq_prev_picture(VideoState self) nogil except -1:
         cdef VideoPicture *prevvp
         cdef int ret = 0
         # update queue size and signal for the previous picture
@@ -376,7 +424,7 @@ cdef class VideoState(object):
 
 
     # called to display each frame
-    cdef void video_refresh(VideoState self, double *remaining_time) nogil:
+    cdef int video_refresh(VideoState self, double *remaining_time) nogil except 1:
         cdef VideoPicture *vp
         cdef double time
 
@@ -440,7 +488,7 @@ cdef class VideoState(object):
                         time = av_gettime() / 1000000.0
                         if time < self.frame_timer + delay and not redisplay:
                             remaining_time[0] = FFMIND(self.frame_timer + delay - time, remaining_time[0])
-                            return
+                            return 0
 
                         self.frame_timer += delay
                         if delay > 0 and time - self.frame_timer > AV_SYNC_THRESHOLD_MAX:
@@ -539,21 +587,23 @@ cdef class VideoState(object):
                        m2,
                        m3)
                 self.last_time = cur_time
+        return 0
 
 
     ''' allocate a picture (needs to do that in main thread to avoid
     potential locking problems '''
-    cdef void alloc_picture(VideoState self) nogil:
+    cdef int alloc_picture(VideoState self) nogil except 1:
         cdef VideoPicture *vp = &self.pictq[self.pictq_windex]
         self.vid_sink.alloc_picture(vp)
         self.pictq_cond.lock()
         vp.allocated = 1
         self.pictq_cond.cond_signal()
         self.pictq_cond.unlock()
+        return 0
 
 
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           int64_t pos, int serial) nogil:
+                           int64_t pos, int serial) nogil except 1:
         cdef VideoPicture *vp
 
         IF 0:# and defined(DEBUG_SYNC):
@@ -614,7 +664,7 @@ cdef class VideoState(object):
             self.pictq_cond.unlock()
         return 0
 
-    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil:
+    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2:
         cdef int got_picture
         cdef int ret = 1
         cdef double dpts = NAN, clockdiff, ptsdiff
@@ -674,7 +724,7 @@ cdef class VideoState(object):
 
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
-                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil:
+                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1:
             cdef int ret = 0
             cdef AVFilterInOut *outputs = NULL, *inputs = NULL
 
@@ -710,7 +760,7 @@ cdef class VideoState(object):
             return ret
 
         cdef int configure_video_filters(VideoState self, AVFilterGraph *graph,
-                                         const char *vfilters, AVFrame *frame) nogil:
+                                         const char *vfilters, AVFrame *frame) nogil except? 1:
             cdef char sws_flags_str[128]
             cdef char buffersrc_args[256]
             cdef char scale_args[256]
@@ -786,7 +836,7 @@ cdef class VideoState(object):
             self.out_video_filter = filt_out
             return ret
 
-        cdef int configure_audio_filters(VideoState self, const char *afilters, int force_output_format) nogil:
+        cdef int configure_audio_filters(VideoState self, const char *afilters, int force_output_format) nogil except? 1:
             cdef int *sample_rates = [0, -1]
             cdef int64_t *channel_layouts = [0, -1]
             cdef int *channels = [0, -1]
@@ -843,7 +893,7 @@ cdef class VideoState(object):
                 avfilter_graph_free(&self.agraph)
             return ret
 
-    cdef int video_thread(VideoState self) nogil:
+    cdef int video_thread(VideoState self) nogil except 1:
         cdef AVPacket pkt
         cdef AVFrame *frame = av_frame_alloc()
         cdef double pts
@@ -942,7 +992,7 @@ cdef class VideoState(object):
         return 0
 
 
-    cdef int subtitle_thread(VideoState self) nogil:
+    cdef int subtitle_thread(VideoState self) nogil except 1:
         cdef SubPicture *sp
         cdef AVPacket pkt1, *pkt = &pkt1
         cdef int got_subtitle
@@ -1003,7 +1053,7 @@ cdef class VideoState(object):
 
 
     # copy samples for viewing in editor window
-    cdef void update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil:
+    cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1:
         cdef int size, len
 
         size = samples_size / sizeof(short)
@@ -1017,10 +1067,11 @@ cdef class VideoState(object):
             if self.sample_array_index >= SAMPLE_ARRAY_SIZE:
                 self.sample_array_index = 0
             size -= len
+        return 0
 
     ''' return the wanted number of samples to get better sync if sync_type is video
     or external master clock '''
-    cdef int synchronize_audio(VideoState self, int nb_samples) nogil:
+    cdef int synchronize_audio(VideoState self, int nb_samples) nogil except -1:
         cdef int wanted_nb_samples = nb_samples
         cdef double diff, avg_diff
         cdef int min_nb_samples, max_nb_samples
@@ -1060,7 +1111,7 @@ cdef class VideoState(object):
        stored in is->audio_buf, with size in bytes given by the return
        value.
     '''
-    cdef int audio_decode_frame(VideoState self) nogil:
+    cdef int audio_decode_frame(VideoState self) nogil except? 1:
         cdef AVPacket *pkt_temp = &self.audio_pkt_temp
         cdef AVPacket *pkt = &self.audio_pkt
         cdef AVCodecContext *dec = self.audio_st.codec
@@ -1285,13 +1336,11 @@ cdef class VideoState(object):
             pkt_temp[0] = pkt[0]
 
     # prepare a new audio buffer
-    cdef void sdl_audio_callback(VideoState self, uint8_t *stream, int len) nogil:
+    cdef int sdl_audio_callback(VideoState self, uint8_t *stream, int len) nogil except 1:
         cdef int audio_size, len1
         cdef int bytes_per_sec
         cdef int frame_size = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, 1, self.audio_tgt.fmt, 1)
-
         self.player.audio_callback_time = av_gettime()
-
         while len > 0:
             if self.audio_buf_index >= self.audio_buf_size:
                audio_size = self.audio_decode_frame()
@@ -1320,9 +1369,10 @@ cdef class VideoState(object):
             + self.audio_write_buf_size) / bytes_per_sec, self.audio_clock_serial,\
             self.player.audio_callback_time / 1000000.0)
             self.extclk.sync_clock_to_slave(self.audclk)
+        return 0
 
     cdef int audio_open(VideoState self, int64_t wanted_channel_layout, int wanted_nb_channels,
-                        int wanted_sample_rate, AudioParams *audio_hw_params) nogil:
+                        int wanted_sample_rate, AudioParams *audio_hw_params) nogil except? 1:
         cdef SDL_AudioSpec wanted_spec, spec
         cdef const char *env
 
@@ -1372,7 +1422,7 @@ cdef class VideoState(object):
 
 
     # open a given stream. Return 0 if OK
-    cdef int stream_component_open(VideoState self, int stream_index) nogil:
+    cdef int stream_component_open(VideoState self, int stream_index) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef AVCodecContext *avctx
         cdef AVCodec *codec
@@ -1488,7 +1538,7 @@ cdef class VideoState(object):
             self.videoq.packet_queue_start()
             with gil:
                 self.video_tid = MTThread(self.mt_gen.mt_src)
-                self.video_tid.create_thread(video_thread, self.self_id)
+                self.video_tid.create_thread(video_thread_enter, self.self_id)
             self.queue_attachments_req = 1
         elif avctx.codec_type ==  AVMEDIA_TYPE_SUBTITLE:
             self.subtitle_stream = stream_index
@@ -1496,16 +1546,15 @@ cdef class VideoState(object):
             self.subtitleq.packet_queue_start()
             with gil:
                 self.subtitle_tid = MTThread(self.mt_gen.mt_src)
-                self.subtitle_tid.create_thread(subtitle_thread, self.self_id)
+                self.subtitle_tid.create_thread(subtitle_thread_enter, self.self_id)
         return 0
 
 
-    cdef void stream_component_close(VideoState self, int stream_index) nogil:
+    cdef int stream_component_close(VideoState self, int stream_index) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef AVCodecContext *avctx
-
         if stream_index < 0 or stream_index >= ic.nb_streams:
-            return
+            return 0
         avctx = ic.streams[stream_index].codec
 
         if avctx.codec_type == AVMEDIA_TYPE_AUDIO:
@@ -1542,7 +1591,6 @@ cdef class VideoState(object):
             self.subpq_cond.unlock()
 
             self.subtitle_tid.wait_thread(NULL)
-
             self.subtitleq.packet_queue_flush()
 
         ic.streams[stream_index].discard = AVDISCARD_ALL
@@ -1556,9 +1604,10 @@ cdef class VideoState(object):
         elif avctx.codec_type == AVMEDIA_TYPE_SUBTITLE:
             self.subtitle_st = NULL
             self.subtitle_stream = -1
+        return 0
 
     # this thread gets the stream from the disk or the network
-    cdef int read_thread(VideoState self) nogil:
+    cdef int read_thread(VideoState self) nogil except 1:
         cdef AVFormatContext *ic = NULL
         cdef int err, i, ret
         cdef int st_index[<int>AVMEDIA_TYPE_NB]
@@ -1833,7 +1882,7 @@ cdef class VideoState(object):
         ret = 0
         return self.failed(ret)
 
-    cdef inline int failed(VideoState self, int ret) nogil:
+    cdef inline int failed(VideoState self, int ret) nogil except 1:
         # close each stream
         if self.audio_stream >= 0:
             self.stream_component_close(self.audio_stream)
@@ -1847,7 +1896,7 @@ cdef class VideoState(object):
             self.vid_sink.request_thread(self.self_id, FF_QUIT_EVENT)
         return 0
 
-    cdef void stream_cycle_channel(VideoState self, int codec_type) nogil:
+    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef int start_index, stream_index
         cdef int old_index
@@ -1871,10 +1920,10 @@ cdef class VideoState(object):
                     self.last_subtitle_stream = -1
                     break
                 if start_index == -1:
-                    return
+                    return 0
                 stream_index = 0
             if stream_index == start_index:
-                return
+                return 0
             st = ic.streams[stream_index]
             if st.codec.codec_type == codec_type:
                 # check that parameters are OK
@@ -1885,3 +1934,4 @@ cdef class VideoState(object):
                     break
         self.stream_component_close(old_index)
         self.stream_component_open(stream_index)
+        return 0

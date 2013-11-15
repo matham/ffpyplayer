@@ -36,7 +36,7 @@ cdef class VideoSink(object):
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil:
         pix_fmts[0] = out_fmt
 
-    cdef void request_thread(VideoSink self, void *data, uint8_t request) nogil:
+    cdef int request_thread(VideoSink self, void *data, uint8_t request) nogil except 1:
         if request == FF_ALLOC_EVENT:
             self.alloc_mutex.lock()
             self.requested_alloc = 1
@@ -49,14 +49,15 @@ cdef class VideoSink(object):
         elif request == FF_EOF_EVENT:
             with gil:
                 self.callback()('eof', None)
+        return 0
 
-    cdef int peep_alloc(VideoSink self) nogil:
+    cdef int peep_alloc(VideoSink self) nogil except 1:
         self.alloc_mutex.lock()
         self.requested_alloc = 0
         self.alloc_mutex.unlock()
         return 0
 
-    cdef void alloc_picture(VideoSink self, VideoPicture *vp) nogil:
+    cdef int alloc_picture(VideoSink self, VideoPicture *vp) nogil except 1:
         if vp.pict != NULL:
             #av_frame_unref(vp.pict)
             self.free_alloc(vp)
@@ -67,12 +68,13 @@ cdef class VideoSink(object):
             with gil:
                 raise Exception('Could not allocate avframe.')
 #         IF CONFIG_AVFILTER and 0:
-#             return
+#             return 0
         if (av_image_alloc(vp.pict.data, vp.pict.linesize, vp.width,
                            vp.height, pix_fmts[0], 1) < 0):
             av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
             with gil:
                 raise Exception('Could not allocate avframe buffer of size %dx%d.' %(vp.width, vp.height))
+        return 0
 
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil:
         if vp.pict != NULL:
@@ -81,8 +83,8 @@ cdef class VideoSink(object):
             av_frame_free(&vp.pict)
             vp.pict = NULL
 
-    cdef void copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
-                           VideoSettings *player) nogil:
+    cdef int copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
+                           VideoSettings *player) nogil except 1:
 
         IF CONFIG_AVFILTER:
             #av_frame_move_ref(vp.pict, src_frame)
@@ -100,12 +102,13 @@ cdef class VideoSink(object):
                     raise Exception('Cannot initialize the conversion context.')
             sws_scale(player.img_convert_ctx, src_frame.data, src_frame.linesize,
                       0, vp.height, vp.pict.data, vp.pict.linesize)
+        return 0
 
-    cdef void video_image_display(VideoSink self, VideoPicture *vp) nogil:
+    cdef int video_image_display(VideoSink self, VideoPicture *vp) nogil except 1:
         cdef SubPicture *sp
         cdef PyObject *buff
         if vp.pict == NULL:
-            return
+            return 0
 
         with gil:
             if pix_fmts[0] != AV_PIX_FMT_RGB24:
@@ -115,8 +118,9 @@ cdef class VideoSink(object):
             # XXX doesn't python automatically free?
             Py_DECREF(buff)
             #av_frame_unref(vp.pict)
+        return 0
 
-    cdef void subtitle_display(VideoSink self, AVSubtitle *sub) nogil:
+    cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1:
         cdef PyObject *buff
         cdef int i
         cdef double pts
@@ -140,8 +144,9 @@ cdef class VideoSink(object):
                                                 sub.end_display_time / 1000.))
                 if buff != NULL:
                     Py_DECREF(buff)
+        return 0
 
-    cdef void SDL_Initialize(VideoSink self, VideoState vs) nogil:
+    cdef int SDL_Initialize(VideoSink self, VideoState vs) nogil except 1:
         cdef unsigned flags
         cdef const SDL_VideoInfo *vi
         flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER
@@ -157,8 +162,9 @@ cdef class VideoSink(object):
         SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE)
         SDL_EventState(SDL_USEREVENT, SDL_IGNORE)
         self.remaining_time = 0.0
+        return 0
 
-    cdef void event_loop(VideoSink self, VideoState vs) nogil:
+    cdef int event_loop(VideoSink self, VideoState vs) nogil except 1:
         cdef double remaining_time
 
         while 1:
@@ -178,4 +184,4 @@ cdef class VideoSink(object):
             vs.alloc_picture()
             self.requested_alloc = 0
         self.alloc_mutex.unlock()
-        return
+        return 0
