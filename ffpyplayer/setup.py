@@ -21,7 +21,13 @@ c_options = {
 'config_rtsp_demuxer': True,
 'config_mmsh_protocol': True,
 # whether sdl is included as an option
-'config_sdl': True
+'config_sdl': True,
+# these should be true
+'config_avutil':True,
+'config_avcodec':True,
+'config_avformat':True,
+'config_swresample':True,
+'config_postproc':True
 }
 
 
@@ -48,6 +54,10 @@ with open('ffconfig.h', 'wb') as f:
 #define NOT_WIN_MAC 0
 #endif
 
+''')
+    for k, v in c_options.iteritems():
+        f.write('#define %s %d\n' % (k.upper(), int(v)))
+    f.write('''
 #endif
 ''')
 
@@ -59,7 +69,7 @@ with open('ffconfig.pxi', 'wb') as f:
 
 
 extra_objects=['avcodec-55', 'avdevice-55', 'avfilter-3', 'avformat-55',
-               'avutil-52', 'swscale-2', 'swresample-0', 'SDL']
+               'avutil-52', 'swscale-2', 'swresample-0', 'postproc-52', 'SDL']
 extra_objects = [os.path.join(bin, obj + share) for obj in extra_objects]
 mods = ['ffpyplayer', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock']
 extra_compile_args = ["-O3"]

@@ -410,6 +410,15 @@ cdef:
         int av_buffersink_get_frame_flags(AVFilterContext *, AVFrame *, int)
     #endif
 
+    extern from "libpostproc/postprocess.h" nogil:
+        pass
+
+    extern from "ffinfo.h" nogil:
+        uint8_t INDENT
+        uint8_t SHOW_VERSION
+        uint8_t SHOW_CONFIG
+        void print_all_libs_info(int, int)
+
 cdef:
     struct MyAVPacketList:
         AVPacket pkt

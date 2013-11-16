@@ -36,7 +36,7 @@ cdef int _print_prefix
 cdef MTMutex _log_mutex= MTMutex(Py_MT)
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
-    cdef char line[1024]
+    cdef char line[2048]
     global _print_prefix
     _log_mutex.lock()
     _print_prefix = 1
@@ -66,6 +66,8 @@ cdef class FFPyPlayer(object):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         PyEval_InitThreads()
+        print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
+        print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
         settings.format_opts = settings.codec_opts = NULL
         settings.sws_flags = SWS_BICUBIC
         # set x, or y to -1 to preserve pixel ratio
