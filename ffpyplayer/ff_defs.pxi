@@ -10,8 +10,8 @@ ctypedef int (*int_void_func)(void *) except? 1
 
 ctypedef float FFTSample
 
-include "sdl.pxi"
 include "ff_defs_comp.pxi"
+include "sdl.pxi"
 
 
 cdef:

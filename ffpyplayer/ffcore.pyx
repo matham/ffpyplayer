@@ -1341,6 +1341,8 @@ cdef class VideoState(object):
         cdef int bytes_per_sec
         cdef int frame_size = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, 1, self.audio_tgt.fmt, 1)
         self.player.audio_callback_time = av_gettime()
+        IF HAS_SDL2:
+            memset(stream, 0, len)
         while len > 0:
             if self.audio_buf_index >= self.audio_buf_size:
                audio_size = self.audio_decode_frame()

@@ -6,7 +6,6 @@ cdef extern from "SDL.h" nogil:
 
     void SDL_Delay(int)
 
-    SDL_Thread *SDL_CreateThread(int_void_func, void *) with gil
     void SDL_WaitThread(SDL_Thread *, int *)
     struct SDL_mutex:
         pass
@@ -38,7 +37,10 @@ cdef extern from "SDL.h" nogil:
 
 
 cdef extern from "SDL_thread.h" nogil:
-    pass
+    IF HAS_SDL2:
+        SDL_Thread *SDL_CreateThread(int_void_func, const char *, void *) with gil
+    ELSE:
+        SDL_Thread *SDL_CreateThread(int_void_func, void *) with gil
 
 cdef extern from * nogil:
     uint32_t SDL_HWACCEL

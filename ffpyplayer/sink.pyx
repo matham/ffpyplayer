@@ -152,15 +152,12 @@ cdef class VideoSink(object):
         flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER
         if vs.player.audio_disable:# or audio_sink != 'SDL':
             flags &= ~SDL_INIT_AUDIO
-        SDL_putenv(dummy_videodriver) # For the event queue, we always need a video driver.
-        if NOT_WIN_MAC:
-            flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
+        IF not HAS_SDL2:
+            if NOT_WIN_MAC:
+                flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
         with gil:
             if SDL_Init(flags):
                 raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
-        SDL_EventState(SDL_ACTIVEEVENT, SDL_IGNORE)
-        SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE)
-        SDL_EventState(SDL_USEREVENT, SDL_IGNORE)
         self.remaining_time = 0.0
         return 0
 
