@@ -62,13 +62,13 @@ def set_log_callback(object callback):
 cdef class FFPyPlayer(object):
 
     def __cinit__(self, filename, vid_sink, loglevel='error', ff_opts={},
-                  thread_lib='python', audio_sink='SDL', **kargs):
+                  thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         PyEval_InitThreads()
         print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
         print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
-        settings.format_opts = settings.codec_opts = NULL
+        settings.format_opts = settings.codec_opts = settings.swr_opts = NULL
         settings.sws_flags = SWS_BICUBIC
         # set x, or y to -1 to preserve pixel ratio
         settings.screen_width  = ff_opts['x'] if 'x' in ff_opts else 0
@@ -171,9 +171,13 @@ cdef class FFPyPlayer(object):
         av_register_all()
         avformat_network_init()
         if CONFIG_SWSCALE:
-            sws_opts = sws_getContext(16, 16, <AVPixelFormat>0, 16, 16,
-                                      <AVPixelFormat>0, SWS_BICUBIC,
-                                      NULL, NULL, NULL)
+            settings.sws_opts = sws_getContext(16, 16, <AVPixelFormat>0, 16, 16,
+                                               <AVPixelFormat>0, SWS_BICUBIC,
+                                               NULL, NULL, NULL)
+        for k, v in lib_opts.iteritems():
+            opt_default(k, v, settings.sws_opts, &settings.swr_opts,
+                        &settings.format_opts, &self.settings.codec_opts)
+
 
 
         'filename can start with pipe:'
@@ -212,6 +216,7 @@ cdef class FFPyPlayer(object):
 
         av_dict_free(&self.settings.format_opts)
         av_dict_free(&self.settings.codec_opts)
+        av_dict_free(&self.settings.swr_opts)
         IF CONFIG_AVFILTER:
             av_freep(&self.settings.vfilters)
         avformat_network_deinit()

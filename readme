@@ -45,7 +45,6 @@ http://ffmpeg.org/pipermail/ffmpeg-devel/2013-May/143343.html. Also, if we can
 add a parameter to blit_buffer which will cast to a char *, then the image data
 will not have to be copied at all all!!! But that's not very pythonic, I suppose.
 
--Implement opt_default() so that we can set any user options using av_dict in generic way
 -provide full cross format image conversion libs using swsscale
 -gcc complains a lot but they are not actual issues, I believe. Go through them.
 -Currently, it only supports text subtitles, bitmap subtitles are ignored.
@@ -56,8 +55,7 @@ bitmap subtitle, most of the subtitle related code can be removed.
 Do this by providing link between audio to video filters, and subtitle to video.
 We can do this by making video stream dependent on subtitle or audio.
 
-
-need to call Py_DECREF to prevent memory leak in video_image_display is a cython bug, or feature?
+-need to call Py_DECREF to prevent memory leak in video_image_display is a cython bug, or feature?
 
 
 --------------------------------

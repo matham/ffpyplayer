@@ -66,4 +66,4 @@ cdef struct VideoSettings:
 
     SwsContext *img_convert_ctx
     SwsContext *sws_opts
-    AVDictionary *format_opts, *codec_opts
+    AVDictionary *format_opts, *codec_opts, *swr_opts

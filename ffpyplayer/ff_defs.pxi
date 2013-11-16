@@ -418,6 +418,8 @@ cdef:
         uint8_t SHOW_VERSION
         uint8_t SHOW_CONFIG
         void print_all_libs_info(int, int)
+        int opt_default(const char *, const char *, SwsContext *, AVDictionary **,
+                        AVDictionary **, AVDictionary **)
 
 cdef:
     struct MyAVPacketList:
