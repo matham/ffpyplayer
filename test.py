@@ -88,6 +88,10 @@ class PlayerApp(App):
             else:
                 self.ffplayer.set_size(self.root.image.width, -1)
 
+    def update_pts(self, *args):
+        if self.ffplayer:
+            self.root.seek.value = self.ffplayer.get_pts()
+
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if not self.ffplayer:
             return False
@@ -98,6 +102,9 @@ class PlayerApp(App):
             self.ffplayer.step_frame()
         elif keycode[1] == 'v':
             self.ffplayer.request_channel('video', 'close' if ctrl else 'cycle')
+            Clock.unschedule(self.update_pts)
+            if ctrl:    # need to continue updating pts, since video is disabled.
+                Clock.schedule_interval(self.update_pts, 0.1)
         elif keycode[1] == 'a':
             self.ffplayer.request_channel('audio', 'close' if ctrl else 'cycle')
         elif keycode[1] == 't':

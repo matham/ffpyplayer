@@ -247,6 +247,24 @@ cdef class FFPyPlayer(object):
             self.ivs.step_to_next_frame()
         self.settings_mutex.unlock()
 
+    def get_pts(VideoState self):
+        cdef double pos
+        cdef int sync_type = self.ivs.get_master_sync_type()
+        if (sync_type == AV_SYNC_VIDEO_MASTER and
+            self.ivs.video_stream != -1):
+            pos = self.ivs.vidclk.get_clock()
+        elif (sync_type == AV_SYNC_AUDIO_MASTER and
+            self.ivs.audio_stream != -1):
+            pos = self.ivs.audclk.get_clock()
+        else:
+            pos = self.ivs.extclk.get_clock()
+        if isnan(pos):
+            pos = <double>self.ivs.seek_pos / <double>AV_TIME_BASE
+        if (self.ivs.ic.start_time != AV_NOPTS_VALUE and
+            pos < self.ivs.ic.start_time / <double>AV_TIME_BASE):
+            pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
+        return pos
+
     def force_refresh(self):
         self.settings_mutex.lock()
         self.ivs.force_refresh = 1
