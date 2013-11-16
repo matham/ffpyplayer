@@ -1,6 +1,6 @@
 
 __all__ = ('FFPyPlayer', 'set_log_callback', 'loglevels')
-
+__version__ = (1, 0)
 
 import os
 import sys

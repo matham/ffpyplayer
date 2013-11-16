@@ -108,6 +108,12 @@ ext_modules = [Extension('ffpyplayer.' + src_file, [join('ffpyplayer', src_file+
                          include_dirs=include_dirs, extra_objects=extra_objects,
                          extra_compile_args=extra_compile_args) for src_file in mods]
 
-setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
+setup(name='ffpyplayer',
+      version='1.0',
+      author='Matthew Einhorn',
+      license='LGPL',
+      description='A cython implementation of an ffmpeg based player.',
+      packages=['ffpyplayer'],
+      cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
 
 #python setup.py build_ext --inplace --force
