@@ -2,26 +2,26 @@ To use:
 
 You need to have a compiled ffmpeg and sdl, as well as their headers.
 It's assumed that the environment variables FFMPEG_ROOT and SDL_ROOT point
-to a ffmpeg and sdl directory. In that directory there should be three directories:
-include, lib, and bin. include and lib are needed for the compiler compilation
-and linking stage, bin is needed for loading the shared libraries. The lib dir
-contains the .a or .dll.a files, while bin contains the actual e.g. .dll files.
+to a ffmpeg and sdl directories, respectivly. In each directory there should be
+three directories: include, lib, and bin. include and lib are needed for the
+compiler compilation and linking stage, bin is needed for loading the shared libraries at runtime.
+The lib dir contains the .a or .dll.a files, while bin contains the actual e.g. .dll files.
 In the __init__.py file, we add the bin directory if it exists to the system path.
 Both SDL1.2 and SDL2 have been tested and are supported.
 We detect whether SDL2 is available by whether the include directory has a SDL2
 directory.
 
 A example file, test.py, demonstrating the library is included. To use it,
-You'll have to manually edit it to use a video file of your liking.
+provide a filename as the command line argument to test.py.
 The FFPyPlayer constructor accepts many configuration arguments. To see what
 is supported look in FFPyPlayer.__init__(). Most options have analogs in ffplay.c.
 That class also provides the interface functions e.g. seeking, resizing etc.
 
--This started with a very recent ffmpeg source from which I ported ffplay into
+-This started with a very recent ffmpeg source from which I ported ffplay.c into
 cython. It accepts most files including network streams (rtsp, etc.), probably
 webcams as well and outputs the video into a python callback. Audio is output
-with SDL. It also supports text based subtitles which it outputs as text strings.
-Alternatively you can show subtitles through filters. You can selectively excelude
+with SDL. It also supports text based subtitles which it outputs as text strings to
+a callback. Alternatively you can show subtitles through filters. You can selectively exclude
 ffmpeg libs when compiling, e.g. avfilter to reduce file size. Because it's
 started with current ffmpeg source, we should be easily able to keep up with any
 changes to ffmpeg by translating any changes to ffplay into cython.  So any bugs
@@ -38,8 +38,6 @@ TODO:
 
 -Need to add documentation.
 -Add kivy provider.
--Replace the refresh and frame callback functions with a single get frame function.
-Also, in the single frame step mode, immediately return frames as they become available.
 -Implement CONFIG_SDL
 -The larger the frame size the higher the CPU. Currently, a copy occurs in cython
 when queing a frame from the decoder. Another copy occurs when converting the
@@ -56,7 +54,6 @@ http://ffmpeg.org/pipermail/ffmpeg-devel/2013-May/143343.html. Also, if we can
 add a parameter to blit_buffer which will cast to a char *, then the image data
 will not have to be copied at all all!!! But that's not very pythonic, I suppose.
 
--provide full cross format image conversion libs using swsscale
 -gcc complains a lot but they are not actual issues, I believe. Go through them.
 -Currently, it only supports text subtitles, bitmap subtitles are ignored.
 You can also not yet visualize audio to video. If that is important it can be

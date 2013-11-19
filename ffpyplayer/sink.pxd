@@ -1,30 +1,24 @@
 
 include "ff_defs.pxi"
 
-cimport ffcore
-from ffcore cimport VideoState
 cimport ffthreading
 from ffthreading cimport MTMutex
 
 cdef class VideoSink(object):
     cdef MTMutex alloc_mutex
-    cdef MTMutex settings_mutex
     cdef object callback
     cdef int requested_alloc
-    cdef double remaining_time
 
     cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil
-    cdef int request_thread(VideoSink self, void *data, uint8_t type) nogil except 1
+    cdef int request_thread(VideoSink self, uint8_t type) nogil except 1
     cdef int peep_alloc(VideoSink self) nogil except 1
     cdef int alloc_picture(VideoSink self, VideoPicture *vp) nogil except 1
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil
     cdef int copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil except 1
-    cdef int video_image_display(VideoSink self, VideoPicture *vp) nogil except 1
+    cdef object video_image_display(VideoSink self, VideoPicture *vp) with gil
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1
-    cdef int SDL_Initialize(VideoSink self, VideoState vs) nogil except 1
-    cdef int event_loop(VideoSink self, VideoState vs) nogil except 1
 
 
 cdef struct VideoSettings:

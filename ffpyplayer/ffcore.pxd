@@ -18,7 +18,6 @@ cdef class VideoState(object):
         MTThread video_tid
         AVInputFormat *iformat
         int abort_request
-        int force_refresh
         int paused
         int last_paused
         int queue_attachments_req
@@ -31,6 +30,7 @@ cdef class VideoState(object):
         int realtime
         int audio_finished
         int video_finished
+        int reached_eof
 
         Clock audclk
         Clock vidclk
@@ -99,8 +99,6 @@ cdef class VideoState(object):
         int pictq_size, pictq_rindex, pictq_windex
         MTCond pictq_cond
 
-        int step
-
         IF CONFIG_AVFILTER:
             AVFilterContext *in_video_filter   # the first filter in the video chain
             AVFilterContext *out_video_filter  # the last filter in the video chain
@@ -133,14 +131,12 @@ cdef class VideoState(object):
     cdef double get_master_clock(VideoState self) nogil except? 0.0
     cdef int check_external_clock_speed(VideoState self) nogil except 1
     cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil except 1
-    cdef int stream_toggle_pause(VideoState self) nogil except 1
     cdef int toggle_pause(VideoState self) nogil except 1
-    cdef int step_to_next_frame(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
     cdef int pictq_next_picture(VideoState self) nogil except 1
     cdef int pictq_prev_picture(VideoState self) nogil except -1
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
-    cdef int video_refresh(VideoState self, double *remaining_time) nogil except 1
+    cdef object video_refresh(VideoState self, int force_refresh) with gil
     cdef int alloc_picture(VideoState self) nogil except 1
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
                            int64_t pos, int serial) nogil except 1

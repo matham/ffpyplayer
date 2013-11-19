@@ -194,7 +194,7 @@ cdef class FFPyPlayer(object):
             raise Exception('Currently, only SDL is supported as a audio sink.')
         self.settings_mutex = MTMutex(self.mt_gen.mt_src)
         if callable(vid_sink):
-            self.vid_sink = VideoSink(self.settings_mutex, MTMutex(self.mt_gen.mt_src), vid_sink)
+            self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), vid_sink)
             self.vid_sink.set_out_pix_fmt(AV_PIX_FMT_RGB24)
         else:
             raise Exception('Video sink parameter not recognized.')
@@ -202,7 +202,14 @@ cdef class FFPyPlayer(object):
             raise ValueError('Could not initialize lock manager.')
         self.ivs = VideoState()
         self.ivs.cInit(self.mt_gen, self.vid_sink, settings)
-        self.vid_sink.SDL_Initialize(self.ivs)
+        flags = SDL_INIT_AUDIO | SDL_INIT_TIMER
+        if settings.audio_disable:# or audio_sink != 'SDL':
+            flags &= ~SDL_INIT_AUDIO
+        IF not HAS_SDL2:
+            if NOT_WIN_MAC:
+                flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
+        if SDL_Init(flags):
+            raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
 
     def __dealloc__(self):
         cdef const char *empty = ''
@@ -225,9 +232,24 @@ cdef class FFPyPlayer(object):
         #SDL_Quit()
         av_log(NULL, AV_LOG_QUIET, "%s", empty)
 
-    def refresh(self, *args):
-        with nogil:
-            self.vid_sink.event_loop(self.ivs)
+    ''' If step is true, it will go into pause mode and get frame by frame.
+        If the audio is left enabled (an=0), if the frames are gotten faster than natural
+        playback then the audio will play at the natural speed and will be
+        behind the frames. Also, eof won't arrive until natural playback is done.
+        If it's slower, then a small audio segmant will be
+        played with each frame.
+        If audio is disabled, the above doesn't matter.
+        If one wants to be sure that every time one plays the video one gets the
+        same timestamps for each video frame no matter the speed, one must
+        set sync to video ('sync'='video'), even if audio is disabled.
+        In any case, it probably doesn't make much sense to use step if audio
+        is enabled.
+    '''
+    def get_frame(self, force_refresh=False, *args):
+        self.settings_mutex.lock()
+        res = self.ivs.video_refresh(force_refresh)
+        self.settings_mutex.unlock()
+        return res
 
     def get_metadata(self):
         return self.ivs.metadata
@@ -235,16 +257,13 @@ cdef class FFPyPlayer(object):
     def set_volume(self, volume):
         self.settings.volume = min(max(volume, 0.), 1.) * SDL_MIX_MAXVOLUME
 
+    def get_volume(self):
+        return self.settings.volume / <double>SDL_MIX_MAXVOLUME
+
     def toggle_pause(self):
         self.settings_mutex.lock()
         with nogil:
             self.ivs.toggle_pause()
-        self.settings_mutex.unlock()
-
-    def step_frame(self):
-        self.settings_mutex.lock()
-        with nogil:
-            self.ivs.step_to_next_frame()
         self.settings_mutex.unlock()
 
     def get_pts(VideoState self):
@@ -264,12 +283,6 @@ cdef class FFPyPlayer(object):
             pos < self.ivs.ic.start_time / <double>AV_TIME_BASE):
             pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
         return pos
-
-    def force_refresh(self):
-        self.settings_mutex.lock()
-        self.ivs.force_refresh = 1
-        self.ivs.callback()('refresh', 0.0)
-        self.settings_mutex.unlock()
 
     "Can only be called from the main thread."
     def set_size(self, int width, int height):

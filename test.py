@@ -11,6 +11,7 @@ from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.weakmethod import WeakMethod
+import sys
 
 
 Builder.load_string('''
@@ -30,6 +31,7 @@ Builder.load_string('''
         size_hint: 0.95, 0.05
         pos: 0.05 * rt.width, 0
         on_touch_down: app.touch_down(args[1])
+        value: 0
     Slider:
         id: volume
         orientation: 'vertical'
@@ -46,7 +48,8 @@ class Root(RelativeLayout):
 
 loglevel_emit = 'error'
 def log_callback(message, level):
-    if loglevels[level] <= loglevels[loglevel_emit]:
+    message = message.strip()
+    if message and loglevels[level] <= loglevels[loglevel_emit]:
         print '%s: %s' %(level, message.strip())
 
 
@@ -57,6 +60,7 @@ class PlayerApp(App):
         self.texture = None
         self.size = (0, 0)
         self.buffer = None
+        self.next_frame = None
 
     def build(self):
         self.root = Root()
@@ -64,17 +68,13 @@ class PlayerApp(App):
 
     def on_start(self):
         global loglevel_emit
-        loglevel_emit = 'debug'
+        loglevel_emit = 'info'
         self.callback_ref = WeakMethod(self.callback)
-        # Download the test video from here:
-        #http://www.auby.no/files/video_tests/h264_720p_hp_5.1_3mbps_vorbis_styled_and_unstyled_subs_suzumiya.mkv
-        filename = r'C:\FFmpeg\h264_720p_hp_5.1_3mbps_vorbis_styled_and_unstyled_subs_suzumiya.mkv'
-        # this displays the subtitles using the subtitles video filter. FFmpeg escaping rules apply.
-        # other video filters e.g. = ff_opts = {'vf':'edgedetect'} http://ffmpeg.org/ffmpeg-filters.html
-        ff_opts = {'vf':r'subtitles=C\\:\\\\FFmpeg\\\\h264_720p_hp_5.1_3mbps_vorbis_styled_and_unstyled_subs_suzumiya.mkv'}
+        filename = sys.argv[1]
+        ff_opts = {}# try ff_opts = {'vf':'edgedetect'} http://ffmpeg.org/ffmpeg-filters.html
         self.ffplayer = FFPyPlayer(filename, vid_sink=self.callback_ref,
-                                   loglevel='debug', ff_opts=ff_opts)
-        self.callback('refresh', 0.)
+                                   loglevel='info', ff_opts=ff_opts)
+        Clock.schedule_once(self.redraw, 0)
         self.keyboard = Window.request_keyboard(None, self.root)
         self.keyboard.bind(on_key_down=self.on_keyboard_down)
 
@@ -98,25 +98,38 @@ class PlayerApp(App):
         ctrl = 'ctrl' in modifiers
         if keycode[1] == 'p' or keycode[1] == 'spacebar':
             self.ffplayer.toggle_pause()
-        elif keycode[1] == 's':
-            self.ffplayer.step_frame()
+            Clock.unschedule(self.redraw)
+            Clock.schedule_once(self.redraw, 0)
+        elif keycode[1] == 'r':
+            self.redraw(force_refresh=True)
         elif keycode[1] == 'v':
             self.ffplayer.request_channel('video', 'close' if ctrl else 'cycle')
             Clock.unschedule(self.update_pts)
+            Clock.unschedule(self.redraw)
             if ctrl:    # need to continue updating pts, since video is disabled.
-                Clock.schedule_interval(self.update_pts, 0.1)
+                Clock.schedule_interval(self.update_pts, 0.05)
+            else:
+                Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'a':
             self.ffplayer.request_channel('audio', 'close' if ctrl else 'cycle')
         elif keycode[1] == 't':
             self.ffplayer.request_channel('subtitle', 'close' if ctrl else 'cycle')
         elif keycode[1] == 'right':
             self.ffplayer.seek(10.)
+            self.next_frame = None
+            Clock.unschedule(self.redraw)
+            Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'left':
             self.ffplayer.seek(-10.)
+            self.next_frame = None
+            Clock.unschedule(self.redraw)
+            Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'up':
-            self.ffplayer.seek(60.)
+            self.ffplayer.set_volume(self.ffplayer.get_volume() + 0.01)
+            self.root.volume.value = self.ffplayer.get_volume()
         elif keycode[1] == 'down':
-            self.ffplayer.seek(-60.)
+            self.ffplayer.set_volume(self.ffplayer.get_volume() - 0.01)
+            self.root.volume.value = self.ffplayer.get_volume()
         return True
 
     def touch_down(self, touch):
@@ -124,6 +137,9 @@ class PlayerApp(App):
             self.ffplayer.seek((touch.pos[0] - self.root.volume.width) / \
                                self.root.seek.width * self.ffplayer.get_metadata()['duration'],
                                relative=False)
+            self.next_frame = None
+            Clock.unschedule(self.redraw)
+            Clock.schedule_once(self.redraw, 0)
             return True
         return False
 
@@ -132,45 +148,43 @@ class PlayerApp(App):
             return
         if selector == 'quit':
             def close(*args):
-                Clock.unschedule(self.ffplayer.refresh)
+                Clock.unschedule(self.redraw)
                 self.ffplayer = None
             Clock.schedule_once(close, 0)
-        elif selector == 'display': # this is called from thread that calls refresh
-            self.redraw(*value)
-            self.root.seek.max = self.ffplayer.get_metadata()['duration'] # do only once
         elif selector == 'display_sub': # called from internal thread, it typically reads forward
             self.display_subtitle(*value)
-        elif selector == 'refresh':
-            # XXX: is Clock thread safe?
-            Clock.unschedule(self.ffplayer.refresh)
-            Clock.schedule_once(self.ffplayer.refresh, value)
-        elif selector == 'eof':
-            pass
 
-    def redraw(self, buffer, size, pts):
-        if size != self.size or self.texture is None:
-            self.root.image.canvas.remove_group(str(self)+'_display')
-            self.texture = Texture.create(size=size, colorfmt='rgb')
-            # by adding 'vf':'vflip' to the player initialization ffmpeg will do the flipping
-            self.texture.flip_vertical()
-            self.texture.add_reload_observer(self.reload_buffer)
-            self.size = size
-        self.buffer = buffer
-        self.texture.blit_buffer(buffer)
-        self.root.image.texture = None
-        self.root.image.texture = self.texture
-        self.root.seek.value = pts
+    def redraw(self, dt=0, force_refresh=False):
+        if not self.ffplayer:
+            return
+        if self.next_frame and not force_refresh:
+            buffer, size, linesize, pts = self.next_frame
+            self.next_frame = None
+            if size != self.size or self.texture is None:
+                self.root.image.canvas.remove_group(str(self)+'_display')
+                self.texture = Texture.create(size=size, colorfmt='rgb')
+                # by adding 'vf':'vflip' to the player initialization ffmpeg will do the flipping
+                self.texture.flip_vertical()
+                self.texture.add_reload_observer(self.reload_buffer)
+                self.size = size
+            self.buffer = buffer
+            self.texture.blit_buffer(buffer)
+            self.root.image.texture = None
+            self.root.image.texture = self.texture
+            self.root.seek.value = pts
+        self.next_frame, val = self.ffplayer.get_frame(force_refresh=force_refresh)
+        if val == 'eof':
+            print 'eof'
+            return
+        elif val == 'paused':
+            print 'paused'
+            return
+        Clock.schedule_once(self.redraw, val if val or self.next_frame else 1/60.)
+        if self.root.seek.value:
+            self.root.seek.max = self.ffplayer.get_metadata()['duration'] # do once
 
     def display_subtitle(self, text, fmt, pts, t_start, t_end):
-        # this pattern is needed to parse ass subtitles
-        #pattern = re.compile('([\w ]*?):([\w= ]*?,)([\d: \.]+?,)([\d: \.]+?,)'+\
-        #'([^,]+?,)?([.+?,)?([\d]+?,)?([\d]+?,)?([\d]+?,)?(.+?,)?(.+)')
-        return
-        # why is ffmpeg sometimes outputing off spec subtitles?
-        if fmt == 'ass':
-            m = pattern.match(text)
-            text = m.groups()[-1]
-        text = text.strip().replace('\N', '\n')
+        pass # fmt is text (unformatted), or ass (formatted subs)
 
     def reload_buffer(self, *args):
         self.texture.blit_buffer(self.buffer, colorfmt='rgb', bufferfmt='ubyte')
@@ -180,7 +194,7 @@ if __name__ == '__main__':
     a = PlayerApp()
     a.run()
     if a.ffplayer is not None:
-        Clock.unschedule(a.ffplayer.refresh)
+        Clock.unschedule(a.redraw)
     # why do we need to set this to None in order to call dealloc on ffplayer?
     # shouldn't it automatically be deallocated? In any case, it should only be
     # called from the main thread.

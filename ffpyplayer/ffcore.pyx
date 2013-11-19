@@ -69,7 +69,7 @@ cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     except:
         msg = traceback.format_exc()
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        vs.vid_sink.request_thread(FF_QUIT_EVENT)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -83,7 +83,7 @@ cdef int video_thread_enter(void *obj_id) except? 1 with gil:
     except:
         msg = traceback.format_exc()
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        vs.vid_sink.request_thread(FF_QUIT_EVENT)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -97,7 +97,7 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
     except:
         msg = traceback.format_exc()
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        vs.vid_sink.request_thread(FF_QUIT_EVENT)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -115,7 +115,7 @@ cdef void sdl_audio_callback(void *obj_id, uint8_t *stream, int len) with gil:
     except:
         msg = traceback.format_exc()
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.vid_sink.request_thread(NULL, FF_QUIT_EVENT)
+        vs.vid_sink.request_thread(FF_QUIT_EVENT)
         if vs.mt_gen.mt_src == Py_MT:
             raise
 
@@ -248,6 +248,7 @@ cdef class VideoState(object):
         self.audio_clock_serial = -1
         self.audio_last_serial = -1
         self.av_sync_type = player.av_sync_type
+        self.reached_eof = 0
 
         with gil:
             self.read_tid = MTThread(mt_gen.mt_src)
@@ -338,7 +339,7 @@ cdef class VideoState(object):
         return 0
 
     # pause or resume the video
-    cdef int stream_toggle_pause(VideoState self) nogil except 1:
+    cdef int toggle_pause(VideoState self) nogil except 1:
         if self.paused:
             self.frame_timer += av_gettime() / 1000000.0 + self.vidclk.pts_drift - self.vidclk.pts
             if self.read_pause_return != AVERROR(ENOSYS):
@@ -349,18 +350,6 @@ cdef class VideoState(object):
         self.pause_cond.lock()
         self.pause_cond.cond_signal()
         self.pause_cond.unlock()
-        return 0
-
-    cdef int toggle_pause(VideoState self) nogil except 1:
-        self.stream_toggle_pause()
-        self.step = 0
-        return 0
-
-    cdef int step_to_next_frame(VideoState self) nogil except 1:
-        # if the stream is paused unpause it, then step
-        if self.paused:
-            self.stream_toggle_pause()
-        self.step = 1
         return 0
 
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0:
@@ -423,15 +412,12 @@ cdef class VideoState(object):
         self.frame_last_pts = pts
 
 
-    # called to display each frame
-    cdef int video_refresh(VideoState self, double *remaining_time) nogil except 1:
+    #XXX refactor this crappy function
+    cdef object video_refresh(VideoState self, int force_refresh) with gil:
         cdef VideoPicture *vp
-        cdef double time
-
+        cdef double time, remaining_time = 0.
         cdef SubPicture *sp, *sp2
-
         cdef int redisplay
-
         cdef LoopState state = retry
         cdef double last_duration, duration, delay
         cdef VideoPicture *nextvp
@@ -439,166 +425,175 @@ cdef class VideoState(object):
         cdef int aqsize, vqsize, sqsize
         cdef double av_diff
         cdef const char *pat
-        with gil:
-            self.py_pat = bytes("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"+PRId64+"/%"+PRId64+"   \r")
-            pat = self.py_pat
         cdef char *m
         cdef int64_t m2, m3
+        cdef object image = None
+        self.py_pat = bytes("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"+PRId64+"/%"+PRId64+"   \r")
+        pat = self.py_pat
+        with nogil: # <-- ugly
+            self.alloc_picture()
+            if self.paused and not force_refresh:
+                with gil:
+                    return (None, 'paused')
+            if (not self.paused) and self.get_master_sync_type() == AV_SYNC_EXTERNAL_CLOCK and self.realtime:
+                self.check_external_clock_speed()
 
-        if (not self.paused) and self.get_master_sync_type() == AV_SYNC_EXTERNAL_CLOCK and self.realtime:
-            self.check_external_clock_speed()
-
-        if self.video_st != NULL:
-            redisplay = 0
-            if self.force_refresh:
-                redisplay = self.pictq_prev_picture()
-            while True:
-                if state == retry:
-                    if self.pictq_size == 0:
-                        self.pictq_cond.lock()
-                        if self.frame_last_dropped_pts != AV_NOPTS_VALUE and\
-                        self.frame_last_dropped_pts > self.frame_last_pts:
-                            self.update_video_pts(self.frame_last_dropped_pts, self.frame_last_dropped_pos,
-                                                  self.frame_last_dropped_serial)
-                            self.frame_last_dropped_pts = AV_NOPTS_VALUE
-                        self.pictq_cond.unlock()
-                        # nothing to do, no picture to display in the queue
-                    else:
-                        # dequeue the picture
-                        vp = &self.pictq[self.pictq_rindex]
-                        if vp.serial != self.videoq.serial:
-                            self.pictq_next_picture()
-                            redisplay = 0
-                            continue
-
-                        if self.paused:
-                            state = display
-                            continue
-
-                        # compute nominal last_duration
-                        last_duration = vp.pts - self.frame_last_pts
-                        if (not isnan(last_duration)) and last_duration > 0 and last_duration < self.max_frame_duration:
-                            # if duration of the last frame was sane, update last_duration in video state
-                            self.frame_last_duration = last_duration
-                        if redisplay:
-                            delay = 0.0
+            if self.video_st != NULL:
+                redisplay = 0
+                if force_refresh:
+                    redisplay = self.pictq_prev_picture()
+                while True:
+                    if state == retry:
+                        if self.pictq_size == 0:
+                            self.pictq_cond.lock()
+                            if self.frame_last_dropped_pts != AV_NOPTS_VALUE and\
+                            self.frame_last_dropped_pts > self.frame_last_pts:
+                                self.update_video_pts(self.frame_last_dropped_pts, self.frame_last_dropped_pos,
+                                                      self.frame_last_dropped_serial)
+                                self.frame_last_dropped_pts = AV_NOPTS_VALUE
+                            self.pictq_cond.unlock()
+                            if self.reached_eof:
+                                with gil:
+                                    return (None, 'eof')
+                            # nothing to do, no picture to display in the queue
                         else:
-                            delay = self.compute_target_delay(self.frame_last_duration)
-
-                        time = av_gettime() / 1000000.0
-                        if time < self.frame_timer + delay and not redisplay:
-                            remaining_time[0] = FFMIND(self.frame_timer + delay - time, remaining_time[0])
-                            return 0
-
-                        self.frame_timer += delay
-                        if delay > 0 and time - self.frame_timer > AV_SYNC_THRESHOLD_MAX:
-                            self.frame_timer = time
-
-                        self.pictq_cond.lock()
-                        if (not redisplay) and not isnan(vp.pts):
-                            self.update_video_pts(vp.pts, vp.pos, vp.serial)
-                        self.pictq_cond.unlock()
-
-                        if self.pictq_size > 1:
-                            nextvp = &self.pictq[(self.pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE]
-                            duration = nextvp.pts - vp.pts
-                            if (not self.step) and (redisplay or self.player.framedrop > 0 or\
-                            (self.player.framedrop and self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER))\
-                            and time > self.frame_timer + duration:
-                                if not redisplay:
-                                    self.frame_drops_late += 1
+                            # dequeue the picture
+                            vp = &self.pictq[self.pictq_rindex]
+                            if vp.serial != self.videoq.serial:
                                 self.pictq_next_picture()
                                 redisplay = 0
                                 continue
 
-                        if self.subtitle_st != NULL:
-                            while self.subpq_size > 0:
-                                sp = &self.subpq[self.subpq_rindex]
+                            if self.paused:
+                                state = display
+                                continue
 
-                                if self.subpq_size > 1:
-                                    sp2 = &self.subpq[(self.subpq_rindex + 1) % SUBPICTURE_QUEUE_SIZE]
-                                else:
-                                    sp2 = NULL
+                            # compute nominal last_duration
+                            last_duration = vp.pts - self.frame_last_pts
+                            if (not isnan(last_duration)) and last_duration > 0 and last_duration < self.max_frame_duration:
+                                # if duration of the last frame was sane, update last_duration in video state
+                                self.frame_last_duration = last_duration
+                            if redisplay:
+                                delay = 0.0
+                            else:
+                                delay = self.compute_target_delay(self.frame_last_duration)
 
-                                if sp.serial != self.subtitleq.serial\
-                                or (self.vidclk.pts > (sp.pts + <float> sp.sub.end_display_time / 1000.))\
-                                or (sp2 != NULL and self.vidclk.pts > (sp2.pts + <float> sp2.sub.start_display_time / 1000.)):
-                                    avsubtitle_free(&sp.sub)
+                            time = av_gettime() / 1000000.0
+                            if time < self.frame_timer + delay and not redisplay:
+                                remaining_time = self.frame_timer + delay - time
 
-                                    # update queue size and signal for next picture
-                                    self.subpq_rindex += 1
-                                    if self.subpq_rindex == SUBPICTURE_QUEUE_SIZE:
-                                        self.subpq_rindex = 0
+                            self.frame_timer += delay
+                            if delay > 0 and time - self.frame_timer > AV_SYNC_THRESHOLD_MAX:
+                                self.frame_timer = time
 
-                                    self.subpq_cond.lock()
-                                    self.subpq_size -= 1
-                                    self.subpq_cond.cond_signal()
-                                    self.subpq_cond.unlock()
-                                else:
-                                    break
-                        state = display
-                        continue
-                elif state == display:
-                    # display picture
-                    if (not self.player.video_disable) and self.video_st != NULL:
-                        self.vid_sink.video_image_display(&(self.pictq[self.pictq_rindex]))
-                    self.pictq_next_picture()
-                    if self.step and not self.paused:
-                        self.stream_toggle_pause()
-                break
+                            self.pictq_cond.lock()
+                            if (not redisplay) and not isnan(vp.pts):
+                                self.update_video_pts(vp.pts, vp.pos, vp.serial)
+                            self.pictq_cond.unlock()
 
+                            if self.pictq_size > 1:
+                                nextvp = &self.pictq[(self.pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE]
+                                duration = nextvp.pts - vp.pts
+                                if (redisplay or self.player.framedrop > 0 or\
+                                (self.player.framedrop and self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER))\
+                                and time > self.frame_timer + duration:
+                                    if not redisplay:
+                                        self.frame_drops_late += 1
+                                    self.pictq_next_picture()
+                                    redisplay = 0
+                                    continue
 
-        self.force_refresh = 0
-        if self.player.show_status:
+                            if self.subtitle_st != NULL:
+                                while self.subpq_size > 0:
+                                    sp = &self.subpq[self.subpq_rindex]
 
-            cur_time = av_gettime()
-            if (not self.last_time) or (cur_time - self.last_time) >= 30000:
-                aqsize = 0
-                vqsize = 0
-                sqsize = 0
-                if self.audio_st != NULL:
-                    aqsize = self.audioq.size
-                if self.video_st != NULL:
-                    vqsize = self.videoq.size
-                if self.subtitle_st != NULL:
-                    sqsize = self.subtitleq.size
-                av_diff = 0
-                if self.audio_st != NULL and self.video_st != NULL:
-                    av_diff = self.audclk.get_clock() - self.vidclk.get_clock()
-                elif self.video_st != NULL:
-                    av_diff = self.get_master_clock() - self.vidclk.get_clock()
-                elif self.audio_st != NULL:
-                    av_diff = self.get_master_clock() - self.audclk.get_clock()
-                with gil:
-                    self.py_m = bytes("A-V" if self.audio_st != NULL and self.video_st != NULL else\
-                    ("M-V" if self.video_st != NULL else ("M-A" if self.audio_st != NULL else "   ")))
-                    m = self.py_m
-                m2 = self.video_st.codec.pts_correction_num_faulty_dts if self.video_st != NULL else 0
-                m3 = self.video_st.codec.pts_correction_num_faulty_pts if self.video_st != NULL else 0
-                av_log(NULL, AV_LOG_INFO,
-                       pat,
-                       self.get_master_clock(),
-                       m,
-                       av_diff,
-                       self.frame_drops_early + self.frame_drops_late,
-                       aqsize / 1024,
-                       vqsize / 1024,
-                       sqsize,
-                       m2,
-                       m3)
-                self.last_time = cur_time
-        return 0
+                                    if self.subpq_size > 1:
+                                        sp2 = &self.subpq[(self.subpq_rindex + 1) % SUBPICTURE_QUEUE_SIZE]
+                                    else:
+                                        sp2 = NULL
+
+                                    if sp.serial != self.subtitleq.serial\
+                                    or (self.vidclk.pts > (sp.pts + <float> sp.sub.end_display_time / 1000.))\
+                                    or (sp2 != NULL and self.vidclk.pts > (sp2.pts + <float> sp2.sub.start_display_time / 1000.)):
+                                        avsubtitle_free(&sp.sub)
+
+                                        # update queue size and signal for next picture
+                                        self.subpq_rindex += 1
+                                        if self.subpq_rindex == SUBPICTURE_QUEUE_SIZE:
+                                            self.subpq_rindex = 0
+
+                                        self.subpq_cond.lock()
+                                        self.subpq_size -= 1
+                                        self.subpq_cond.cond_signal()
+                                        self.subpq_cond.unlock()
+                                    else:
+                                        break
+                            state = display
+                            continue
+                    elif state == display:
+                        # display picture
+                        if (not self.player.video_disable) and self.video_st != NULL:
+                            with gil:
+                                image = self.vid_sink.video_image_display(&(self.pictq[self.pictq_rindex]))
+                        self.pictq_next_picture()
+                    break
+
+            if self.player.show_status:
+
+                cur_time = av_gettime()
+                if (not self.last_time) or (cur_time - self.last_time) >= 30000:
+                    aqsize = 0
+                    vqsize = 0
+                    sqsize = 0
+                    if self.audio_st != NULL:
+                        aqsize = self.audioq.size
+                    if self.video_st != NULL:
+                        vqsize = self.videoq.size
+                    if self.subtitle_st != NULL:
+                        sqsize = self.subtitleq.size
+                    av_diff = 0
+                    if self.audio_st != NULL and self.video_st != NULL:
+                        av_diff = self.audclk.get_clock() - self.vidclk.get_clock()
+                    elif self.video_st != NULL:
+                        av_diff = self.get_master_clock() - self.vidclk.get_clock()
+                    elif self.audio_st != NULL:
+                        av_diff = self.get_master_clock() - self.audclk.get_clock()
+                    with gil:
+                        self.py_m = bytes("A-V" if self.audio_st != NULL and self.video_st != NULL else\
+                        ("M-V" if self.video_st != NULL else ("M-A" if self.audio_st != NULL else "   ")))
+                        m = self.py_m
+                    m2 = self.video_st.codec.pts_correction_num_faulty_dts if self.video_st != NULL else 0
+                    m3 = self.video_st.codec.pts_correction_num_faulty_pts if self.video_st != NULL else 0
+                    av_log(NULL, AV_LOG_INFO,
+                           pat,
+                           self.get_master_clock(),
+                           m,
+                           av_diff,
+                           self.frame_drops_early + self.frame_drops_late,
+                           aqsize / 1024,
+                           vqsize / 1024,
+                           sqsize,
+                           m2,
+                           m3)
+                    self.last_time = cur_time
+            with gil:
+                return (image, remaining_time)
 
 
     ''' allocate a picture (needs to do that in main thread to avoid
     potential locking problems '''
     cdef int alloc_picture(VideoState self) nogil except 1:
-        cdef VideoPicture *vp = &self.pictq[self.pictq_windex]
-        self.vid_sink.alloc_picture(vp)
-        self.pictq_cond.lock()
-        vp.allocated = 1
-        self.pictq_cond.cond_signal()
-        self.pictq_cond.unlock()
+        cdef VideoPicture *vp
+        self.vid_sink.alloc_mutex.lock()
+        if self.vid_sink.requested_alloc:
+            vp = &self.pictq[self.pictq_windex]
+            self.vid_sink.alloc_picture(vp)
+            self.pictq_cond.lock()
+            vp.allocated = 1
+            self.pictq_cond.cond_signal()
+            self.pictq_cond.unlock()
+            self.vid_sink.requested_alloc = 0
+        self.vid_sink.alloc_mutex.unlock()
         return 0
 
 
@@ -632,7 +627,7 @@ cdef class VideoState(object):
             vp.height = src_frame.height
             ''' the allocation must be done in the main thread to avoid
             locking problems. '''
-            self.vid_sink.request_thread(self.self_id, FF_ALLOC_EVENT)
+            self.vid_sink.request_thread(FF_ALLOC_EVENT)
             # wait until the picture is allocated
             self.pictq_cond.lock()
             while (not vp.allocated) and not self.videoq.abort_request:
@@ -936,7 +931,7 @@ cdef class VideoState(object):
                     graph = avfilter_graph_alloc()
                     ret = self.configure_video_filters(graph, self.player.vfilters, frame)
                     if ret < 0:
-                        self.vid_sink.request_thread(self.self_id, FF_QUIT_EVENT)
+                        self.vid_sink.request_thread(FF_QUIT_EVENT)
                         av_free_packet(&pkt)
                         break
                     filt_in  = self.in_video_filter
@@ -1752,6 +1747,7 @@ cdef class VideoState(object):
                     #self.mt_gen.delay(10)
                     continue
             if self.seek_req:
+                self.reached_eof = 0
                 seek_target = self.seek_pos
                 if self.seek_rel > 0:
                     seek_min = seek_target - self.seek_rel + 2
@@ -1786,8 +1782,6 @@ cdef class VideoState(object):
                 self.seek_req = 0
                 self.queue_attachments_req = 1
                 eof = 0
-                if self.paused:
-                    self.step_to_next_frame()
             if self.queue_attachments_req:
                 if self.video_st != NULL and self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC:
                     ret = av_copy_packet(&copy, &self.video_st.attached_pic)
@@ -1827,9 +1821,7 @@ cdef class VideoState(object):
                 elif self.player.autoexit:
                     return self.failed(AVERROR_EOF)
                 else:
-                    #if not self.paused:
-                    #    self.stream_toggle_pause()
-                    self.vid_sink.request_thread(self.self_id, FF_EOF_EVENT)
+                    self.reached_eof = 1
             if eof:
                 if self.video_stream >= 0:
                     av_init_packet(pkt)
@@ -1895,7 +1887,7 @@ cdef class VideoState(object):
         if self.ic != NULL:
             avformat_close_input(&self.ic)
         if ret != 0:
-            self.vid_sink.request_thread(self.self_id, FF_QUIT_EVENT)
+            self.vid_sink.request_thread(FF_QUIT_EVENT)
         return 0
 
     cdef int stream_cycle_channel(VideoState self, int codec_type,
