@@ -83,13 +83,8 @@ cdef class VideoState(object):
         MTCond subpq_cond
 
         double frame_timer
-        double frame_last_pts
-        double frame_last_duration
-        double frame_last_dropped_pts
         double frame_last_returned_time
         double frame_last_filter_delay
-        int64_t frame_last_dropped_pos
-        int frame_last_dropped_serial
         int video_stream
         AVStream *video_st
         FFPacketQueue videoq
@@ -133,13 +128,14 @@ cdef class VideoState(object):
     cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil except 1
     cdef int toggle_pause(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
+    cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0
     cdef int pictq_next_picture(VideoState self) nogil except 1
     cdef int pictq_prev_picture(VideoState self) nogil except -1
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
     cdef object video_refresh(VideoState self, int force_refresh) with gil
     cdef int alloc_picture(VideoState self) nogil except 1
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           int64_t pos, int serial) nogil except 1
+                           double duration, int64_t pos, int serial) nogil except 1
     cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,

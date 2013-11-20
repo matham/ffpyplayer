@@ -1,6 +1,7 @@
 To use:
 
-You need to have a compiled ffmpeg and sdl, as well as their headers.
+You need to have a compiled ffmpeg and sdl, as well as their headers. The
+ffmpeg version which has been tested is defined by the sha, _ffmpeg_git in __init__py.
 It's assumed that the environment variables FFMPEG_ROOT and SDL_ROOT point
 to a ffmpeg and sdl directories, respectivly. In each directory there should be
 three directories: include, lib, and bin. include and lib are needed for the
@@ -17,8 +18,7 @@ The FFPyPlayer constructor accepts many configuration arguments. To see what
 is supported look in FFPyPlayer.__init__(). Most options have analogs in ffplay.c.
 That class also provides the interface functions e.g. seeking, resizing etc.
 
--This started with a very recent ffmpeg source from which I ported ffplay.c into
-cython. It accepts most files including network streams (rtsp, etc.), probably
+-This is a port of ffplay.c. It accepts most files including network streams (rtsp, etc.), probably
 webcams as well and outputs the video into a python callback. Audio is output
 with SDL. It also supports text based subtitles which it outputs as text strings to
 a callback. Alternatively you can show subtitles through filters. You can selectively exclude

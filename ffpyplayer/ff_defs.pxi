@@ -194,6 +194,9 @@ cdef:
             AVDiscard discard
             AVPacket attached_pic
             int disposition
+        struct AVProgram:
+            unsigned int nb_stream_indexes
+            unsigned int *stream_index
         void av_register_all()
         int avformat_network_init()
         int avformat_network_deinit()
@@ -212,6 +215,7 @@ cdef:
         int av_read_pause(AVFormatContext *)
         int av_read_play(AVFormatContext *)
         int av_read_frame(AVFormatContext *, AVPacket *) with gil
+        AVProgram *av_find_program_from_stream(AVFormatContext *, AVProgram *, int)
 
     extern from "libavdevice/avdevice.h" nogil:
         void avdevice_register_all()
@@ -244,6 +248,7 @@ cdef:
         int av_opt_get_int(void *, const char *, int, int64_t *)
         int av_opt_set_int(void *, const char *, int64_t, int)
         int av_opt_set_image_size(void *, const char *, int, int, int)
+        int av_opt_set (void *, const char *, const char *, int)
         const AVOption *av_opt_find(void *, const char *, const char *, int, int)
 
     extern from "libavcodec/avfft.h" nogil:
@@ -334,6 +339,8 @@ cdef:
             SUBTITLE_TEXT
             SUBTITLE_ASS
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
+        int av_codec_get_max_lowres(const AVCodec *)
+        void av_codec_set_lowres(AVCodecContext *, int)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)
         void avcodec_free_frame(AVFrame **)
@@ -377,6 +384,7 @@ cdef:
             int sample_rate
             int channels
             uint64_t channel_layout
+            AVRational frame_rate
         struct AVFilterGraph:
             char *scale_sws_opts
         struct AVFilterInOut:
@@ -428,6 +436,7 @@ cdef:
         int serial
     struct VideoPicture:
         double pts             # presentation timestamp for this picture
+        double duration        # estimated duration based on frame rate
         int64_t pos            # byte position in file
         AVFrame *pict
         int width, height  # source height & width

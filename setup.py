@@ -109,7 +109,7 @@ ext_modules = [Extension('ffpyplayer.' + src_file, [join('ffpyplayer', src_file+
                          extra_compile_args=extra_compile_args) for src_file in mods]
 
 setup(name='ffpyplayer',
-      version='1.0',
+      version='1.0.0',
       author='Matthew Einhorn',
       license='LGPL',
       description='A cython implementation of an ffmpeg based player.',

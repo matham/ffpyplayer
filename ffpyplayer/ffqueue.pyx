@@ -70,6 +70,14 @@ cdef class FFPacketQueue(object):
 
         return ret
 
+    cdef int packet_queue_put_nullpacket(FFPacketQueue self, int stream_index) nogil except 1:
+        cdef AVPacket pkt1, *pkt = &pkt1
+        av_init_packet(pkt)
+        pkt.data = NULL
+        pkt.size = 0
+        pkt.stream_index = stream_index
+        return self.packet_queue_put(pkt)
+
     cdef int packet_queue_flush(FFPacketQueue self) nogil except 1:
         cdef MyAVPacketList *pkt, *pkt1
 

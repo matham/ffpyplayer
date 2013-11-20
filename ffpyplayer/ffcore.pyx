@@ -51,6 +51,7 @@ cdef extern from "string.h" nogil:
     int strcmp(const char *, const char *)
     int strncmp(const char *, const char *, size_t)
     char * strerror(int)
+    size_t strlen(const char *)
 
 ctypedef enum LoopState:
     retry,
@@ -259,7 +260,6 @@ cdef class VideoState(object):
         self.cquit()
 
     cdef int cquit(VideoState self) nogil except 1:
-        cdef VideoPicture *vp
         cdef int i
         # XXX: use a special url_shutdown call to abort parse cleanly
         if self.read_tid is None:
@@ -274,8 +274,7 @@ cdef class VideoState(object):
             self.read_tid = None
         # free all pictures
         for i in range(VIDEO_PICTURE_QUEUE_SIZE):
-            vp = &self.pictq[i]
-            self.vid_sink.free_alloc(vp)
+            self.vid_sink.free_alloc(&self.pictq[i])
         for i in range(SUBPICTURE_QUEUE_SIZE):
             avsubtitle_free(&self.subpq[i].sub)
         IF not CONFIG_AVFILTER:
@@ -375,6 +374,17 @@ cdef class VideoState(object):
         #av_dlog(NULL, "video: delay=%0.3f A-V=%f\n", delay, -diff)
         return delay
 
+    cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0:
+        cdef double duration
+        if vp.serial == nextvp.serial:
+            duration = nextvp.pts - vp.pts
+            if isnan(duration) or duration <= 0 or duration > self.max_frame_duration:
+                return vp.duration
+            else:
+                return duration
+        else:
+            return 0.0
+
     cdef int pictq_next_picture(VideoState self) nogil except 1:
         # update queue size and signal for next picture
         self.pictq_rindex += 1
@@ -409,12 +419,10 @@ cdef class VideoState(object):
         self.vidclk.set_clock(pts, serial)
         self.extclk.sync_clock_to_slave(self.vidclk)
         self.video_current_pos = pos
-        self.frame_last_pts = pts
-
 
     #XXX refactor this crappy function
     cdef object video_refresh(VideoState self, int force_refresh) with gil:
-        cdef VideoPicture *vp
+        cdef VideoPicture *vp, *lastvp
         cdef double time, remaining_time = 0.
         cdef SubPicture *sp, *sp2
         cdef int redisplay
@@ -445,13 +453,6 @@ cdef class VideoState(object):
                 while True:
                     if state == retry:
                         if self.pictq_size == 0:
-                            self.pictq_cond.lock()
-                            if self.frame_last_dropped_pts != AV_NOPTS_VALUE and\
-                            self.frame_last_dropped_pts > self.frame_last_pts:
-                                self.update_video_pts(self.frame_last_dropped_pts, self.frame_last_dropped_pos,
-                                                      self.frame_last_dropped_serial)
-                                self.frame_last_dropped_pts = AV_NOPTS_VALUE
-                            self.pictq_cond.unlock()
                             if self.reached_eof:
                                 with gil:
                                     return (None, 'eof')
@@ -459,6 +460,7 @@ cdef class VideoState(object):
                         else:
                             # dequeue the picture
                             vp = &self.pictq[self.pictq_rindex]
+                            lastvp = &self.pictq[(self.pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE]
                             if vp.serial != self.videoq.serial:
                                 self.pictq_next_picture()
                                 redisplay = 0
@@ -469,14 +471,11 @@ cdef class VideoState(object):
                                 continue
 
                             # compute nominal last_duration
-                            last_duration = vp.pts - self.frame_last_pts
-                            if (not isnan(last_duration)) and last_duration > 0 and last_duration < self.max_frame_duration:
-                                # if duration of the last frame was sane, update last_duration in video state
-                                self.frame_last_duration = last_duration
+                            last_duration = self.vp_duration(lastvp, vp)
                             if redisplay:
                                 delay = 0.0
                             else:
-                                delay = self.compute_target_delay(self.frame_last_duration)
+                                delay = self.compute_target_delay(last_duration)
 
                             time = av_gettime() / 1000000.0
                             if time < self.frame_timer + delay and not redisplay:
@@ -493,7 +492,7 @@ cdef class VideoState(object):
 
                             if self.pictq_size > 1:
                                 nextvp = &self.pictq[(self.pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE]
-                                duration = nextvp.pts - vp.pts
+                                duration = self.vp_duration(vp, nextvp)
                                 if (redisplay or self.player.framedrop > 0 or\
                                 (self.player.framedrop and self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER))\
                                 and time > self.frame_timer + duration:
@@ -598,7 +597,7 @@ cdef class VideoState(object):
 
 
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           int64_t pos, int serial) nogil except 1:
+                           double duration, int64_t pos, int serial) nogil except 1:
         cdef VideoPicture *vp
 
         IF 0:# and defined(DEBUG_SYNC):
@@ -647,6 +646,7 @@ cdef class VideoState(object):
             self.vid_sink.copy_picture(vp, src_frame, self.player)
 
             vp.pts = pts
+            vp.duration = duration
             vp.pos = pos
             vp.serial = serial
 
@@ -662,7 +662,7 @@ cdef class VideoState(object):
     cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2:
         cdef int got_picture
         cdef int ret = 1
-        cdef double dpts = NAN, clockdiff, ptsdiff
+        cdef double dpts = NAN, diff
         if self.videoq.packet_queue_get(pkt, 1, serial) < 0:
             return -1
         if pkt.data == get_flush_packet().data:
@@ -674,10 +674,7 @@ cdef class VideoState(object):
             while self.pictq_size and not self.videoq.abort_request:
                 self.pictq_cond.cond_wait()
             self.video_current_pos = -1
-            self.frame_last_pts = AV_NOPTS_VALUE
-            self.frame_last_duration = 0
             self.frame_timer = <double>av_gettime() / 1000000.0
-            self.frame_last_dropped_pts = AV_NOPTS_VALUE
             self.pictq_cond.unlock()
             return 0
         if avcodec_decode_video2(self.video_st.codec, frame, &got_picture, pkt) < 0:
@@ -700,20 +697,14 @@ cdef class VideoState(object):
 
             if self.player.framedrop > 0 or (self.player.framedrop and\
             self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER):
-                self.pictq_cond.lock()
-                if self.frame_last_pts != AV_NOPTS_VALUE and frame.pts != AV_NOPTS_VALUE:
-                    clockdiff = self.vidclk.get_clock() - self.get_master_clock()
-                    ptsdiff = dpts - self.frame_last_pts
-                    if (not isnan(clockdiff)) and fabs(clockdiff) < AV_NOSYNC_THRESHOLD and\
-                    (not isnan(ptsdiff)) and ptsdiff > 0 and ptsdiff < AV_NOSYNC_THRESHOLD and\
-                    clockdiff + ptsdiff - self.frame_last_filter_delay < 0 and self.videoq.nb_packets:
-                        self.frame_last_dropped_pos = pkt.pos
-                        self.frame_last_dropped_pts = dpts
-                        self.frame_last_dropped_serial = serial[0]
+                if frame.pts != AV_NOPTS_VALUE:
+                    diff = dpts - self.get_master_clock()
+                    if (not isnan(diff)) and fabs(diff) < AV_NOSYNC_THRESHOLD and\
+                    diff - self.frame_last_filter_delay < 0 and serial[0] == self.vidclk.serial and\
+                    self.videoq.nb_packets:
                         self.frame_drops_early += 1
                         av_frame_unref(frame)
                         ret = 0
-                self.pictq_cond.unlock()
             return ret
         return 0
 
@@ -836,15 +827,24 @@ cdef class VideoState(object):
             cdef int64_t *channel_layouts = [0, -1]
             cdef int *channels = [0, -1]
             cdef AVFilterContext *filt_asrc = NULL, *filt_asink = NULL
+            cdef char aresample_swr_opts[512]
+            cdef AVDictionaryEntry *e = NULL
             cdef char asrc_args[256]
             cdef int ret
             with gil:
                 pystr = ":channel_layout=0x%" + PRIx64
-
+            aresample_swr_opts[0] = 0
             avfilter_graph_free(&self.agraph)
             self.agraph = avfilter_graph_alloc()
             if self.agraph == NULL:
                 return AVERROR(ENOMEM)
+            e = av_dict_get(self.player.swr_opts, "", e, AV_DICT_IGNORE_SUFFIX)
+            while e != NULL:
+                av_strlcatf(aresample_swr_opts, sizeof(aresample_swr_opts), "%s=%s:", e.key, e.value)
+                e = av_dict_get(self.player.swr_opts, "", e, AV_DICT_IGNORE_SUFFIX)
+            if strlen(aresample_swr_opts):
+                aresample_swr_opts[strlen(aresample_swr_opts)-1] = '\0'
+            av_opt_set(self.agraph, "aresample_swr_opts", aresample_swr_opts, 0)
 
             ret = snprintf(asrc_args, sizeof(asrc_args),
                            "sample_rate=%d:sample_fmt=%s:channels=%d:time_base=%d/%d",
@@ -891,9 +891,12 @@ cdef class VideoState(object):
     cdef int video_thread(VideoState self) nogil except 1:
         cdef AVPacket pkt
         cdef AVFrame *frame = av_frame_alloc()
-        cdef double pts
+        cdef double pts, duration
         cdef int ret
         cdef int serial = 0
+        cdef AVRational tb = self.video_st.time_base
+        cdef AVRational tb_temp
+        cdef AVRational frame_rate = av_guess_frame_rate(self.ic, self.video_st, NULL)
         IF CONFIG_AVFILTER:
             cdef AVFilterGraph *graph = avfilter_graph_alloc()
             cdef AVFilterContext *filt_out = NULL, *filt_in = NULL
@@ -942,6 +945,7 @@ cdef class VideoState(object):
                     last_scr_w = self.player.screen_width
                     last_format = <AVPixelFormat>frame.format
                     last_serial = serial
+                    frame_rate = filt_out.inputs[0].frame_rate
                     with gil:
                         self.metadata['src_vid_size'] = (last_w, last_h)
                 ret = av_buffersrc_add_frame(filt_in, frame)
@@ -963,19 +967,30 @@ cdef class VideoState(object):
                     if fabs(self.frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0:
                         self.frame_last_filter_delay = 0
 
+                    tb = filt_out.inputs[0].time_base
+                    duration = 0
+                    if frame_rate.num and frame_rate.den:
+                        tb_temp.num = frame_rate.den
+                        tb_temp.den = frame_rate.num
+                        duration = av_q2d(tb_temp)
                     if frame.pts == AV_NOPTS_VALUE:
                         pts = NAN
                     else:
-                        pts = frame.pts * av_q2d(filt_out.inputs[0].time_base)
-                    ret = self.queue_picture(frame, pts, av_frame_get_pkt_pos(frame), serial)
+                        pts = frame.pts * av_q2d(tb)
+                    ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame), serial)
                     #av_frame_unref(frame)
             ELSE:
+                duration = 0
+                if frame_rate.num and frame_rate.den:
+                    tb_temp.num = frame_rate.den
+                    tb_temp.den = frame_rate.num
+                    duration = av_q2d(tb_temp)
                 if frame.pts == AV_NOPTS_VALUE:
                     pts = NAN
                 else:
-                    pts = frame.pts * av_q2d(self.video_st.time_base)
-                ret = self.queue_picture(frame, pts, pkt.pos, serial)
-                av_frame_unref(frame)
+                    pts = frame.pts * av_q2d(tb)
+                ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame), serial)
+                #av_frame_unref(frame)
 
             if ret < 0:
                 break
@@ -1130,7 +1145,7 @@ cdef class VideoState(object):
             # NOTE: the audio packet can contain several frames
             while pkt_temp.stream_index != -1 or self.audio_buf_frames_pending:
                 if self.frame == NULL:
-                    self.frame = avcodec_alloc_frame()
+                    self.frame = av_frame_alloc()
                     if self.frame == NULL:
                         return AVERROR(ENOMEM)
                 else:
@@ -1429,6 +1444,7 @@ cdef class VideoState(object):
         cdef int sample_rate, nb_channels
         cdef int64_t channel_layout
         cdef int ret
+        cdef int stream_lowres = self.player.lowres
         cdef AVFilterLink *link
         if stream_index < 0 or stream_index >= ic.nb_streams:
             return -1
@@ -1455,14 +1471,14 @@ cdef class VideoState(object):
             return -1
         avctx.codec_id = codec.id
         avctx.workaround_bugs = self.player.workaround_bugs
-        avctx.lowres = self.player.lowres
-        if avctx.lowres > codec.max_lowres:
+        if stream_lowres > av_codec_get_max_lowres(codec):
             av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",
-                    codec.max_lowres)
-            avctx.lowres= codec.max_lowres
+                    av_codec_get_max_lowres(codec))
+            stream_lowres = av_codec_get_max_lowres(codec)
+        av_codec_set_lowres(avctx, stream_lowres)
         avctx.error_concealment = self.player.error_concealment
 
-        if avctx.lowres:
+        if stream_lowres:
             avctx.flags |= CODEC_FLAG_EMU_EDGE
         if self.player.fast:
             avctx.flags2 |= CODEC_FLAG2_FAST
@@ -1473,8 +1489,8 @@ cdef class VideoState(object):
                                  ic.streams[stream_index], codec)
         if av_dict_get(opts, "threads", NULL, 0) == NULL:
             av_dict_set(&opts, "threads", "auto", 0)
-        if avctx.lowres:
-            av_dict_set(&opts, "lowres", av_asprintf("%d", avctx.lowres), AV_DICT_DONT_STRDUP_VAL)
+        if stream_lowres:
+            av_dict_set(&opts, "lowres", av_asprintf("%d", stream_lowres), AV_DICT_DONT_STRDUP_VAL)
         if avctx.codec_type == AVMEDIA_TYPE_VIDEO or avctx.codec_type == AVMEDIA_TYPE_AUDIO:
             av_dict_set(&opts, "refcounted_frames", "1", 0)
         if avcodec_open2(avctx, codec, &opts) < 0:
@@ -1788,6 +1804,7 @@ cdef class VideoState(object):
                     if ret < 0:
                         return self.failed(ret)
                     self.videoq.packet_queue_put(&copy)
+                    self.videoq.packet_queue_put_nullpacket(self.video_stream)
                 self.queue_attachments_req = 0
             # if the queue are full, no need to read more
             if self.player.infinite_buffer < 1 and\
@@ -1824,17 +1841,9 @@ cdef class VideoState(object):
                     self.reached_eof = 1
             if eof:
                 if self.video_stream >= 0:
-                    av_init_packet(pkt)
-                    pkt.data = NULL
-                    pkt.size = 0
-                    pkt.stream_index = self.video_stream
-                    self.videoq.packet_queue_put(pkt)
+                   self.videoq.packet_queue_put_nullpacket(self.video_stream)
                 if self.audio_stream >= 0:
-                    av_init_packet(pkt)
-                    pkt.data = NULL
-                    pkt.size = 0
-                    pkt.stream_index = self.audio_stream
-                    self.audioq.packet_queue_put(pkt)
+                   self.audioq.packet_queue_put_nullpacket(self.audio_stream)
                 self.mt_gen.delay(10)
                 eof = 0
                 continue
@@ -1896,6 +1905,8 @@ cdef class VideoState(object):
         cdef int start_index, stream_index
         cdef int old_index, was_closed = 0
         cdef AVStream *st
+        cdef AVProgram *p = NULL
+        cdef int nb_streams = self.ic.nb_streams
         cdef double pos
         cdef int sync_type = self.get_master_sync_type()
 
@@ -1910,10 +1921,22 @@ cdef class VideoState(object):
             old_index = self.subtitle_stream
         was_closed = old_index == -1
         stream_index = start_index
+        if codec_type != AVMEDIA_TYPE_VIDEO and self.video_stream != -1:
+            p = av_find_program_from_stream(ic, NULL, self.video_stream)
+            if p != NULL:
+                nb_streams = p.nb_stream_indexes
+                start_index = 0
+                while start_index < nb_streams:
+                    if p.stream_index[start_index] == stream_index:
+                        break
+                    start_index += 1
+                if start_index == nb_streams:
+                    start_index = -1
+                stream_index = start_index
         while 1:
             if not was_closed:
                 stream_index += 1
-            if stream_index >= self.ic.nb_streams:
+            if stream_index >= nb_streams:
                 if codec_type == AVMEDIA_TYPE_SUBTITLE:
                     stream_index = -1
                     self.last_subtitle_stream = -1
@@ -1924,6 +1947,10 @@ cdef class VideoState(object):
             if stream_index == start_index and not was_closed:
                 return 0
             st = ic.streams[stream_index]
+            if p != NULL:
+                st = self.ic.streams[p.stream_index[stream_index]]
+            else:
+                st = self.ic.streams[stream_index]
             if (requested_stream == -1 or stream_index == requested_stream) and\
             st.codec.codec_type == codec_type:
                 # check that parameters are OK
@@ -1932,6 +1959,8 @@ cdef class VideoState(object):
                         break
                 elif codec_type == AVMEDIA_TYPE_VIDEO or codec_type == AVMEDIA_TYPE_SUBTITLE:
                     break
+        if p != NULL and stream_index != -1:
+            stream_index = p.stream_index[stream_index]
         self.stream_component_close(old_index)
         self.stream_component_open(stream_index)
         if was_closed:
