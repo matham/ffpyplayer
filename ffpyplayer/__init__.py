@@ -1,6 +1,6 @@
 
 __all__ = ('FFPyPlayer', 'set_log_callback', 'loglevels')
-__version__ = (1, 0, 0)
+__version__ = '1.1.0'
 # The ffmpeg src git version tested with. Nov, 18, 2013
 _ffmpeg_git = '1f7b7d54471711b89f8a64bef1c6636b6aa08c12'
 

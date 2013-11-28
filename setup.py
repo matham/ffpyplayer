@@ -2,7 +2,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 import os
 import sys
-from os.path import join, realpath
+from os.path import join
 from os import environ
 try:
     import Cython.Compiler.Options
@@ -14,6 +14,36 @@ except ImportError:
     have_cython = False
     cmdclass = {}
 
+
+c_options = {
+#If true, filters will be used'
+'config_avfilter': True,
+'config_avdevice': True,
+'config_swscale': True,
+'config_rtsp_demuxer': True,
+'config_mmsh_protocol': True,
+'config_postproc':True,
+# whether sdl is included as an option
+'config_sdl': True, # not implemented yet
+'has_sdl2': False,
+# these should be true
+'config_avutil':True,
+'config_avcodec':True,
+'config_avformat':True,
+'config_swresample':True
+}
+for key in list(c_options.keys()):
+    ukey = key.upper()
+    if ukey in environ:
+        value = bool(int(environ[ukey]))
+        print('Environ change {0} -> {1}'.format(key, value))
+        c_options[key] = value
+if (not c_options['config_avfilter']) and not c_options['config_swscale']:
+    raise Exception('At least one of config_avfilter and config_swscale must be enabled.')
+if c_options['config_avfilter'] and ((not c_options['config_postproc']) or not c_options['config_swscale']):
+    raise Exception('config_avfilter implicitly requires the postproc and swscale binaries.')
+c_options['config_avutil'] = c_options['config_avutil'] = True
+c_options['config_avformat'] = c_options['config_swresample'] = True
 
 platform = sys.platform
 if platform in ('win32', 'cygwin'):
@@ -38,36 +68,24 @@ print 'Selecting %s out of (SDL, SDL2)' % sdl
 include_dirs = [join(sdl_root, 'include', sdl), join(ffmpeg_root, 'include')]
 ff_extra_objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                'avutil', 'swscale', 'swresample', 'postproc']
+for libname in ff_extra_objects[:]:
+    for key, val in c_options.iteritems():
+        if key.endswith(libname) and not val:
+            ff_extra_objects.remove(libname)
+            break
+
 sdl_extra_objects = [sdl]
 extra_objects = [join(ffmpeg_root, 'lib', prefix + obj + suffix) for obj in ff_extra_objects]
 extra_objects += [join(sdl_root, 'lib', prefix + obj + suffix) for obj in sdl_extra_objects]
 runtime_library_dirs = [join(ffmpeg_root, 'bin'), join(sdl_root, 'bin')]
 mods = ['ffpyplayer', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock']
 extra_compile_args = ["-O3"]
+c_options['has_sdl2'] = sdl == 'SDL2'
 
 if have_cython:
     mod_suffix = '.pyx'
 else:
     mod_suffix = '.c'
-
-
-c_options = {
-#If true, filters will be used'
-'config_avfilter': True,
-'config_avdevice': True,
-'config_swscale': True,
-'config_rtsp_demuxer': True,
-'config_mmsh_protocol': True,
-# whether sdl is included as an option
-'config_sdl': True,
-'has_sdl2': sdl == 'SDL2',
-# these should be true
-'config_avutil':True,
-'config_avcodec':True,
-'config_avformat':True,
-'config_swresample':True,
-'config_postproc':True
-}
 
 
 print 'Generating ffconfig.h'
@@ -109,10 +127,21 @@ ext_modules = [Extension('ffpyplayer.' + src_file, [join('ffpyplayer', src_file+
                          extra_compile_args=extra_compile_args) for src_file in mods]
 
 setup(name='ffpyplayer',
-      version='1.0.0',
+      version='1.1.0',
       author='Matthew Einhorn',
-      license='LGPL',
+      license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
+      classifiers=['License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
+                   'Topic :: Multimedia :: Video',
+                   'Topic :: Multimedia :: Video :: Display',
+                   'Topic :: Multimedia :: Sound/Audio :: Players',
+                   'Topic :: Multimedia :: Sound/Audio :: Players :: MP3',
+                   'Programming Language :: Python :: 2.7',
+                   'Operating System :: MacOS :: MacOS X',
+                   'Operating System :: Microsoft :: Windows',
+                   'Operating System :: POSIX :: BSD :: FreeBSD',
+                   'Operating System :: POSIX :: Linux',
+                   'Intended Audience :: Developers'],
       packages=['ffpyplayer'],
       cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
 

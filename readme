@@ -3,14 +3,18 @@ To use:
 You need to have a compiled ffmpeg and sdl, as well as their headers. The
 ffmpeg version which has been tested is defined by the sha, _ffmpeg_git in __init__py.
 It's assumed that the environment variables FFMPEG_ROOT and SDL_ROOT point
-to a ffmpeg and sdl directories, respectivly. In each directory there should be
+to a ffmpeg and sdl directories, respectively. In each directory there should be
 three directories: include, lib, and bin. include and lib are needed for the
-compiler compilation and linking stage, bin is needed for loading the shared libraries at runtime.
+compiler compilation and linking stage, bin is needed for loading the shared
+libraries at runtime if they are dynamically linked.
 The lib dir contains the .a or .dll.a files, while bin contains the actual e.g. .dll files.
 In the __init__.py file, we add the bin directory if it exists to the system path.
 Both SDL1.2 and SDL2 have been tested and are supported.
 We detect whether SDL2 is available by whether the include directory has a SDL2
 directory.
+Finally, you can specify which of the ffmpeg libraries are used by specifying
+in the environment, e.g. CONFIG_AVFILTER=0. In particular, disabling avfilter
+will save some space, but will also reduce the capabilities.
 
 A example file, test.py, demonstrating the library is included. To use it,
 provide a filename as the command line argument to test.py.
