@@ -1,0 +1,9 @@
+ffmpeg/
+sdl/
+build/
+ffpyplayer/*.c
+ffpyplayer/*.pyd
+ffpyplayer/*.html
+ffpyplayer/*.pyc
+ffpyplayer/ffconfig.h
+ffpyplayer/ffconfig.pxi
