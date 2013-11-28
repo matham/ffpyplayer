@@ -41,7 +41,6 @@ and have them fix stuff which we can then replicate in our code...
 TODO:
 
 -Need to add documentation.
--Add kivy provider.
 -Implement CONFIG_SDL
 -The larger the frame size the higher the CPU. Currently, a copy occurs in cython
 when queing a frame from the decoder. Another copy occurs when converting the

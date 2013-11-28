@@ -2,7 +2,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 import os
 import sys
-from os.path import join
+from os.path import join, exists
 from os import environ
 try:
     import Cython.Compiler.Options
@@ -73,11 +73,20 @@ for libname in ff_extra_objects[:]:
         if key.endswith(libname) and not val:
             ff_extra_objects.remove(libname)
             break
-
 sdl_extra_objects = [sdl]
-extra_objects = [join(ffmpeg_root, 'lib', prefix + obj + suffix) for obj in ff_extra_objects]
-extra_objects += [join(sdl_root, 'lib', prefix + obj + suffix) for obj in sdl_extra_objects]
-runtime_library_dirs = [join(ffmpeg_root, 'bin'), join(sdl_root, 'bin')]
+
+extra_objects = []
+for ff_obj in ff_extra_objects:
+    res = join(ffmpeg_root, 'lib', prefix + ff_obj + suffix)
+    if exists(join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')):
+        res = join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')
+    extra_objects.append(res)
+for sdl_obj in sdl_extra_objects:
+    res = join(sdl_root, 'lib', prefix + sdl_obj + suffix)
+    if exists(join(sdl_root, 'lib', prefix + sdl_obj + '.so')):
+        res = join(sdl_root, 'lib', prefix + sdl_obj + '.so')
+    extra_objects.append(res)
+
 mods = ['ffpyplayer', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock']
 extra_compile_args = ["-O3"]
 c_options['has_sdl2'] = sdl == 'SDL2'
