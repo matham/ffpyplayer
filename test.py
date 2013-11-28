@@ -193,10 +193,8 @@ if __name__ == '__main__':
     set_log_callback(log_callback)
     a = PlayerApp()
     a.run()
-    if a.ffplayer is not None:
-        Clock.unschedule(a.redraw)
-    # why do we need to set this to None in order to call dealloc on ffplayer?
-    # shouldn't it automatically be deallocated? In any case, it should only be
-    # called from the main thread.
+    # because ffpyplayer runs non-daemon threads, when the main thread exists
+    # it'll get stuck waiting for those threads to close, so we manually
+    # have to delete these threads by deleting the ffpyplayer object.
     a.ffplayer = None
     set_log_callback(None)

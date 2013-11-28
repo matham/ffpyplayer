@@ -125,7 +125,7 @@ cdef class VideoState(object):
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil except? 0.0
     cdef int check_external_clock_speed(VideoState self) nogil except 1
-    cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil except 1
+    cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes, int flush) nogil except 1
     cdef int toggle_pause(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
     cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0

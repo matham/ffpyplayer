@@ -335,7 +335,7 @@ cdef class FFPyPlayer(object):
                     else:
                         incr *= 180000.0;
                     pos += incr
-                    self.ivs.stream_seek(<int64_t>pos, <int64_t>incr, 1)
+                    self.ivs.stream_seek(<int64_t>pos, <int64_t>incr, 1, 1)
             else:
                 with nogil:
                     pos = self.ivs.get_master_clock()
@@ -345,7 +345,7 @@ cdef class FFPyPlayer(object):
                     pos += incr
                     if self.ivs.ic.start_time != AV_NOPTS_VALUE and pos < self.ivs.ic.start_time / <double>AV_TIME_BASE:
                         pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
-                    self.ivs.stream_seek(<int64_t>(pos * AV_TIME_BASE), <int64_t>(incr * AV_TIME_BASE), 0)
+                    self.ivs.stream_seek(<int64_t>(pos * AV_TIME_BASE), <int64_t>(incr * AV_TIME_BASE), 0, 1)
         else:
             pos = val
             if seek_by_bytes:
@@ -354,11 +354,11 @@ cdef class FFPyPlayer(object):
                         pos *= self.ivs.ic.bit_rate / 8.0
                     else:
                         pos *= 180000.0;
-                    self.ivs.stream_seek(<int64_t>pos, 0, 1)
+                    self.ivs.stream_seek(<int64_t>pos, 0, 1, 1)
             else:
                 with nogil:
                     t = <int64_t>(pos * AV_TIME_BASE)
                     if self.ivs.ic.start_time != AV_NOPTS_VALUE and t < self.ivs.ic.start_time:
                         t = self.ivs.ic.start_time
-                    self.ivs.stream_seek(t, 0, 0)
+                    self.ivs.stream_seek(t, 0, 0, 1)
         self.settings_mutex.unlock()

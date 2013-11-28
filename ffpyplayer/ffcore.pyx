@@ -324,7 +324,8 @@ cdef class VideoState(object):
         return 0
 
     # seek in the stream
-    cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes) nogil except 1:
+    cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes, int flush) nogil except 1:
+        cdef int count = self.pictq_size, i = 0
         if not self.seek_req:
             self.seek_pos = pos
             self.seek_rel = rel
@@ -335,6 +336,10 @@ cdef class VideoState(object):
             self.continue_read_thread.lock()
             self.continue_read_thread.cond_signal()
             self.continue_read_thread.unlock()
+            if flush:
+                while i < count and self.pictq_size:
+                    self.pictq_next_picture()
+                    i += 1
         return 0
 
     # pause or resume the video
@@ -1355,16 +1360,16 @@ cdef class VideoState(object):
             memset(stream, 0, len)
         while len > 0:
             if self.audio_buf_index >= self.audio_buf_size:
-               audio_size = self.audio_decode_frame()
-               if audio_size < 0:
-                   # if error, just output silence
-                   self.audio_buf = self.silence_buf
-                   self.audio_buf_size = sizeof(self.silence_buf) / frame_size * frame_size
-               else:
-#                    if self.show_mode != SHOW_MODE_VIDEO:
-#                        self.update_sample_display(<int16_t *>self.audio_buf, audio_size)
-                   self.audio_buf_size = audio_size
-               self.audio_buf_index = 0
+                audio_size = self.audio_decode_frame()
+                if audio_size < 0:
+                    # if error, just output silence
+                    self.audio_buf = self.silence_buf
+                    self.audio_buf_size = sizeof(self.silence_buf) / frame_size * frame_size
+                else:
+#                     if self.show_mode != SHOW_MODE_VIDEO:
+#                         self.update_sample_display(<int16_t *>self.audio_buf, audio_size)
+                    self.audio_buf_size = audio_size
+                self.audio_buf_index = 0
             len1 = self.audio_buf_size - self.audio_buf_index
             if len1 > len:
                 len1 = len
@@ -1792,9 +1797,9 @@ cdef class VideoState(object):
                         self.videoq.packet_queue_flush()
                         self.videoq.packet_queue_put(get_flush_packet())
                     if self.seek_flags & AVSEEK_FLAG_BYTE:
-                       self.extclk.set_clock(NAN, 0)
+                        self.extclk.set_clock(NAN, 0)
                     else:
-                       self.extclk.set_clock(seek_target / <double>AV_TIME_BASE, 0)
+                        self.extclk.set_clock(seek_target / <double>AV_TIME_BASE, 0)
                 self.seek_req = 0
                 self.queue_attachments_req = 1
                 eof = 0
@@ -1830,20 +1835,20 @@ cdef class VideoState(object):
                         temp64 = 0
                     if not self.player.loop:
 
-                        self.stream_seek(temp64, 0, 0)
+                        self.stream_seek(temp64, 0, 0, 0)
                     else:
                         self.player.loop = self.player.loop - 1
                         if self.player.loop:
-                            self.stream_seek(temp64, 0, 0)
+                            self.stream_seek(temp64, 0, 0, 0)
                 elif self.player.autoexit:
                     return self.failed(AVERROR_EOF)
                 else:
                     self.reached_eof = 1
             if eof:
                 if self.video_stream >= 0:
-                   self.videoq.packet_queue_put_nullpacket(self.video_stream)
+                    self.videoq.packet_queue_put_nullpacket(self.video_stream)
                 if self.audio_stream >= 0:
-                   self.audioq.packet_queue_put_nullpacket(self.audio_stream)
+                    self.audioq.packet_queue_put_nullpacket(self.audio_stream)
                 self.mt_gen.delay(10)
                 eof = 0
                 continue
@@ -1978,5 +1983,5 @@ cdef class VideoState(object):
                 pos = <double>self.seek_pos / <double>AV_TIME_BASE
             if self.ic.start_time != AV_NOPTS_VALUE and pos < self.ic.start_time / <double>AV_TIME_BASE:
                 pos = self.ic.start_time / <double>AV_TIME_BASE
-            self.stream_seek(<int64_t>(pos * AV_TIME_BASE), 0, 0)
+            self.stream_seek(<int64_t>(pos * AV_TIME_BASE), 0, 0, 1)
         return 0
