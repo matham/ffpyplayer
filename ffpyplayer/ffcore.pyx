@@ -325,7 +325,6 @@ cdef class VideoState(object):
 
     # seek in the stream
     cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes, int flush) nogil except 1:
-        cdef int count = self.pictq_size, i = 0
         if not self.seek_req:
             self.seek_pos = pos
             self.seek_rel = rel
@@ -337,9 +336,8 @@ cdef class VideoState(object):
             self.continue_read_thread.cond_signal()
             self.continue_read_thread.unlock()
             if flush:
-                while i < count and self.pictq_size:
+                while self.pictq_size:
                     self.pictq_next_picture()
-                    i += 1
         return 0
 
     # pause or resume the video
