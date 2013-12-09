@@ -49,7 +49,7 @@ cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) 
 def set_log_callback(object callback):
     global _log_callback
     if callback is not None and not callable(callback):
-         raise Exception('Log callback needs to be callable.')
+        raise Exception('Log callback needs to be callable.')
     _log_mutex.lock()
     if callback is None:
         av_log_set_callback(&av_log_default_callback)
@@ -68,6 +68,18 @@ cdef class FFPyPlayer(object):
         PyEval_InitThreads()
         print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
         print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
+        if loglevel not in loglevels:
+            raise ValueError('Invalid log level option.')
+
+        av_log_set_flags(AV_LOG_SKIP_REPEATED)
+        av_log_set_level(loglevels[loglevel])
+        avcodec_register_all() # register all codecs, demux and protocols
+        IF CONFIG_AVDEVICE:
+            avdevice_register_all()
+        IF CONFIG_AVFILTER:
+            avfilter_register_all()
+        av_register_all()
+        avformat_network_init()
         settings.format_opts = settings.codec_opts = settings.swr_opts = NULL
         settings.sws_flags = SWS_BICUBIC
         # set x, or y to -1 to preserve pixel ratio
@@ -158,18 +170,6 @@ cdef class FFPyPlayer(object):
                 raise ValueError('Invalid cpuflags option value.')
             av_force_cpu_flags(flags)
 
-        if loglevel not in loglevels:
-            raise ValueError('Invalid log level option.')
-
-        av_log_set_flags(AV_LOG_SKIP_REPEATED)
-        av_log_set_level(loglevels[loglevel])
-        avcodec_register_all() # register all codecs, demux and protocols
-        IF CONFIG_AVDEVICE:
-            avdevice_register_all()
-        IF CONFIG_AVFILTER:
-            avfilter_register_all()
-        av_register_all()
-        avformat_network_init()
         if CONFIG_SWSCALE:
             settings.sws_opts = sws_getContext(16, 16, <AVPixelFormat>0, 16, 16,
                                                <AVPixelFormat>0, SWS_BICUBIC,
@@ -177,8 +177,6 @@ cdef class FFPyPlayer(object):
         for k, v in lib_opts.iteritems():
             opt_default(k, v, settings.sws_opts, &settings.swr_opts,
                         &settings.format_opts, &self.settings.codec_opts)
-
-
 
         'filename can start with pipe:'
         av_strlcpy(settings.input_filename, <char *>filename, sizeof(settings.input_filename))
