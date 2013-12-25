@@ -1,5 +1,3 @@
-ffmpeg/
-sdl/
 build/
 ffpyplayer/*.c
 ffpyplayer/*.pyd

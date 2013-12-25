@@ -4,6 +4,7 @@ import os
 import sys
 from os.path import join, exists
 from os import environ
+from ffpyplayer import __version__
 try:
     import Cython.Compiler.Options
     Cython.Compiler.Options.annotate = True
@@ -136,7 +137,7 @@ ext_modules = [Extension('ffpyplayer.' + src_file, [join('ffpyplayer', src_file+
                          extra_compile_args=extra_compile_args) for src_file in mods]
 
 setup(name='ffpyplayer',
-      version='1.1.0',
+      version=__version__,
       author='Matthew Einhorn',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
