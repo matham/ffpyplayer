@@ -1,6 +1,6 @@
 
-__all__ = ('FFPyPlayer', 'set_log_callback', 'loglevels')
-__version__ = '1.1.0'
+__all__ = ('version', )
+version = '2.0.0-dev'
 # The ffmpeg src git version tested with. Nov, 18, 2013
 _ffmpeg_git = '1f7b7d54471711b89f8a64bef1c6636b6aa08c12'
 
@@ -19,5 +19,3 @@ if sdl_root and os.path.exists(join(sdl_root, 'bin')):
     bin_path = join(sdl_root, 'bin')
     if bin_path not in os.pathsep.split(os.environ['PATH']):
         os.environ['PATH'] = bin_path + os.pathsep + os.environ['PATH']
-import ffpyplayer
-from ffpyplayer import FFPyPlayer, set_log_callback, loglevels

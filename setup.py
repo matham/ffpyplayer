@@ -4,7 +4,7 @@ import os
 import sys
 from os.path import join, exists
 from os import environ
-from ffpyplayer import __version__
+from ffpyplayer import version
 try:
     import Cython.Compiler.Options
     Cython.Compiler.Options.annotate = True
@@ -16,6 +16,7 @@ except ImportError:
     cmdclass = {}
 
 
+# select which ffmpeg libraries will be available
 c_options = {
 #If true, filters will be used'
 'config_avfilter': True,
@@ -46,6 +47,7 @@ if c_options['config_avfilter'] and ((not c_options['config_postproc']) or not c
 c_options['config_avutil'] = c_options['config_avutil'] = True
 c_options['config_avformat'] = c_options['config_swresample'] = True
 
+# on windows we use .dll.a, not .a files
 platform = sys.platform
 if platform in ('win32', 'cygwin'):
     suffix = '.dll.a'
@@ -53,6 +55,7 @@ else:
     suffix = '.a'
 prefix = 'lib'
 
+# locate sdl and ffmpeg headers and binaries
 ffmpeg_root = environ.get('FFMPEG_ROOT')
 sdl_root = environ.get('SDL_ROOT')
 if (not ffmpeg_root) and os.path.exists('./ffmpeg'):
@@ -76,6 +79,7 @@ for libname in ff_extra_objects[:]:
             break
 sdl_extra_objects = [sdl]
 
+# if .so files are available use them
 extra_objects = []
 for ff_obj in ff_extra_objects:
     res = join(ffmpeg_root, 'lib', prefix + ff_obj + suffix)
@@ -88,7 +92,7 @@ for sdl_obj in sdl_extra_objects:
         res = join(sdl_root, 'lib', prefix + sdl_obj + '.so')
     extra_objects.append(res)
 
-mods = ['ffpyplayer', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock']
+mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools']
 extra_compile_args = ["-O3"]
 c_options['has_sdl2'] = sdl == 'SDL2'
 
@@ -137,7 +141,7 @@ ext_modules = [Extension('ffpyplayer.' + src_file, [join('ffpyplayer', src_file+
                          extra_compile_args=extra_compile_args) for src_file in mods]
 
 setup(name='ffpyplayer',
-      version=__version__,
+      version=version,
       author='Matthew Einhorn',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
