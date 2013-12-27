@@ -92,7 +92,8 @@ for sdl_obj in sdl_extra_objects:
         res = join(sdl_root, 'lib', prefix + sdl_obj + '.so')
     extra_objects.append(res)
 
-mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools']
+mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
+        'writer']
 extra_compile_args = ["-O3"]
 c_options['has_sdl2'] = sdl == 'SDL2'
 

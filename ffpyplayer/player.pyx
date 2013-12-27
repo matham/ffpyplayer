@@ -20,7 +20,7 @@ cimport ffcore
 from ffcore cimport VideoState
 cimport sink
 from sink cimport VideoSettings, VideoSink
-from tools import loglevels
+from tools import loglevels, initialize_ffmpeg
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
@@ -32,20 +32,12 @@ cdef class FFPyPlayer(object):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         PyEval_InitThreads()
-        print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
-        print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
         if loglevel not in loglevels:
             raise ValueError('Invalid log level option.')
 
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
-        avcodec_register_all() # register all codecs, demux and protocols
-        IF CONFIG_AVDEVICE:
-            avdevice_register_all()
-        IF CONFIG_AVFILTER:
-            avfilter_register_all()
-        av_register_all()
-        avformat_network_init()
+        initialize_ffmpeg()
         settings.format_opts = settings.codec_opts = settings.swr_opts = NULL
         settings.sws_flags = SWS_BICUBIC
         # set x, or y to -1 to preserve pixel ratio
