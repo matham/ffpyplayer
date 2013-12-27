@@ -1,7 +1,11 @@
 
+
+__all__ = ('MediaWriter', )
+
+
 import copy
 from tools import codecs, pix_fmts, get_supported_framerates, get_supported_pixfmts
-from tools import loglevels, initialize_ffmpeg
+from tools import loglevels, _initialize_ffmpeg
 
 cdef extern from "string.h" nogil:
     void *memset(void *, int, size_t)
@@ -51,7 +55,7 @@ cdef class MediaWriter(object):
             raise ValueError('Invalid log level option.')
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
-        initialize_ffmpeg()
+        _initialize_ffmpeg()
         memset(msg, 0, sizeof(msg))
         if fmt:
             format_name = fmt
@@ -245,6 +249,9 @@ cdef class MediaWriter(object):
             self.clean_up()
             raise Exception('Error writing header: ' + emsg(res, msg, sizeof(msg)))
 
+    def __init__(self, filename, streams, fmt='', ffopts={}, metadata={},
+                 loglevel='error', overwrite=False, **kwargs):
+        pass
 
     def __dealloc__(self):
         cdef int r, got_pkt, res
@@ -281,7 +288,7 @@ cdef class MediaWriter(object):
         self.clean_up()
 
     def write_frame(MediaWriter self, double pts, int stream, bytes buffer=bytes(''),
-                   size_t frame_ptr=<int>NULL):
+                   size_t frame_ptr=0):
         cdef int res = 0, count = 1, i, got_pkt
         cdef AVFrame *frame_in = <AVFrame *>frame_ptr, *frame_out
         cdef MediaStream *s

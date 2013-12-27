@@ -20,7 +20,7 @@ cimport ffcore
 from ffcore cimport VideoState
 cimport sink
 from sink cimport VideoSettings, VideoSink
-from tools import loglevels, initialize_ffmpeg
+from tools import loglevels, _initialize_ffmpeg
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
@@ -37,7 +37,7 @@ cdef class FFPyPlayer(object):
 
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
-        initialize_ffmpeg()
+        _initialize_ffmpeg()
         settings.format_opts = settings.codec_opts = settings.swr_opts = NULL
         settings.sws_flags = SWS_BICUBIC
         # set x, or y to -1 to preserve pixel ratio
@@ -166,6 +166,10 @@ cdef class FFPyPlayer(object):
                 flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
         if SDL_Init(flags):
             raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
+
+    def __init__(self, filename, vid_sink, loglevel='error', ff_opts={},
+                 thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
+        pass
 
     def __dealloc__(self):
         cdef const char *empty = ''

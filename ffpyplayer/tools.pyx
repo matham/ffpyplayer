@@ -1,4 +1,8 @@
 
+__all__ = ('loglevels', 'codecs', 'pix_fmts', 'set_log_callback',
+           'get_supported_framerates', 'get_supported_pixfmts')
+
+
 include 'ff_defs.pxi'
 
 
@@ -10,6 +14,8 @@ from ffthreading cimport Py_MT, MTMutex
 loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
              "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
              "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG}
+''' FFmpeg log levels
+'''
 loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
 codecs = list_ffcodecs()
@@ -46,7 +52,7 @@ def set_log_callback(object callback):
     _log_mutex.unlock()
 
 cdef int ffmpeg_initialized = 0
-def initialize_ffmpeg():
+def _initialize_ffmpeg():
     global ffmpeg_initialized
     if not ffmpeg_initialized:
         print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
