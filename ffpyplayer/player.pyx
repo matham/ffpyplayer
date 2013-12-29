@@ -1,3 +1,10 @@
+'''
+FFmpeg based media player
+=========================
+
+A FFmpeg based python media player. See :class:`FFPyPlayer` for details.
+'''
+
 
 __all__ = ('FFPyPlayer', )
 
@@ -26,6 +33,114 @@ from cpython.ref cimport PyObject
 
 
 cdef class FFPyPlayer(object):
+    '''
+    An FFmpeg based media player.
+
+    Was originally ported from FFplay. Most options offered in FFplay is
+    also available here.
+
+    The class provides a player interface to a media file. Video components
+    of the file are returned with :meth:`get_frame`. Audio is played directly
+    using SDL. And subtitles are acquired either through the callback function
+    (text subtitles only), or are overlaid directly using the subtitle filter.
+
+    **Args**:
+        *filename* (str): The filename or url of the media object. This can be
+        physical files, remote files or even webcam name's e.g. for direct show
+        or Video4Linux webcams. The *f* specifier in *ff_opts* can be used to
+        indicate the format needed to open the file (e.g. dshow).
+
+        *vid_sink* (ref to function): A weak ref to a function that will be called
+        when quitting or when text subtitles are available. The function takes
+        two parameters, *selector*, and *value*. When the player is closing internally
+        due to some error the *selector* will be 'quit'.
+        When a new subtitle string is available, *selector* will be 'display_sub'
+        and *value* will be a 5-tuple of the form *(text, fmt, pts, start, end)*.
+        Where *text* is the text, *fmt* is the subtitle format e.g. 'ass', *pts*
+        is the timestamp of the text, *start*, and *end* respectively are the times
+        in video time when to start and finish displaying the text.
+
+        *loglevel* (str): The level of logs to emit. It value is one of the keywords
+        defined in :attr:`ffpyplayer.tools.loglevels`. Note this only affects
+        the default FFmpeg logger, which prints to stderr. You can manipulate the
+        log stream directly using :attr:`ffpyplayer.tools.set_log_callback`.
+
+        *thread_lib* (str): The threading library to use internally. Can be one of
+        'SDL' or 'python'.
+
+        .. warning::
+
+            If the python threading library is used, care must be taken to delete
+            the player before exiting python, otherwise it may hang. The reason is
+            that the internal threads are created as non-daemon, consequently, when the
+            python main thread exits, the internal threads will keep python alive.
+            By deleting the player directly, the internal threads will be shut down
+            before python exits.
+
+        *audio_sink* (str): Currently it must be 'SDL'.
+
+        *lib_opts* (dict): A dictionary of options that will be passed to the
+        ffmpeg libraries, codecs, sws, swr, and formats when opening them. This accepts
+        most of the options that can be passed to FFplay. Examples are
+        "threads":"auto", "lowres":"1" etc. Both the keywords and values must be
+        strings.
+
+        *ff_opts* (dict): A dictionary with options for the player. Following are
+        the available options. Note, many options have identical names and meaning
+        as in the FFplay options: www.ffmpeg.org/ffplay.html
+
+            | *cpuflags* (str): similar to ffplay
+            | *max_alloc* (int): similar to ffplay
+            | *infbuf* (bool): similar to ffplay
+            | *framedrop* (bool): similar to ffplay
+            | *loop* (int): similar to ffplay
+            | *autoexit* (int): If non-zero, the player closes on eof.
+            | *ec* (int): similar to ffplay
+            | *lowres* (int): similar to ffplay
+            | *drp* (int): similar to ffplay
+            | *genpts* (bool): similar to ffplay
+            | *fast* (bool): similar to ffplay
+            | *bug* (bool): similar to ffplay
+            | *stats* (bool): similar to ffplay
+            | *pixel_format* (str): similar to ffplay
+            | *bytes* (int): similar to ffplay, not used
+            | *t* (float): similar to ffplay
+            | *ss* (float): similar to ffplay
+            | *sync* (str): similar to ffplay, can be one of 'audio', 'video', 'ext'
+            | *acodec, vcodec, scodec* (str): similar to ffplay
+            | *ast, vst, sst* (int): similar to ffplay
+            | *an, sn, vn* (bool): similar to ffplay
+            | *f* (str): similar to ffplay. The format to open the file with. E.g. dshow for webcams.
+            | *af, vf* (str) similar to ffplay. These are filters applied to the audio/video.
+              Examples are 'crop=100:100' to crop, 'vflip' to flip horizontally, 'subtitles=filename'
+              to overlay subtitles from another media or text file etc. CONFIG_AVFILTER must be True
+              (the default) when compiling to use this.
+            | *x, y* (int): The width and height of the output frames. Similar to
+              :meth:`set_size`. CONFIG_AVFILTER must be True (the default) when
+              compiling to use this.
+
+    ::
+
+        from ffpyplayer.player import FFPyPlayer
+        import time, weakref
+        def callback(selector, value):
+            if selector == 'quit':
+                print 'quitting'
+        player = FFPyPlayer(filename, vid_sink=weakref.ref(callback))
+        while 1:
+            frame, val = player.get_frame()
+            if val == 'eof':
+                break
+            elif frame is None:
+                time.sleep(0.01)
+            else:
+                print val, len(frame[0]), frame[1:]
+                time.sleep(val)
+
+    TODO: Make the constructor wait until read thread is fully open, or failed.
+
+    TODO: offer audio buffers, similar to video frames (if wanted?).
+    '''
 
     def __cinit__(self, filename, vid_sink, loglevel='error', ff_opts={},
                   thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
@@ -34,7 +149,6 @@ cdef class FFPyPlayer(object):
         PyEval_InitThreads()
         if loglevel not in loglevels:
             raise ValueError('Invalid log level option.')
-
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
         _initialize_ffmpeg()
@@ -192,41 +306,144 @@ cdef class FFPyPlayer(object):
         #SDL_Quit()
         av_log(NULL, AV_LOG_QUIET, "%s", empty)
 
-    ''' If step is true, it will go into pause mode and get frame by frame.
-        If the audio is left enabled (an=0), if the frames are gotten faster than natural
-        playback then the audio will play at the natural speed and will be
-        behind the frames. Also, eof won't arrive until natural playback is done.
-        If it's slower, then a small audio segmant will be
-        played with each frame.
-        If audio is disabled, the above doesn't matter.
-        If one wants to be sure that every time one plays the video one gets the
-        same timestamps for each video frame no matter the speed, one must
-        set sync to video ('sync'='video'), even if audio is disabled.
-        In any case, it probably doesn't make much sense to use step if audio
-        is enabled.
-    '''
     def get_frame(self, force_refresh=False, *args):
+        '''
+        Retrieves the next available frame if ready.
+
+        **Args**:
+            *force_refresh* (bool): If True, the last frame will be returned again.
+            Defaults to False.
+
+        **Returns**:
+            *(frame, val)*.
+            *frame* is None or a 4-tuple.
+            *val* is either 'paused', 'eof', or a float.
+
+            If *val* is either 'paused' or 'eof', *frame* is None. Otherwise, if
+            *frame* is not None, *val* is the realtime time one should wait before
+            displaying this frame to the user to achieve a play rate of 1.0.
+
+            If *frame* is not None it's a 4-tuple - *(buffer, size, linesize, pts)*.
+            *buffer* is a bytes buffer containing the frmae in RGBRGB... format.
+            *size* is a 2-tuple of (width, height) of the frame. Because the video
+            can be dynamically resized these values can change between frames.
+            *linesize* is the width of a line in the frame. Currently it should be
+            the same as width. In the future it might be larger if the lines are padded.
+            *pts* is the presentation timestamp of this frame. This is the time
+            when the frame should be displayed to the user in video time (i.e.
+            not realtime).
+
+        .. note::
+
+            The audio plays at a normal play rate, independent of when and if
+            this function is called. Therefore, 'eof' will only be received when
+            the audio is complete, even if all the frames have been read (unless
+            audio is disabled). I.e. a None frame will be sent after all the frames
+            have been read until eof.
+
+        For example, playing as soon as frames are read::
+
+            >>> while 1:
+            ...     frame, val = player.get_frame()
+            ...     if val == 'eof':
+            ...         break
+            ...     elif frame is None:
+            ...         time.sleep(0.01)
+            ...         print 'not ready'
+            ...     else:
+            ...         print val, len(frame[0]), frame[1:]
+            not ready
+            0.0 1013760 ((704, 480), 2112, 0.0)
+            0.0 1013760 ((704, 480), 2112, 0.033)
+            ...
+            24.731872797 1013760 ((704, 480), 2112, 13.881)
+            not ready
+            24.7868728638 1013760 ((704, 480), 2112, 13.914)
+
+        vs displaying frames at their proper times::
+
+            >>> while 1:
+            ...     frame, val = player.get_frame()
+            ...     if val == 'eof':
+            ...         break
+            ...     elif frame is None:
+            ...         time.sleep(0.01)
+            ...         print 'not ready'
+            ...     else:
+            ...         print val, len(frame[0]), frame[1:]
+            ...         time.sleep(val)
+            not ready
+            0.0 1013760 ((704, 480), 2112, 0.0)
+            0.0 1013760 ((704, 480), 2112, 0.033)
+            ...
+            0.031772851944 1013760 ((704, 480), 2112, 20.954)
+            0.030770778656 1013760 ((704, 480), 2112, 20.988)
+            0.0307686328888 1013760 ((704, 480), 2112, 21.021)
+        '''
         self.settings_mutex.lock()
         res = self.ivs.video_refresh(force_refresh)
         self.settings_mutex.unlock()
         return res
 
     def get_metadata(self):
+        '''
+        Returns metadata of the file being played.
+
+        **Returns**:
+            (dict): The player metadata
+
+        ::
+
+            >>> print player.get_metadata()
+            {'duration': 71.972, 'sink_vid_size': (0, 0), 'src_vid_size':
+             (704, 480), 'title': 'The Melancholy of Haruhi Suzumiya: Special Ending'}
+
+        .. warning::
+
+            The dictionary returned will be empty until the file is open and read. Because
+            a second thread is created and used to read the file, when the constructor
+            returns the dict might still be empty. The dictionary is fully populated
+            after the first frame is read.
+        '''
         return self.ivs.metadata
 
     def set_volume(self, volume):
+        '''
+        Sets the volume of the audio.
+
+        **Args**:
+            *volume* (float): A value between 0.0 - 1.0.
+        '''
         self.settings.volume = min(max(volume, 0.), 1.) * SDL_MIX_MAXVOLUME
 
     def get_volume(self):
+        '''
+        Returns the volume of the audio.
+
+        **Returns**:
+            (float): A value between 0.0 - 1.0.
+        '''
         return self.settings.volume / <double>SDL_MIX_MAXVOLUME
 
     def toggle_pause(self):
+        '''
+        Pauses or unpauses the player.
+        '''
         self.settings_mutex.lock()
         with nogil:
             self.ivs.toggle_pause()
         self.settings_mutex.unlock()
 
     def get_pts(VideoState self):
+        '''
+        Returns the elapsed play time.
+
+        **Returns**:
+            (float): The amount of the time that the video has been playing.
+            The time is from the clock used for the player (default is audio,
+            see sync option). If the clock is based on video, it should correspond
+            with the pts from get_frame.
+        '''
         cdef double pos
         cdef int sync_type = self.ivs.get_master_sync_type()
         if (sync_type == AV_SYNC_VIDEO_MASTER and
@@ -244,8 +461,59 @@ cdef class FFPyPlayer(object):
             pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
         return pos
 
-    "Can only be called from the main thread."
-    def set_size(self, int width, int height):
+    def set_size(self, int width=-1, int height=-1):
+        '''
+        Dynamically sets the size of the frames returned by get_frame.
+
+        **Args**:
+            *width*, *height* (int): The width and height of the output frames.
+            A value of 0 will set that parameter to the source height/width.
+            A value of -1 for one of the parameters, will result in a value of that
+            parameter that maintains the original aspect ratio.
+
+        ::
+
+            >>> print player.get_frame()[0][1:]
+            ((704, 480), 2112, 0.067)
+
+            >>> player.set_size(200, 200)
+            >>> print player.get_frame()[0][1:]
+            ((704, 480), 2112, 0.1)
+            >>> print player.get_frame()[0][1:]
+            ((704, 480), 2112, 0.133)
+            >>> print player.get_frame()[0][1:]
+            ((704, 480), 2112, 0.167)
+            >>> print player.get_frame()[0][1:]
+            ((200, 200), 600, 0.2)
+
+            >>> player.set_size(200, 0)
+            >>> print player.get_frame()[0][1:]
+            ((200, 200), 600, 0.234)
+            >>> print player.get_frame()[0][1:]
+            ((200, 200), 600, 0.267)
+            >>> print player.get_frame()[0][1:]
+            ((200, 480), 600, 0.3)
+
+            >>> player.set_size(200, -1)
+            >>> print player.get_frame()[0][1:]
+            ((200, 480), 600, 0.334)
+            >>> print player.get_frame()[0][1:]
+            ((200, 480), 600, 0.367)
+            >>> print player.get_frame()[0][1:]
+            ((200, 136), 600, 0.4)
+
+        Note that it takes a few calls to flush the old frames.
+
+        .. note::
+
+            This should only be called from the main thread (the thread that calls
+            get_frame).
+
+        .. note::
+
+            if CONFIG_AVFILTER was False when compiling, this function will raise
+            an error.
+        '''
         if not CONFIG_AVFILTER and (width or height):
             raise Exception('You can only set the screen size when avfilter is enabled.')
         self.settings_mutex.lock()
@@ -253,11 +521,33 @@ cdef class FFPyPlayer(object):
         self.settings.screen_height = height
         self.settings_mutex.unlock()
 
-    'Can only be called from the main thread.'
     # Currently, if a stream is re-opened when the stream was not open before
     # it'l cause some seeking. We can probably remove it by setting a seek flag
     # only for this stream and not for all, provided is not the master clock stream.
     def request_channel(self, stream_type, action='cycle', int requested_stream=-1):
+        '''
+        Opens or closes a stream dynamically.
+
+        This function may result in seeking when opening a new stream.
+
+        **Args**:
+            *stream_type* (str): The stream group on which to operate. Can be one of
+            'audio', 'video', or 'subtitle'.
+
+            *action* (str): The action to preform. Can be one of 'open', 'close',
+            or 'cycle'. A value of 'cycle' will close the current stream and
+            open the next stream in this group.
+
+            *requested_stream* (int): The stream to open next when *action* is
+            'cycle' or 'open'. If -1, the next stream will be opened. Otherwise,
+            this stream will be attempted to be opened.
+
+        .. note::
+
+            This should only be called from the main thread (the thread that calls
+            get_frame).
+
+        '''
         cdef int stream, old_index
         if stream_type == 'audio':
             stream = AVMEDIA_TYPE_AUDIO
@@ -276,12 +566,45 @@ cdef class FFPyPlayer(object):
         elif action == 'close':
             self.ivs.stream_component_close(old_index)
 
-    def seek(self, val, relative=True, seek_by_bytes=False):
+    def seek(self, pts, relative=True, seek_by_bytes=False):
+        '''
+        Seeks in the current streams.
+
+        Seeks to the desired timepoint as close as possible while not exceeding
+        that time.
+
+        **Args**:
+            *pts* (float): The timestamp to seek to (in seconds).
+
+            *relative* (bool): Whether the pts parameter is interpreted as the
+            time offset from the current stream position.
+
+            *seek_by_bytes* (bool): Whether we seek based on the position in bytes
+            or in time. In some instances seeking by bytes may be more accurate
+            (don't ask me which).
+
+        ::
+
+            >>> print player.get_frame()[0][1:]
+            ((1280, 688), 3840, 1016.392)
+
+            >>> player.seek(200.)
+            >>> player.get_frame()
+            >>> print player.get_frame()[0][1:]
+            ((1280, 688), 3840, 1249.876)
+
+            >>> player.seek(200, relative=False)
+            >>> player.get_frame()
+            >>> print player.get_frame()[0][1:]
+            ((1280, 688), 3840, 198.49)
+
+        Note that it may take a few calls to get new frames after seeking.
+        '''
         cdef double incr, pos
         cdef int64_t t
         self.settings_mutex.lock()
         if relative:
-            incr = val
+            incr = pts
             if seek_by_bytes:
                 with nogil:
                     if self.ivs.video_stream >= 0 and self.ivs.video_current_pos >= 0:
@@ -307,7 +630,7 @@ cdef class FFPyPlayer(object):
                         pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
                     self.ivs.stream_seek(<int64_t>(pos * AV_TIME_BASE), <int64_t>(incr * AV_TIME_BASE), 0, 1)
         else:
-            pos = val
+            pos = pts
             if seek_by_bytes:
                 with nogil:
                     if self.ivs.ic.bit_rate:

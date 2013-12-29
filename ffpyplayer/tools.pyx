@@ -14,8 +14,6 @@ from ffthreading cimport Py_MT, MTMutex
 loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
              "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
              "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG}
-''' FFmpeg log levels
-'''
 loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
 codecs = list_ffcodecs()
