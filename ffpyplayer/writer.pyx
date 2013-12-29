@@ -4,7 +4,7 @@ __all__ = ('MediaWriter', )
 
 
 import copy
-from tools import codecs, pix_fmts, get_supported_framerates, get_supported_pixfmts
+from tools import get_supported_framerates, get_supported_pixfmts
 from tools import loglevels, _initialize_ffmpeg
 
 cdef extern from "string.h" nogil:
@@ -40,17 +40,18 @@ cdef int AV_ENOENT = ENOENT if ENOENT < 0 else -ENOENT
 
 cdef class MediaWriter(object):
 
-    def __cinit__(self, filename, streams, fmt='', ffopts={}, metadata={},
+    def __cinit__(self, filename, streams, fmt='', lib_opts={}, metadata={},
                   loglevel='error', overwrite=False, **kwargs):
         cdef int res = 0, n = len(streams), r, linesize[4]
         cdef char *format_name = NULL, msg[256]
         cdef MediaStream *s
         cdef list linesizes, frame_sizes
-        cdef AVDictionary *dict = NULL,
         cdef AVDictionaryEntry *dict_temp = NULL
         cdef AVPicture dummy_pic
         cdef bytes msg2
+        cdef const AVCodecDescriptor *codec_desc
 
+        self.format_opts = NULL
         if loglevel not in loglevels:
             raise ValueError('Invalid log level option.')
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
@@ -81,8 +82,13 @@ cdef class MediaWriter(object):
         #self.frame_sizes = frame_sizes = [0, ] * n
         linesizes = [[0, ] * 4 for i in range(n)]
         frame_sizes = [0, ] * n
+        if type(lib_opts) is dict:
+            lib_opts = [lib_opts, ] * n
+        elif len(lib_opts) == 1:
+            lib_opts = lib_opts * n
 
         for r in range(n):
+            s[r].codec_opts = NULL
             config = conf[r]
             if 'pix_fmt_out' not in config or not config['pix_fmt_out']:
                 config['pix_fmt_out'] = config['pix_fmt_in']
@@ -90,23 +96,24 @@ cdef class MediaWriter(object):
                 config['width_out'] = config['width_in']
             if 'height_out' not in config or not config['height_out']:
                 config['height_out'] = config['height_in']
-            if config['codec'] not in codecs:
+            codec_desc = avcodec_descriptor_get_by_name(config['codec'])
+            if codec_desc == NULL:
                 self.clean_up()
                 raise Exception('Codec %s not found.' % config['codec'])
-            s[r].codec_id = <AVCodecID>codecs[config['codec']]
+            s[r].codec_id = codec_desc.id
             s[r].width_in = config['width_in']
             s[r].width_out = config['width_out']
             s[r].height_in = config['height_in']
             s[r].height_out = config['height_out']
             s[r].num, s[r].den = config['frame_rate']
-            if config['pix_fmt_in'] not in pix_fmts:
+            if av_get_pix_fmt(config['pix_fmt_in']) == AV_PIX_FMT_NONE:
                 self.clean_up()
                 raise Exception('Pixel format %s not found.' % config['pix_fmt_in'])
-            if config['pix_fmt_out'] not in pix_fmts:
+            if av_get_pix_fmt(config['pix_fmt_out']) == AV_PIX_FMT_NONE:
                 self.clean_up()
                 raise Exception('Pixel format %s not found.' % config['pix_fmt_out'])
-            s[r].pix_fmt_in = <AVPixelFormat>pix_fmts[config['pix_fmt_in']]
-            s[r].pix_fmt_out = <AVPixelFormat>pix_fmts[config['pix_fmt_out']]
+            s[r].pix_fmt_in = av_get_pix_fmt(config['pix_fmt_in'])
+            s[r].pix_fmt_out = av_get_pix_fmt(config['pix_fmt_out'])
 
             s[r].codec = avcodec_find_encoder(s[r].codec_id);
             if s[r].codec == NULL:
@@ -135,17 +142,9 @@ cdef class MediaWriter(object):
             s[r].codec_ctx.time_base.num = s[r].den
             s[r].codec_ctx.pix_fmt = s[r].pix_fmt_out
 
-            for k, v in ffopts.iteritems():
-                res = av_dict_set(&dict, k, v, 0)
-                if res < 0:
-                    av_dict_free(&dict)
-                    self.clean_up()
-                    raise Exception('Failed to set option %s: %s for stream %d; %s'\
-                                    % (k, v, r, emsg(res, msg, sizeof(msg))))
             for k, v in metadata.iteritems():
                 res = av_dict_set(&s[r].av_stream.metadata, k, v, 0)
                 if res < 0:
-                    av_dict_free(&dict)
                     av_dict_free(&s[r].av_stream.metadata)
                     self.clean_up()
                     raise Exception('Failed to set option %s: %s for stream %d; %s'\
@@ -156,25 +155,10 @@ cdef class MediaWriter(object):
 
             supported_fmts = get_supported_pixfmts(config['codec'], config['pix_fmt_out'])
             if supported_fmts and supported_fmts[0] != config['pix_fmt_out']:
-                av_dict_free(&dict)
                 self.clean_up()
                 raise Exception('%s is not a supported pixel format for codec %s, the \
                 best valid format is %s' % (config['pix_fmt_out'], config['codec'],
                                             supported_fmts[0]))
-
-            # TODO: do generic options like in player
-            res = avcodec_open2(s[r].codec_ctx, s[r].codec, &dict)
-            bad_vals = ''
-            dict_temp = av_dict_get(dict, "", dict_temp, AV_DICT_IGNORE_SUFFIX)
-            while dict_temp != NULL:
-                bad_vals += '%s: %s, ' % (dict_temp.key, dict_temp.value)
-                dict_temp = av_dict_get(dict, "", dict_temp, AV_DICT_IGNORE_SUFFIX)
-            av_dict_free(&dict)
-            msg2 = bytes("The following options were not recognized: %s.\n" % bad_vals)
-            av_log(NULL, AV_LOG_ERROR, msg2)
-            if res < 0:
-                self.clean_up()
-                raise Exception('Failed to open codec for stream %d; %s' % (k, emsg(res, msg, sizeof(msg))))
 
             s[r].av_frame = avcodec_alloc_frame()
             if s[r].av_frame == NULL:
@@ -211,6 +195,24 @@ cdef class MediaWriter(object):
                     self.clean_up()
                     raise Exception('Cannot find conversion context.')
 
+            for k, v in lib_opts[r].iteritems():
+                if opt_default(k, v, s[r].sws_ctx, NULL, &self.format_opts, &s[r].codec_opts) < 0:
+                    raise Exception('library option %s: $s not found' % (k, v))
+
+            res = avcodec_open2(s[r].codec_ctx, s[r].codec, &s[r].codec_opts)
+            bad_vals = ''
+            dict_temp = av_dict_get(s[r].codec_opts, "", dict_temp, AV_DICT_IGNORE_SUFFIX)
+            while dict_temp != NULL:
+                bad_vals += '%s: %s, ' % (dict_temp.key, dict_temp.value)
+                dict_temp = av_dict_get(s[r].codec_opts, "", dict_temp, AV_DICT_IGNORE_SUFFIX)
+            av_dict_free(&s[r].codec_opts)
+            if bad_vals:
+                msg2 = bytes("The following options were not recognized: %s.\n" % bad_vals)
+                av_log(NULL, AV_LOG_ERROR, msg2)
+            if res < 0:
+                self.clean_up()
+                raise Exception('Failed to open codec for stream %d; %s' % (k, emsg(res, msg, sizeof(msg))))
+
             # the required size of the buffer of the input image. includes padding and alignment
             res = avpicture_fill(&dummy_pic, NULL, s[r].pix_fmt_in, s[r].width_in, s[r].height_in)
             frame_sizes[r] = res
@@ -244,12 +246,21 @@ cdef class MediaWriter(object):
             if res < 0:
                 self.clean_up()
                 raise Exception('File error: ' + emsg(res, msg, sizeof(msg)))
-        res = avformat_write_header(self.fmt_ctx, NULL)
+        res = avformat_write_header(self.fmt_ctx, &self.format_opts)
+        bad_vals = ''
+        dict_temp = av_dict_get(self.format_opts, "", dict_temp, AV_DICT_IGNORE_SUFFIX)
+        while dict_temp != NULL:
+            bad_vals += '%s: %s, ' % (dict_temp.key, dict_temp.value)
+            dict_temp = av_dict_get(self.format_opts, "", dict_temp, AV_DICT_IGNORE_SUFFIX)
+        av_dict_free(&self.format_opts)
+        if bad_vals:
+            msg2 = bytes("The following options were not recognized: %s.\n" % bad_vals)
+            av_log(NULL, AV_LOG_ERROR, msg2)
         if res < 0:
             self.clean_up()
             raise Exception('Error writing header: ' + emsg(res, msg, sizeof(msg)))
 
-    def __init__(self, filename, streams, fmt='', ffopts={}, metadata={},
+    def __init__(self, filename, streams, fmt='', lib_opts={}, metadata={},
                  loglevel='error', overwrite=False, **kwargs):
         pass
 
@@ -404,6 +415,8 @@ cdef class MediaWriter(object):
             if self.streams[r].sws_ctx != NULL:
                 sws_freeContext(self.streams[r].sws_ctx)
                 self.streams[r].sws_ctx= NULL
+            if self.streams[r].codec_opts:
+                av_dict_free(&self.streams[r].codec_opts)
         free(self.streams)
         self.streams = NULL
         self.n_streams = 0
@@ -413,4 +426,5 @@ cdef class MediaWriter(object):
                 avio_close(self.fmt_ctx.pb)
             avformat_free_context(self.fmt_ctx)
             self.fmt_ctx = NULL
+        av_dict_free(&self.format_opts)
 

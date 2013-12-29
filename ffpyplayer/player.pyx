@@ -247,8 +247,9 @@ cdef class FFPyPlayer(object):
                                                <AVPixelFormat>0, SWS_BICUBIC,
                                                NULL, NULL, NULL)
         for k, v in lib_opts.iteritems():
-            opt_default(k, v, settings.sws_opts, &settings.swr_opts,
-                        &settings.format_opts, &self.settings.codec_opts)
+            if opt_default(k, v, settings.sws_opts, &settings.swr_opts,
+                           &settings.format_opts, &self.settings.codec_opts) < 0:
+                raise Exception('library option %s: $s not found' % (k, v))
 
         'filename can start with pipe:'
         av_strlcpy(settings.input_filename, <char *>filename, sizeof(settings.input_filename))

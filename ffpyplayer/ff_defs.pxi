@@ -61,6 +61,7 @@ cdef:
             const char *name
             uint8_t nb_components
         const char *av_get_pix_fmt_name(AVPixelFormat)
+        AVPixelFormat av_get_pix_fmt(const char *)
         const AVPixFmtDescriptor *av_pix_fmt_desc_next(const AVPixFmtDescriptor *)
         AVPixelFormat av_pix_fmt_desc_get_id(const AVPixFmtDescriptor *)
         const AVPixFmtDescriptor *av_pix_fmt_desc_get(AVPixelFormat)
@@ -194,6 +195,7 @@ cdef:
             int flags
             const char *name
         struct AVOutputFormat:
+            const char *name
             int flags
         struct AVFormatContext:
             AVInputFormat *iformat
@@ -248,6 +250,8 @@ cdef:
         AVStream *avformat_new_stream(AVFormatContext *, const AVCodec *)
         int av_interleaved_write_frame(AVFormatContext *, AVPacket *)
         void avformat_free_context(AVFormatContext *)
+        AVOutputFormat *av_oformat_next(AVOutputFormat *)
+        AVInputFormat *av_iformat_next(AVInputFormat  *)
     extern from "libavdevice/avdevice.h" nogil:
         void avdevice_register_all()
 
@@ -412,6 +416,7 @@ cdef:
             AV_CODEC_ID_RAWVIDEO
         AVCodec *avcodec_find_decoder(AVCodecID)
         AVCodec *avcodec_find_encoder(AVCodecID)
+        AVCodec *avcodec_find_encoder_by_name(const char *)
         AVCodec *avcodec_find_decoder_by_name(const char *)
         const AVClass *avcodec_get_class()
         int avcodec_open2(AVCodecContext *, const AVCodec *, AVDictionary **)
@@ -429,6 +434,7 @@ cdef:
                                                         int, int *)
         int avpicture_fill(AVPicture *, const uint8_t *, AVPixelFormat, int, int)
         int avcodec_encode_video2(AVCodecContext *, AVPacket *, const AVFrame *, int *)
+        const char *avcodec_get_name(AVCodecID)
     extern from "libavfilter/avfilter.h" nogil:
         struct AVFilterContext:
             AVFilterLink **inputs

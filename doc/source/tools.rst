@@ -19,3 +19,5 @@ its a log eats log world
 
 .. autoattribute:: ffpyplayer.tools.codecs
 .. autoattribute:: ffpyplayer.tools.pix_fmts
+.. autoattribute:: ffpyplayer.tools.formats_in
+.. autoattribute:: ffpyplayer.tools.formats_out

@@ -1,25 +1,40 @@
 
-__all__ = ('loglevels', 'codecs', 'pix_fmts', 'set_log_callback',
-           'get_supported_framerates', 'get_supported_pixfmts')
+__all__ = ('loglevels', 'codecs', 'pix_fmts', 'formats_in', 'formats_out',
+           'set_log_callback', 'get_supported_framerates', 'get_supported_pixfmts',
+           'emit_library_info')
 
 
 include 'ff_defs.pxi'
 
-
 cimport ffthreading
 from ffthreading cimport Py_MT, MTMutex
+
+
+cdef int ffmpeg_initialized = 0
+def _initialize_ffmpeg():
+    global ffmpeg_initialized
+    if not ffmpeg_initialized:
+        avcodec_register_all() # register all codecs, demux and protocols
+        IF CONFIG_AVDEVICE:
+            avdevice_register_all()
+        IF CONFIG_AVFILTER:
+            avfilter_register_all()
+        av_register_all()
+        avformat_network_init()
+        ffmpeg_initialized = 1
+_initialize_ffmpeg()
 
 
 'see http://ffmpeg.org/ffmpeg.html for log levels'
 loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
              "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
              "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG}
-loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
+_loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
-codecs = list_ffcodecs()
-codecs_inverse = {v:k for k, v in codecs.iteritems()}
-pix_fmts = list_pixfmts()
-pix_fmts_inverse = {v:k for k, v in pix_fmts.iteritems()}
+codecs = sorted(list_ffcodecs())
+pix_fmts = sorted(list_pixfmts())
+formats_in = sorted(list_fmt_in())
+formats_out = sorted(list_fmt_out())
 
 
 cdef object _log_callback = None
@@ -34,7 +49,7 @@ cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) 
     av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &_print_prefix)
     if _log_callback is not None:
         with gil:
-            _log_callback(str(line), loglevel_inverse[level])
+            _log_callback(str(line), _loglevel_inverse[level])
     _log_mutex.unlock()
 
 def set_log_callback(object callback):
@@ -49,39 +64,45 @@ def set_log_callback(object callback):
     _log_callback = callback
     _log_mutex.unlock()
 
-cdef int ffmpeg_initialized = 0
-def _initialize_ffmpeg():
-    global ffmpeg_initialized
-    if not ffmpeg_initialized:
-        print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
-        print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
-        avcodec_register_all() # register all codecs, demux and protocols
-        IF CONFIG_AVDEVICE:
-            avdevice_register_all()
-        IF CONFIG_AVFILTER:
-            avfilter_register_all()
-        av_register_all()
-        avformat_network_init()
-        ffmpeg_initialized = 1
 
-cdef dict list_ffcodecs():
-    cdef dict codecs = {}
+cdef list list_ffcodecs():
+    cdef list codecs = []
     cdef AVCodecDescriptor *desc = NULL
     desc = avcodec_descriptor_next(desc)
 
     while desc != NULL:
-        codecs[desc.name] = <int>desc.id
+        codecs.append(desc.name)
         desc = avcodec_descriptor_next(desc)
     return codecs
 
-cdef dict list_pixfmts():
-    cdef dict fmts = {}
+cdef list list_pixfmts():
+    cdef list fmts = []
     cdef AVPixFmtDescriptor *desc = NULL
     desc = av_pix_fmt_desc_next(desc)
 
     while desc != NULL:
-        fmts[desc.name] = <int>av_pix_fmt_desc_get_id(desc)
+        fmts.append(desc.name)
         desc = av_pix_fmt_desc_next(desc)
+    return fmts
+
+cdef list list_fmt_out():
+    cdef list fmts = []
+    cdef AVOutputFormat *fmt = NULL
+    fmt = av_oformat_next(fmt)
+
+    while fmt != NULL:
+        fmts.extend(fmt.name.split(','))
+        fmt = av_oformat_next(fmt)
+    return fmts
+
+cdef list list_fmt_in():
+    cdef list fmts = []
+    cdef AVInputFormat *fmt = NULL
+    fmt = av_iformat_next(fmt)
+
+    while fmt != NULL:
+        fmts.extend(fmt.name.split(','))
+        fmt = av_iformat_next(fmt)
     return fmts
 
 def get_supported_framerates(codec_name, rate=()):
@@ -90,7 +111,7 @@ def get_supported_framerates(codec_name, rate=()):
     cdef AVRational rate_struct
     cdef list rate_list = []
     cdef int i = 0
-    cdef AVCodec *codec = avcodec_find_encoder(<AVCodecID>codecs[codec_name])
+    cdef AVCodec *codec = avcodec_find_encoder_by_name(codec_name)
     if codec == NULL:
         raise Exception('Codec %s not recognized.' % codec_name)
     if codec.supported_framerates == NULL:
@@ -112,20 +133,26 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
     cdef AVPixelFormat fmt
     cdef list fmt_list = []
     cdef int i = 0, loss = 0, has_alpha = 0
-    cdef AVCodec *codec = avcodec_find_encoder(<AVCodecID>codecs[codec_name])
+    cdef AVCodec *codec = avcodec_find_encoder_by_name(codec_name)
     if codec == NULL:
         raise Exception('Codec %s not recognized.' % codec_name)
+    if pix_fmt and av_get_pix_fmt(pix_fmt) == AV_PIX_FMT_NONE:
+        raise Exception('Pixel format not recognized.')
     if codec.pix_fmts == NULL:
         return fmt_list
 
     while codec.pix_fmts[i] != AV_PIX_FMT_NONE:
-        fmt_list.append(pix_fmts_inverse[<int>codec.pix_fmts[i]])
+        fmt_list.append(av_get_pix_fmt_name(codec.pix_fmts[i]))
     if pix_fmt:
-        has_alpha = av_pix_fmt_desc_get(<AVPixelFormat>pix_fmts[pix_fmt]).nb_components % 2 == 0
-        fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, <AVPixelFormat>pix_fmts[pix_fmt],
+        has_alpha = av_pix_fmt_desc_get(av_get_pix_fmt(pix_fmt)).nb_components % 2 == 0
+        fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, av_get_pix_fmt(pix_fmt),
                                                 has_alpha, &loss)
-        i = fmt_list.index(pix_fmts_inverse[<int>fmt])
+        i = fmt_list.index(av_get_pix_fmt_name(fmt))
         pix = fmt_list[i]
         del fmt_list[i]
         fmt_list.insert(0, pix)
     return fmt_list
+
+def emit_library_info():
+    print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
+    print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)

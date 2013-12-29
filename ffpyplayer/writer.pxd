@@ -9,6 +9,7 @@ cdef class MediaWriter(object):
     cdef MediaStream *streams
     cdef int n_streams
     cdef list config
+    cdef AVDictionary *format_opts
 
     cdef void clean_up(MediaWriter self)
 
@@ -48,3 +49,5 @@ cdef struct MediaStream:
     int count
     int64_t pts
     int sync_fmt
+
+    AVDictionary *codec_opts

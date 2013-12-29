@@ -91,7 +91,7 @@ int opt_default(const char *opt, const char *arg,
     }
 #if CONFIG_SWSCALE
     sc = sws_get_class();
-    if (!consumed && opt_find(&sc, opt, NULL, 0,
+    if (sws_opts && !consumed && opt_find(&sc, opt, NULL, 0,
                          AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ)) {
         // XXX we only support sws_flags, not arbitrary sws options
         ret = av_opt_set(sws_opts, opt, arg, 0);
@@ -104,7 +104,7 @@ int opt_default(const char *opt, const char *arg,
 #endif
 #if CONFIG_SWRESAMPLE
     swr_class = swr_get_class();
-    if (!consumed && (o=opt_find(&swr_class, opt, NULL, 0,
+    if (swr_opts && !consumed && (o=opt_find(&swr_class, opt, NULL, 0,
                                     AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
         swr = swr_alloc();
         ret = av_opt_set(swr, opt, arg, 0);
