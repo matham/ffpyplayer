@@ -2,11 +2,11 @@
 FFmpeg based media player
 =========================
 
-A FFmpeg based python media player. See :class:`FFPyPlayer` for details.
+A FFmpeg based python media player. See :class:`MediaPlayer` for details.
 '''
 
 
-__all__ = ('FFPyPlayer', )
+__all__ = ('MediaPlayer', )
 
 include 'ff_defs_comp.pxi'
 include "inline_funcs.pxi"
@@ -32,7 +32,7 @@ from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
 
-cdef class FFPyPlayer(object):
+cdef class MediaPlayer(object):
     '''
     An FFmpeg based media player.
 
@@ -121,12 +121,12 @@ cdef class FFPyPlayer(object):
 
     ::
 
-        from ffpyplayer.player import FFPyPlayer
+        from ffpyplayer.player import MediaPlayer
         import time, weakref
         def callback(selector, value):
             if selector == 'quit':
                 print 'quitting'
-        player = FFPyPlayer(filename, vid_sink=weakref.ref(callback))
+        player = MediaPlayer(filename, vid_sink=weakref.ref(callback))
         while 1:
             frame, val = player.get_frame()
             if val == 'eof':

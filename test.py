@@ -1,7 +1,7 @@
 import kivy
 from kivy.base import EventLoop
 EventLoop.ensure_window()
-from ffpyplayer.player import FFPyPlayer
+from ffpyplayer.player import MediaPlayer
 from ffpyplayer.tools import set_log_callback, loglevels
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
@@ -72,8 +72,8 @@ class PlayerApp(App):
         self.callback_ref = WeakMethod(self.callback)
         filename = sys.argv[1]
         ff_opts = {}# try ff_opts = {'vf':'edgedetect'} http://ffmpeg.org/ffmpeg-filters.html
-        self.ffplayer = FFPyPlayer(filename, vid_sink=self.callback_ref,
-                                   loglevel='info', ff_opts=ff_opts)
+        self.ffplayer = MediaPlayer(filename, vid_sink=self.callback_ref,
+                                    loglevel='info', ff_opts=ff_opts)
         Clock.schedule_once(self.redraw, 0)
         self.keyboard = Window.request_keyboard(None, self.root)
         self.keyboard.bind(on_key_down=self.on_keyboard_down)
@@ -193,8 +193,8 @@ if __name__ == '__main__':
     set_log_callback(log_callback)
     a = PlayerApp()
     a.run()
-    # because ffpyplayer runs non-daemon threads, when the main thread exists
+    # because MediaPlayer runs non-daemon threads, when the main thread exists
     # it'll get stuck waiting for those threads to close, so we manually
-    # have to delete these threads by deleting the ffpyplayer object.
+    # have to delete these threads by deleting the MediaPlayer object.
     a.ffplayer = None
     set_log_callback(None)

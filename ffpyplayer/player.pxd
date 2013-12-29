@@ -10,7 +10,7 @@ from sink cimport VideoSettings, VideoSink
 
 
 
-cdef class FFPyPlayer(object):
+cdef class MediaPlayer(object):
     cdef:
         VideoSettings settings
         MTGenerator mt_gen
