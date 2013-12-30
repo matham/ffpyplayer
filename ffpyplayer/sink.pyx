@@ -37,7 +37,7 @@ cdef class VideoSink(object):
             self.alloc_mutex.unlock()
         elif request == FF_QUIT_EVENT:
             with gil:
-                self.callback()('quit')
+                self.callback()('quit', '')
         return 0
 
     cdef int peep_alloc(VideoSink self) nogil except 1:

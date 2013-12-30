@@ -295,7 +295,8 @@ cdef class MediaWriter(object):
                 pkt.stream_index = self.streams[r].av_stream.index
                 if av_interleaved_write_frame(self.fmt_ctx, &pkt) < 0:
                     break
-        av_write_trailer(self.fmt_ctx)
+        if self.fmt_ctx != NULL:
+            av_write_trailer(self.fmt_ctx)
         self.clean_up()
 
     def write_frame(MediaWriter self, double pts, int stream, bytes buffer=bytes(''),

@@ -900,6 +900,8 @@ cdef class VideoState(object):
         cdef AVRational tb = self.video_st.time_base
         cdef AVRational tb_temp
         cdef AVRational frame_rate = av_guess_frame_rate(self.ic, self.video_st, NULL)
+        cdef char errbuf[256]
+        cdef char *errbuf_ptr = errbuf
         IF CONFIG_AVFILTER:
             cdef AVFilterGraph *graph = avfilter_graph_alloc()
             cdef AVFilterContext *filt_out = NULL, *filt_in = NULL
@@ -937,6 +939,9 @@ cdef class VideoState(object):
                     graph = avfilter_graph_alloc()
                     ret = self.configure_video_filters(graph, self.player.vfilters, frame)
                     if ret < 0:
+                        if av_strerror(ret, errbuf, sizeof(errbuf)) < 0:
+                            errbuf_ptr = strerror(AVUNERROR(err))
+                        av_log(NULL, AV_LOG_FATAL, "%s\n", errbuf_ptr)
                         self.vid_sink.request_thread(FF_QUIT_EVENT)
                         av_free_packet(&pkt)
                         break

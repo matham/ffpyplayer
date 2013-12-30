@@ -1,13 +1,14 @@
 
 __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
            'formats_out', 'set_log_callback', 'get_supported_framerates',
-           'get_supported_pixfmts', 'emit_library_info')
+           'get_supported_pixfmts', 'emit_library_info', 'list_dshow_devices')
 
 
 include 'ff_defs.pxi'
 
 cimport ffthreading
 from ffthreading cimport Py_MT, MTMutex
+import re
 
 
 cdef int ffmpeg_initialized = 0
@@ -256,18 +257,79 @@ def emit_library_info():
     print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
 
 def list_dshow_devices():
-    cdef AVFormatContext *fmt = avformat_alloc_context()
+    '''
+    Returns a list of the dshow devices available.
+
+    **Returns**:
+        *(2-tuple)*: A 2-tuple, where the first element is a list of the names of
+        all the direct show **video** devices and the second element is a list of
+        the names of all the direct show **audio** devices available for reading.
+
+    ::
+
+        >>> from ffpyplayer.player import MediaPlayer
+        >>> import time, weakref
+        >>> dev = list_dshow_devices()
+        >>> print dev
+        (['Laptop Integrated Webcam', 'wans'], ['Microphone Array (2- SigmaTel H', 'Microphone (Plantronics .Audio '])
+
+        >>> def callback(selector, value):
+        ...     if selector == 'quit':
+        ...         print 'quitting'
+        >>> # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
+        >>> # 110592000 = 640*480*3 at 30fps, for 4 seconds.
+        >>> # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
+        >>> lib_opts = {'framerate':'30', 'video_size':'640x480', 'rtbufsize':'110592000'}
+        >>> ff_opts = {'f':'dshow'}
+        >>> player = MediaPlayer('video=%s:audio=%s' % (dev[0][0], dev[1][0]),
+        ...                      vid_sink=weakref.ref(callback), ff_opts=ff_opts,
+        ...                      lib_opts=lib_opts)
+        >>> while 1:
+        ...     frame, val = player.get_frame()
+        ...     if val == 'eof':
+        ...         break
+        ...     elif frame is None:
+        ...         time.sleep(0.01)
+        ...     else:
+        ...         print val, len(frame[0]), frame[1:]
+        ...         time.sleep(val)
+        0.0 921600 ((640, 480), 1920, 265401.595)
+        1.19834589958 921600 ((640, 480), 1920, 265401.73699999996)
+        1.31645727158 921600 ((640, 480), 1920, 265401.85699999996)
+        0.262032270432 921600 ((640, 480), 1920, 265401.995)
+        0.0 921600 ((640, 480), 1920, 265402.131)
+        0.0 921600 ((640, 480), 1920, 265402.258)
+        0.0 921600 ((640, 480), 1920, 265403.062)
+        0.0 921600 ((640, 480), 1920, 265403.331)
+        ...
+    '''
+    cdef AVFormatContext *fmt = NULL
     cdef AVDictionary* opts = NULL
     cdef AVInputFormat *ifmt
-
-    res = []
+    cdef list res = [], vid = [], aud = [], curr = None
     def log_callback(message, level):
-        res.append(message)
+        res.append((message, level))
 
     av_dict_set(&opts, "list_devices", "true", 0)
     ifmt = av_find_input_format("dshow")
-
     old_callback = set_log_callback(log_callback)
     avformat_open_input(&fmt, "video=dummy", ifmt, &opts)
     set_log_callback(old_callback)
-    return res
+    avformat_close_input(&fmt)
+    av_dict_free(&opts)
+
+    pvid = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow video devices.*')
+    paud = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow audio devices.*')
+    pname = re.compile(' *\[dshow *@ *[\w]+\] *\"(.+)\"\\n.*')
+    for message, level in res:
+        av_log(NULL, loglevels[level], message)
+        if pvid.match(message):
+            curr = vid
+        elif paud.match(message):
+            curr = aud
+        if curr is None:
+            continue
+        m = pname.match(message)
+        if m:
+            curr.append(m.group(1))
+    return vid, aud

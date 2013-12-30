@@ -18,6 +18,9 @@ cdef extern from "math.h" nogil:
     double NAN
     int isnan(double x)
 
+cdef extern from "string.h" nogil:
+    void * memset(void *, int, size_t)
+
 
 cimport ffthreading
 from ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
@@ -137,6 +140,8 @@ cdef class MediaPlayer(object):
                 print val, len(frame[0]), frame[1:]
                 time.sleep(val)
 
+    See :meth:`ffpyplayer.tools.list_dshow_devices` for a more complex example.
+
     TODO: offer audio buffers, similar to video frames (if wanted?).
     '''
 
@@ -144,6 +149,8 @@ cdef class MediaPlayer(object):
                   thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
+        memset(&self.settings, 0, sizeof(VideoSettings))
+        self.ivs = None
         PyEval_InitThreads()
         if loglevel not in loglevels:
             raise ValueError('Invalid log level option.')
@@ -247,7 +254,7 @@ cdef class MediaPlayer(object):
         for k, v in lib_opts.iteritems():
             if opt_default(k, v, settings.sws_opts, &settings.swr_opts,
                            &settings.format_opts, &self.settings.codec_opts) < 0:
-                raise Exception('library option %s: $s not found' % (k, v))
+                raise Exception('library option %s: %s not found' % (k, v))
 
         'filename can start with pipe:'
         av_strlcpy(settings.input_filename, <char *>filename, sizeof(settings.input_filename))
@@ -288,7 +295,8 @@ cdef class MediaPlayer(object):
         cdef const char *empty = ''
         #XXX: cquit has to be called, otherwise the read_thread never exists.
         # probably some circular referencing somewhere (in event_loop)
-        self.ivs.cquit()
+        if self.ivs:
+            self.ivs.cquit()
         av_lockmgr_register(NULL)
         IF CONFIG_SWSCALE:
             sws_freeContext(self.settings.sws_opts)
