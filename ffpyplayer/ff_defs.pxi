@@ -427,6 +427,7 @@ cdef:
         struct AVCodecDescriptor:
             AVCodecID id
             const char *name
+            AVMediaType type
         const AVCodecDescriptor *avcodec_descriptor_get(AVCodecID)
         const AVCodecDescriptor *avcodec_descriptor_next(const AVCodecDescriptor *)
         const AVCodecDescriptor *avcodec_descriptor_get_by_name(const char *)

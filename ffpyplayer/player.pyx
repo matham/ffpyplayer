@@ -114,10 +114,10 @@ cdef class MediaPlayer(object):
             | *af, vf* (str) similar to ffplay. These are filters applied to the audio/video.
               Examples are 'crop=100:100' to crop, 'vflip' to flip horizontally, 'subtitles=filename'
               to overlay subtitles from another media or text file etc. CONFIG_AVFILTER must be True
-              (the default) when compiling to use this.
+              (the default) when compiling in order to use this.
             | *x, y* (int): The width and height of the output frames. Similar to
               :meth:`set_size`. CONFIG_AVFILTER must be True (the default) when
-              compiling to use this.
+              compiling in order to use this.
 
     ::
 
@@ -136,8 +136,6 @@ cdef class MediaPlayer(object):
             else:
                 print val, len(frame[0]), frame[1:]
                 time.sleep(val)
-
-    TODO: Make the constructor wait until read thread is fully open, or failed.
 
     TODO: offer audio buffers, similar to video frames (if wanted?).
     '''
@@ -401,10 +399,16 @@ cdef class MediaPlayer(object):
 
         .. warning::
 
-            The dictionary returned will be empty until the file is open and read. Because
-            a second thread is created and used to read the file, when the constructor
-            returns the dict might still be empty. The dictionary is fully populated
-            after the first frame is read.
+            The dictionary returned will have default values until the file is
+            open and read. Because a second thread is created and used to read
+            the file, when the constructor returns the dict might still have
+            the default values. After the first frame is read, the dictionary
+            entries are correct with respect to the file metadata.
+
+        .. note::
+
+            Some paramteres can change as the streams are manipulated (e.g. the
+            frame size parameters).
         '''
         return self.ivs.metadata
 
