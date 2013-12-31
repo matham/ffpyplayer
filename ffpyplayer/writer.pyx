@@ -1,4 +1,10 @@
+'''
+FFmpeg based media writer
+=========================
 
+A FFmpeg based python media writer. See :class:`MediaWriter` for details.
+Currently writes only video.
+'''
 
 __all__ = ('MediaWriter', )
 
@@ -398,6 +404,9 @@ cdef class MediaWriter(object):
         return 0
 
     def get_configuration(self):
+        '''
+        Returns the configuration parameters used to initialize the writer.
+        '''
         return self.config
 
     cdef void clean_up(MediaWriter self):

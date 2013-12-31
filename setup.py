@@ -161,5 +161,3 @@ setup(name='ffpyplayer',
                    'Intended Audience :: Developers'],
       packages=['ffpyplayer'],
       cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
-
-#python setup.py build_ext --inplace --force
