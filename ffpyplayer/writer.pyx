@@ -160,7 +160,7 @@ cdef class MediaWriter(object):
                 best valid format is %s' % (config['pix_fmt_out'], config['codec'],
                                             supported_fmts[0]))
 
-            s[r].av_frame = avcodec_alloc_frame()
+            s[r].av_frame = av_frame_alloc()
             if s[r].av_frame == NULL:
                 self.clean_up()
                 raise MemoryError()
@@ -180,7 +180,7 @@ cdef class MediaWriter(object):
                     self.clean_up()
                     raise Exception('Failed to allocate image: ' + emsg(res, msg, sizeof(msg)))
 
-                s[r].av_frame_src = avcodec_alloc_frame()
+                s[r].av_frame_src = av_frame_alloc()
                 if s[r].av_frame_src == NULL:
                     self.clean_up()
                     raise MemoryError()
@@ -197,7 +197,7 @@ cdef class MediaWriter(object):
 
             for k, v in lib_opts[r].iteritems():
                 if opt_default(k, v, s[r].sws_ctx, NULL, &self.format_opts, &s[r].codec_opts) < 0:
-                    raise Exception('library option %s: $s not found' % (k, v))
+                    raise Exception('library option %s: %s not found' % (k, v))
 
             res = avcodec_open2(s[r].codec_ctx, s[r].codec, &s[r].codec_opts)
             bad_vals = ''
@@ -211,7 +211,7 @@ cdef class MediaWriter(object):
                 av_log(NULL, AV_LOG_ERROR, msg2)
             if res < 0:
                 self.clean_up()
-                raise Exception('Failed to open codec for stream %d; %s' % (k, emsg(res, msg, sizeof(msg))))
+                raise Exception('Failed to open codec for stream %d; %s' % (r, emsg(res, msg, sizeof(msg))))
 
             # the required size of the buffer of the input image. includes padding and alignment
             res = avpicture_fill(&dummy_pic, NULL, s[r].pix_fmt_in, s[r].width_in, s[r].height_in)
@@ -268,10 +268,9 @@ cdef class MediaWriter(object):
         cdef int r, got_pkt, res
         cdef AVPacket pkt
 
-        if self.fmt_ctx == NULL:
+        if self.fmt_ctx == NULL or (not self.n_streams) or self.streams[0].codec_ctx == NULL:
             self.clean_up()
             return
-
         for r in range(self.n_streams):
             if ((not self.streams[r].count) or
                 (self.streams[r].codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO and
@@ -295,14 +294,16 @@ cdef class MediaWriter(object):
                 pkt.stream_index = self.streams[r].av_stream.index
                 if av_interleaved_write_frame(self.fmt_ctx, &pkt) < 0:
                     break
-        if self.fmt_ctx != NULL:
-            av_write_trailer(self.fmt_ctx)
+        av_write_trailer(self.fmt_ctx)
         self.clean_up()
 
     def write_frame(MediaWriter self, double pts, int stream, bytes buffer=bytes(''),
-                   size_t frame_ptr=0):
+                   size_t frame_ref=0):
+        '''
+        Takes a refrence such as one from :meth:`ffpyplayer.player.MediaPlayer.get_frame`.
+        '''
         cdef int res = 0, count = 1, i, got_pkt
-        cdef AVFrame *frame_in = <AVFrame *>frame_ptr, *frame_out
+        cdef AVFrame *frame_in = <AVFrame *>frame_ref, *frame_out
         cdef MediaStream *s
         cdef uint8_t *buff = buffer
         cdef double ipts, dpts
@@ -407,11 +408,11 @@ cdef class MediaWriter(object):
             if self.streams[r].av_frame != NULL:
                 if self.streams[r].av_frame_src != NULL and self.streams[r].av_frame.data[0] != NULL:
                     av_freep(&self.streams[r].av_frame.data[0])
-                avcodec_free_frame(&self.streams[r].av_frame)
+                av_frame_free(&self.streams[r].av_frame)
                 self.streams[r].av_frame = NULL
             # The temp frames data is only temporary data (supplied by user for each pic), so don't delete it.
             if self.streams[r].av_frame_src != NULL:
-                avcodec_free_frame(&self.streams[r].av_frame_src)
+                av_frame_free(&self.streams[r].av_frame_src)
                 self.streams[r].av_frame_src = NULL
             if self.streams[r].sws_ctx != NULL:
                 sws_freeContext(self.streams[r].sws_ctx)

@@ -8,6 +8,7 @@ cdef class VideoSink(object):
     cdef MTMutex alloc_mutex
     cdef object callback
     cdef int requested_alloc
+    cdef int use_ref
 
     cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil
@@ -32,6 +33,7 @@ cdef struct VideoSettings:
     int audio_disable
     int video_disable
     int subtitle_disable
+    int use_ref
     int wanted_stream[<int>AVMEDIA_TYPE_NB]
     int seek_by_bytes
     int show_status

@@ -218,6 +218,7 @@ cdef class VideoState(object):
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player) nogil except 1:
         self.player = player
+        memset(self.pictq, 0, sizeof(self.pictq))
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
         with gil:
@@ -940,7 +941,7 @@ cdef class VideoState(object):
                     ret = self.configure_video_filters(graph, self.player.vfilters, frame)
                     if ret < 0:
                         if av_strerror(ret, errbuf, sizeof(errbuf)) < 0:
-                            errbuf_ptr = strerror(AVUNERROR(err))
+                            errbuf_ptr = strerror(AVUNERROR(ret))
                         av_log(NULL, AV_LOG_FATAL, "%s\n", errbuf_ptr)
                         self.vid_sink.request_thread(FF_QUIT_EVENT)
                         av_free_packet(&pkt)

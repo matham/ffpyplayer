@@ -92,36 +92,78 @@ cdef class MediaPlayer(object):
         the available options. Note, many options have identical names and meaning
         as in the FFplay options: www.ffmpeg.org/ffplay.html
 
-            | *cpuflags* (str): similar to ffplay
-            | *max_alloc* (int): similar to ffplay
-            | *infbuf* (bool): similar to ffplay
-            | *framedrop* (bool): similar to ffplay
-            | *loop* (int): similar to ffplay
-            | *autoexit* (int): If non-zero, the player closes on eof.
-            | *ec* (int): similar to ffplay
-            | *lowres* (int): similar to ffplay
-            | *drp* (int): similar to ffplay
-            | *genpts* (bool): similar to ffplay
-            | *fast* (bool): similar to ffplay
-            | *bug* (bool): similar to ffplay
-            | *stats* (bool): similar to ffplay
-            | *pixel_format* (str): similar to ffplay
-            | *bytes* (int): similar to ffplay, not used
-            | *t* (float): similar to ffplay
-            | *ss* (float): similar to ffplay
-            | *sync* (str): similar to ffplay, can be one of 'audio', 'video', 'ext'
-            | *acodec, vcodec, scodec* (str): similar to ffplay
-            | *ast, vst, sst* (int): similar to ffplay
-            | *an, sn, vn* (bool): similar to ffplay
-            | *f* (str): similar to ffplay. The format to open the file with. E.g. dshow for webcams.
-            | *af, vf* (str) similar to ffplay. These are filters applied to the audio/video.
-              Examples are 'crop=100:100' to crop, 'vflip' to flip horizontally, 'subtitles=filename'
-              to overlay subtitles from another media or text file etc. CONFIG_AVFILTER must be True
-              (the default) when compiling in order to use this.
-            | *x, y* (int): The width and height of the output frames. Similar to
-              :meth:`set_size`. CONFIG_AVFILTER must be True (the default) when
-              compiling in order to use this.
+            *cpuflags* (str): similar to ffplay
 
+            *max_alloc* (int): similar to ffplay
+
+            *infbuf* (bool): similar to ffplay, defaults to -1.
+
+            *framedrop* (int): similar to ffplay. True if positive, or negative and
+            *sync* is not video, otherwise false.
+
+            *loop* (int): similar to ffplay, defaults to 1.
+
+            *autoexit* (bool): If True, the player closes on eof. Defaults to False.
+
+            *ec* (int): similar to ffplay, defaults to 3.
+
+            *lowres* (int): similar to ffplay, defaults to zero.
+
+            *drp* (int): similar to ffplay.
+
+            *genpts* (bool): similar to ffplay, defaults to False.
+
+            *fast* (bool): similar to ffplay, defaults to False.
+
+            *bug* (bool): similar to ffplay, defaults to True.
+
+            *stats* (bool): similar to ffplay, defaults to False.
+
+            *pixel_format* (str): similar to ffplay. Note, this sets the format
+            of the input file. For the output format see *out_fmt*.
+
+            *bytes* (int): similar to ffplay, not used. Defaults to -1.
+
+            *t* (float): similar to ffplay, defaults to -1.
+
+            *ss* (float): similar to ffplay, defaults to -1.
+
+            *sync* (str): similar to ffplay, can be one of 'audio', 'video', 'ext'.
+            Defaults to 'audio'.
+
+            *acodec, vcodec, scodec* (str): similar to ffplay, defaults to None.
+
+            *ast, vst, sst* (int): similar to ffplay, defaults to -1.
+
+            *an, sn, vn* (bool): similar to ffplay, defaults to False.
+
+            *f* (str): similar to ffplay. The format to open the file with. E.g. dshow for webcams.
+            See :meth:`ffpyplayer.tools.list_dshow_devices` for an example. Defaults to None.
+
+            *af, vf* (str) similar to ffplay. These are filters applied to the audio/video.
+            Examples are 'crop=100:100' to crop, 'vflip' to flip horizontally, 'subtitles=filename'
+            to overlay subtitles from another media or text file etc. CONFIG_AVFILTER must be True
+            (the default) when compiling in order to use this. Defaults to None.
+
+            *x, y* (int): The width and height of the output frames. Similar to
+            :meth:`set_size`. CONFIG_AVFILTER must be True (the default) when
+            compiling in order to use this. Defaults to 0.
+
+            *use_ref* (bool): If True, a refrence to the original data will be returned by
+            :meth:`get_frame` instead of a copy.
+
+            .. note::
+
+                Note, this is not available (MUST be False) if CONFIG_AVFILTER was False
+                when compiling and the pixel format of the video source is different
+                than the output format. See :meth:`get_frame`. Defaults to False.
+
+            *out_fmt* (str): The pixel format of the data returned by :meth:`get_frame`. Must be
+            one of :attr:`ffpyplayer.tools.pix_fmts`. Defaults to rgb24.
+
+            .. note::
+
+                If *use_ref* is False this must be rgb24.
     ::
 
         from ffpyplayer.player import MediaPlayer
@@ -141,6 +183,7 @@ cdef class MediaPlayer(object):
                 time.sleep(val)
 
     See :meth:`ffpyplayer.tools.list_dshow_devices` for a more complex example.
+    See also :ref:`examples`.
 
     TODO: offer audio buffers, similar to video frames (if wanted?).
     '''
@@ -149,6 +192,7 @@ cdef class MediaPlayer(object):
                   thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
+        cdef AVPixelFormat out_fmt
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
         PyEval_InitThreads()
@@ -185,6 +229,7 @@ cdef class MediaPlayer(object):
                 raise ValueError('Unknown input format: %s.' % ff_opts['f'])
         if 'pixel_format' in ff_opts:
             av_dict_set(<AVDictionary **>&settings.format_opts, "pixel_format", ff_opts['pixel_format'], 0)
+        settings.use_ref = bool(ff_opts['use_ref']) if 'use_ref' in ff_opts else 0
         settings.show_status = bool(ff_opts['stats']) if 'stats' in ff_opts else 0
         settings.workaround_bugs = bool(ff_opts['bug']) if 'bug' in ff_opts else 1
         settings.fast = bool(ff_opts['fast']) if 'fast' in ff_opts else 0
@@ -209,9 +254,9 @@ cdef class MediaPlayer(object):
                 settings.av_sync_type = AV_SYNC_EXTERNAL_CLOCK
             else:
                 raise ValueError('Invalid sync option value.')
-        settings.autoexit = ff_opts['autoexit'] if 'autoexit' in ff_opts else 0
+        settings.autoexit = bool(ff_opts['autoexit']) if 'autoexit' in ff_opts else 0
         settings.loop = ff_opts['loop'] if 'loop' in ff_opts else 1
-        settings.framedrop = bool(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
+        settings.framedrop = int(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
         # -1 means not infinite, not respected if real time.
         settings.infinite_buffer = bool(ff_opts['infbuf']) if 'infbuf' in ff_opts else -1
         IF CONFIG_AVFILTER:
@@ -270,8 +315,15 @@ cdef class MediaPlayer(object):
             raise Exception('Currently, only SDL is supported as a audio sink.')
         self.settings_mutex = MTMutex(self.mt_gen.mt_src)
         if callable(vid_sink):
-            self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), vid_sink)
-            self.vid_sink.set_out_pix_fmt(AV_PIX_FMT_RGB24)
+            self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), vid_sink,
+                                      settings.use_ref)
+            if 'out_fmt' in ff_opts:
+                out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
+            else:
+                out_fmt = av_get_pix_fmt('rgb24')
+            if out_fmt == AV_PIX_FMT_NONE:
+                raise Exception('Unrecognized output pixel format.')
+            self.vid_sink.set_out_pix_fmt(out_fmt)
         else:
             raise Exception('Video sink parameter not recognized.')
         if av_lockmgr_register(self.mt_gen.get_lockmgr()):
@@ -317,8 +369,16 @@ cdef class MediaPlayer(object):
         '''
         Retrieves the next available frame if ready.
 
+        Two types of frames are returned: a single bytes buffer containing the
+        data in RGBRGB... format if *use_ref* is False. Otherwise a refrence to the
+        original frame buffers if *use_ref* is True, and the buffers can represent
+        any pixel format. In the former case, the data is copied, while in the
+        latter case pointers to the original data are retured which **MUST** be freed
+        by the user after use by calling :func:`ffpyplayer.tools.free_frame_ref`.
+
         **Args**:
             *force_refresh* (bool): If True, the last frame will be returned again.
+            Note, if returning a frame refrence, each call will return a new refrence.
             Defaults to False.
 
         **Returns**:
@@ -330,15 +390,35 @@ cdef class MediaPlayer(object):
             *frame* is not None, *val* is the realtime time one should wait before
             displaying this frame to the user to achieve a play rate of 1.0.
 
-            If *frame* is not None it's a 4-tuple - *(buffer, size, linesize, pts)*.
-            *buffer* is a bytes buffer containing the frmae in RGBRGB... format.
-            *size* is a 2-tuple of (width, height) of the frame. Because the video
-            can be dynamically resized these values can change between frames.
-            *linesize* is the width of a line in the frame. Currently it should be
-            the same as width. In the future it might be larger if the lines are padded.
-            *pts* is the presentation timestamp of this frame. This is the time
-            when the frame should be displayed to the user in video time (i.e.
-            not realtime).
+            If *frame* is not None it's a 4-tuple - *(buffer, size, linesizes, pts)*:
+
+                *buffer*: If *use_ref* is False, it's a bytes buffer containing the
+                frmae in RGBRGB... format. If *use_ref* is True, it's a 3-tuple of
+                the format *(ref, data, format)*::
+
+                    *ref* is a refernce to a the frame and is passed to
+                    :func:`ffpyplayer.tools.free_frame_ref` when freeing.
+
+                    *data* is a 4 element list, where each element is a size_t value
+                    which is char pointer to an array holding the data for this plane,
+                    or 0 (NULL), when the plane has no data.
+
+                    *format* is the pixel format of the frame in the form of
+                    :attr:`ffpyplayer.tools.pix_fmts`.
+
+                *size* is a 2-tuple of (width, height) of the frame. Because the video
+                can be dynamically resized these values can change between frames.
+
+                *linesizes* is a 4 element list of the line width of each plane in the frame.
+                For example, with rgb24, only the first element wil be none-zero
+                since rgb only has one plane. Typically it should be the same as width multiplied
+                by the number of bytes in each pixel, however, sometimes it's larger due to padding.
+                If *use_ref* is False, only the first element will be none-zero, and its
+                value will be width * 3.
+
+                *pts* is the presentation timestamp of this frame. This is the time
+                when the frame should be displayed to the user in video time (i.e.
+                not realtime).
 
         .. note::
 
@@ -360,12 +440,12 @@ cdef class MediaPlayer(object):
             ...     else:
             ...         print val, len(frame[0]), frame[1:]
             not ready
-            0.0 1013760 ((704, 480), 2112, 0.0)
-            0.0 1013760 ((704, 480), 2112, 0.033)
+            0.0 1013760 ((704, 480), [2112, 0, 0, 0], 0.0)
+            0.0 1013760 ((704, 480), [2112, 0, 0, 0], 0.033)
             ...
-            24.731872797 1013760 ((704, 480), 2112, 13.881)
+            24.731872797 1013760 ((704, 480), [2112, 0, 0, 0], 13.881)
             not ready
-            24.7868728638 1013760 ((704, 480), 2112, 13.914)
+            24.7868728638 1013760 ((704, 480), [2112, 0, 0, 0], 13.914)
 
         vs displaying frames at their proper times::
 
@@ -383,9 +463,50 @@ cdef class MediaPlayer(object):
             0.0 1013760 ((704, 480), 2112, 0.0)
             0.0 1013760 ((704, 480), 2112, 0.033)
             ...
-            0.031772851944 1013760 ((704, 480), 2112, 20.954)
-            0.030770778656 1013760 ((704, 480), 2112, 20.988)
-            0.0307686328888 1013760 ((704, 480), 2112, 21.021)
+            0.031772851944 1013760 ((704, 480), [2112, 0, 0, 0], 20.954)
+            0.030770778656 1013760 ((704, 480), [2112, 0, 0, 0], 20.988)
+            0.0307686328888 1013760 ((704, 480), [2112, 0, 0, 0], 21.021)
+
+        When *use_ref* is set to True and output format is rgb24::
+
+            >>> from ffpyplayer.player import MediaPlayer
+            >>> from ffpyplayer.tools import free_frame_ref
+            >>> import time, weakref
+            >>> def callback(selector, value):
+            ...     if selector == 'quit':
+            ...         print 'quitting'
+            >>> ff_opts={'use_ref':True, 'out_fmt':'rgb24'}
+            >>> player = MediaPlayer(r'C:\FFmpeg\Blue Streak.mkv', vid_sink=weakref.ref(callback),
+            ...                      ff_opts=ff_opts)
+            >>> while 1:
+            ...     frame, val = player.get_frame()
+            ...     if val == 'eof':
+            ...         break
+            ...     elif frame is None:
+            ...         time.sleep(0.01)
+            ...     else:
+            ...         print val, frame
+            ...         free_frame_ref(frame[0][0])
+            ...         time.sleep(val)
+            0.0 ((112487968, [124911680, 0, 0, 0], 'rgb24'), (1280, 688), [3840, 0, 0, 0], 0.0)
+            0.0 ((112488480, [146931776, 0, 0, 0], 'rgb24'), (1280, 688), [3840, 0, 0, 0], 0.042)
+            0.0139961242676 ((112488480, [153288768, 0, 0, 0], 'rgb24'), (1280, 688), [3840, 0, 0, 0], 0.083)
+            0.0389950275421 ((112488480, [158728256, 0, 0, 0], 'rgb24'), (1280, 688), [3840, 0, 0, 0], 0.125)
+            0.0759932994843 ((112489536, [124911680, 0, 0, 0], 'rgb24'), (1280, 688), [3840, 0, 0, 0], 0.167)
+
+        Or when *use_ref* is set to True and output format is yuv420p::
+
+            ...
+            >>> ff_opts={'use_ref':True, 'out_fmt':'yuv420p'}
+            ...
+            0.0 ((122377824, [115736640, 111274016, 111527200, 0], 'yuv420p'), (1280, 688),
+            [1280, 640, 640, 0], 0.042)
+            0.0179960727692 ((122378848, [114819136, 108882720, 109108704, 0], 'yuv420p'), (1280, 688),
+            [1280, 640, 640, 0], 0.083)
+            0.0379951000214 ((122378848, [118947904, 113728128, 113991520, 0], 'yuv420p'), (1280, 688),
+            [1280, 640, 640, 0], 0.125)
+            0.0769922733307 ((122379392, [105513024, 66005920, 106430560, 0], 'yuv420p'), (1280, 688),
+            [1280, 640, 640, 0], 0.167)
         '''
         self.settings_mutex.lock()
         res = self.ivs.video_refresh(force_refresh)
@@ -487,33 +608,33 @@ cdef class MediaPlayer(object):
         ::
 
             >>> print player.get_frame()[0][1:]
-            ((704, 480), 2112, 0.067)
+            ((704, 480), [2112, 0, 0, 0], 0.067)
 
             >>> player.set_size(200, 200)
             >>> print player.get_frame()[0][1:]
-            ((704, 480), 2112, 0.1)
+            ((704, 480), [2112, 0, 0, 0], 0.1)
             >>> print player.get_frame()[0][1:]
-            ((704, 480), 2112, 0.133)
+            ((704, 480), [2112, 0, 0, 0], 0.133)
             >>> print player.get_frame()[0][1:]
-            ((704, 480), 2112, 0.167)
+            ((704, 480), [2112, 0, 0, 0], 0.167)
             >>> print player.get_frame()[0][1:]
-            ((200, 200), 600, 0.2)
+            ((200, 200), [600, 0, 0, 0], 0.2)
 
             >>> player.set_size(200, 0)
             >>> print player.get_frame()[0][1:]
-            ((200, 200), 600, 0.234)
+            ((200, 200), [600, 0, 0, 0], 0.234)
             >>> print player.get_frame()[0][1:]
-            ((200, 200), 600, 0.267)
+            ((200, 200), [600, 0, 0, 0], 0.267)
             >>> print player.get_frame()[0][1:]
-            ((200, 480), 600, 0.3)
+            ((200, 480), [600, 0, 0, 0], 0.3)
 
             >>> player.set_size(200, -1)
             >>> print player.get_frame()[0][1:]
-            ((200, 480), 600, 0.334)
+            ((200, 480), [600, 0, 0, 0], 0.334)
             >>> print player.get_frame()[0][1:]
-            ((200, 480), 600, 0.367)
+            ((200, 480), [600, 0, 0, 0], 0.367)
             >>> print player.get_frame()[0][1:]
-            ((200, 136), 600, 0.4)
+            ((200, 136), [600, 0, 0, 0], 0.4)
 
         Note that it takes a few calls to flush the old frames.
 
@@ -599,17 +720,17 @@ cdef class MediaPlayer(object):
         ::
 
             >>> print player.get_frame()[0][1:]
-            ((1280, 688), 3840, 1016.392)
+            ((1280, 688), [3840, 0, 0, 0], 1016.392)
 
             >>> player.seek(200.)
             >>> player.get_frame()
             >>> print player.get_frame()[0][1:]
-            ((1280, 688), 3840, 1249.876)
+            ((1280, 688), [3840, 0, 0, 0], 1249.876)
 
             >>> player.seek(200, relative=False)
             >>> player.get_frame()
             >>> print player.get_frame()[0][1:]
-            ((1280, 688), 3840, 198.49)
+            ((1280, 688), [3840, 0, 0, 0], 198.49)
 
         Note that it may take a few calls to get new frames after seeking.
         '''

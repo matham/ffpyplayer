@@ -159,6 +159,7 @@ cdef:
         void av_frame_unref(AVFrame *)
         void av_frame_free(AVFrame **)
         void av_frame_move_ref(AVFrame *, AVFrame *)
+        AVFrame* av_frame_clone(const AVFrame *)
         unsigned av_int_list_length_for_size(unsigned, const void *, uint64_t)
         int av_opt_set_bin(void *, const char *, const uint8_t *, int, int)
 
@@ -408,6 +409,7 @@ cdef:
         void av_picture_copy(AVPicture *, const AVPicture *,
                              AVPixelFormat, int, int)
         AVFrame *avcodec_alloc_frame()
+        AVFrame* av_frame_alloc()
         void avcodec_get_frame_defaults(AVFrame *)
         int avcodec_decode_subtitle2(AVCodecContext *, AVSubtitle *,
                                      int *, AVPacket *)
@@ -504,6 +506,8 @@ cdef:
         int reallocate
         int serial
         AVRational sar
+        AVFrame *pict_ref
+        int use_ref
     struct SubPicture:
         double pts # presentation time stamp for this picture
         AVSubtitle sub

@@ -1,7 +1,8 @@
 
 __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
            'formats_out', 'set_log_callback', 'get_supported_framerates',
-           'get_supported_pixfmts', 'emit_library_info', 'list_dshow_devices')
+           'get_supported_pixfmts', 'emit_library_info', 'list_dshow_devices',
+           'free_frame_ref')
 
 
 include 'ff_defs.pxi'
@@ -293,14 +294,14 @@ def list_dshow_devices():
         ...     else:
         ...         print val, len(frame[0]), frame[1:]
         ...         time.sleep(val)
-        0.0 921600 ((640, 480), 1920, 265401.595)
-        1.19834589958 921600 ((640, 480), 1920, 265401.73699999996)
-        1.31645727158 921600 ((640, 480), 1920, 265401.85699999996)
-        0.262032270432 921600 ((640, 480), 1920, 265401.995)
-        0.0 921600 ((640, 480), 1920, 265402.131)
-        0.0 921600 ((640, 480), 1920, 265402.258)
-        0.0 921600 ((640, 480), 1920, 265403.062)
-        0.0 921600 ((640, 480), 1920, 265403.331)
+        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265401.595)
+        1.19834589958 921600 ((640, 480), [1920, 0, 0, 0], 265401.73699999996)
+        1.31645727158 921600 ((640, 480), [1920, 0, 0, 0], 265401.85699999996)
+        0.262032270432 921600 ((640, 480), [1920, 0, 0, 0], 265401.995)
+        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265402.131)
+        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265402.258)
+        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265403.062)
+        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265403.331)
         ...
     '''
     cdef AVFormatContext *fmt = NULL
@@ -333,3 +334,14 @@ def list_dshow_devices():
         if m:
             curr.append(m.group(1))
     return vid, aud
+
+def free_frame_ref(ref):
+    '''
+    Frees a reference to a frame such as one received from
+    :meth:`ffpyplayer.player.MediaPlayer.get_frame` when use_ref is True.
+
+    **Args**:
+        *ref* (python int): The frame refrence id.
+    '''
+    cdef AVFrame *frame = <AVFrame *><size_t>ref
+    av_frame_free(&frame)
