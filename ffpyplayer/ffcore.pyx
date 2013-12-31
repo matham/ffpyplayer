@@ -213,7 +213,7 @@ cdef class VideoState(object):
     def __cinit__(VideoState self):
         self.self_id = <PyObject*>self
         self.metadata = {'src_vid_size':(0, 0), 'sink_vid_size':(0, 0),
-                         'title':'', 'duration':0.0}
+                         'title':'', 'duration':0.0, 'frame_rate':(0, 0)}
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player) nogil except 1:
@@ -957,6 +957,7 @@ cdef class VideoState(object):
                     frame_rate = filt_out.inputs[0].frame_rate
                     with gil:
                         self.metadata['src_vid_size'] = (last_w, last_h)
+                        self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
                 ret = av_buffersrc_add_frame(filt_in, frame)
                 if ret < 0:
                     break

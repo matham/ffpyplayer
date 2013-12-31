@@ -518,13 +518,17 @@ cdef class MediaPlayer(object):
         Returns metadata of the file being played.
 
         **Returns**:
-            (dict): The player metadata
+            (dict): Some player metadata. e.g. frame_rate is reported as a
+            numerator anddenominator. src and sink video sizes correspond to
+            the frame size of the original video, and the frames returned by
+            :meth:`get_frame`, respectively.
 
         ::
 
             >>> print player.get_metadata()
             {'duration': 71.972, 'sink_vid_size': (0, 0), 'src_vid_size':
-             (704, 480), 'title': 'The Melancholy of Haruhi Suzumiya: Special Ending'}
+             (704, 480), 'frame_rate': (13978, 583),
+             'title': 'The Melancholy of Haruhi Suzumiya: Special Ending'}
 
         .. warning::
 
