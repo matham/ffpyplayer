@@ -110,24 +110,24 @@ def get_log_callback():
 
 cdef list list_enc_codecs():
     cdef list codecs = []
-    cdef AVCodecDescriptor *desc = NULL
-    desc = avcodec_descriptor_next(desc)
+    cdef AVCodec *codec = NULL
+    codec = av_codec_next(codec)
 
-    while desc != NULL:
-        if avcodec_find_encoder(desc.id) != NULL and desc.type == AVMEDIA_TYPE_VIDEO:
-            codecs.append(desc.name)
-        desc = avcodec_descriptor_next(desc)
+    while codec != NULL:
+        if av_codec_is_encoder(codec) and codec.type == AVMEDIA_TYPE_VIDEO:
+            codecs.append(codec.name)
+        codec = av_codec_next(codec)
     return codecs
 
 cdef list list_dec_codecs():
     cdef list codecs = []
-    cdef AVCodecDescriptor *desc = NULL
-    desc = avcodec_descriptor_next(desc)
+    cdef AVCodec *codec = NULL
+    codec = av_codec_next(codec)
 
-    while desc != NULL:
-        if avcodec_find_decoder(desc.id) != NULL and desc.type == AVMEDIA_TYPE_VIDEO:
-            codecs.append(desc.name)
-        desc = avcodec_descriptor_next(desc)
+    while codec != NULL:
+        if av_codec_is_decoder(codec):
+            codecs.append(codec.name)
+        codec = av_codec_next(codec)
     return codecs
 
 cdef list list_pixfmts():
@@ -295,7 +295,7 @@ def list_dshow_devices():
         >>> lib_opts = {'framerate':'30', 'video_size':'640x480', 'rtbufsize':'110592000'}
         >>> ff_opts = {'f':'dshow'}
         >>> player = MediaPlayer('video=%s:audio=%s' % (dev[0][0], dev[1][0]),
-        ...                      vid_sink=weakref.ref(callback), ff_opts=ff_opts,
+        ...                      callback=weakref.ref(callback), ff_opts=ff_opts,
         ...                      lib_opts=lib_opts)
         >>> while 1:
         ...     frame, val = player.get_frame()

@@ -53,7 +53,7 @@ cdef class MediaPlayer(object):
         or Video4Linux webcams. The *f* specifier in *ff_opts* can be used to
         indicate the format needed to open the file (e.g. dshow).
 
-        *vid_sink* (ref to function): A weak ref to a function that will be called
+        *callback* (ref to function): A weak ref to a function that will be called
         when quitting, when eof is reached (determined by whichever is the *sync*
         stream, audio or video), or when text subtitles are available. The function takes
         two parameters, *selector*, and *value*.
@@ -72,7 +72,7 @@ cdef class MediaPlayer(object):
 
             This functions gets called from a second internal thread.
 
-        *loglevel* (str): The level of logs to emit. It value is one of the keywords
+        *loglevel* (str): The level of logs to emit. Its value is one of the keywords
         defined in :attr:`ffpyplayer.tools.loglevels`. Note this only affects
         the default FFmpeg logger, which prints to stderr. You can manipulate the
         log stream directly using :attr:`ffpyplayer.tools.set_log_callback`.
@@ -180,7 +180,7 @@ cdef class MediaPlayer(object):
         def callback(selector, value):
             if selector == 'quit':
                 print 'quitting'
-        player = MediaPlayer(filename, vid_sink=weakref.ref(callback))
+        player = MediaPlayer(filename, callback=weakref.ref(callback))
         while 1:
             frame, val = player.get_frame()
             if val == 'eof':
@@ -197,7 +197,7 @@ cdef class MediaPlayer(object):
     TODO: offer audio buffers, similar to video frames (if wanted?).
     '''
 
-    def __cinit__(self, filename, vid_sink, loglevel='error', ff_opts={},
+    def __cinit__(self, filename, callback, loglevel='error', ff_opts={},
                   thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
@@ -323,8 +323,8 @@ cdef class MediaPlayer(object):
         if audio_sink != 'SDL':
             raise Exception('Currently, only SDL is supported as a audio sink.')
         self.settings_mutex = MTMutex(self.mt_gen.mt_src)
-        if callable(vid_sink):
-            self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), vid_sink,
+        if callable(callback):
+            self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), callback,
                                       settings.use_ref)
             if 'out_fmt' in ff_opts:
                 out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
@@ -348,7 +348,7 @@ cdef class MediaPlayer(object):
         if SDL_Init(flags):
             raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
 
-    def __init__(self, filename, vid_sink, loglevel='error', ff_opts={},
+    def __init__(self, filename, callback, loglevel='error', ff_opts={},
                  thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
         pass
 
@@ -485,7 +485,7 @@ cdef class MediaPlayer(object):
             ...     if selector == 'quit':
             ...         print 'quitting'
             >>> ff_opts={'use_ref':True, 'out_fmt':'rgb24'}
-            >>> player = MediaPlayer(r'C:\FFmpeg\Blue Streak.mkv', vid_sink=weakref.ref(callback),
+            >>> player = MediaPlayer(filename, callback=weakref.ref(callback),
             ...                      ff_opts=ff_opts)
             >>> while 1:
             ...     frame, val = player.get_frame()

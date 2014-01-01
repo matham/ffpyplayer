@@ -45,6 +45,149 @@ cdef int AV_ENOENT = ENOENT if ENOENT < 0 else -ENOENT
 
 
 cdef class MediaWriter(object):
+    '''
+    An FFmpeg based media writer class. Currently only supports video.
+
+    With this class one can write images frames stored in many different pixel
+    formats into a multi-stream video file using :meth:`write_frame`. Many
+    video file and codec formats are supported.
+
+    **Args**:
+        *filename* (str): The filename of the media file to create.
+
+        *streams* (list): A list of streams to create in the file. *streams*
+        is a list of dicts, where each dict describes a corresponding stream.
+        Each dict configures the stream. The keywords listed below are
+        available. One can also specify default values for the keywords for
+        all streams using *kwargs*. Keywords also found in *streams* will
+        overwrite those in *kwargs*:
+
+            *pix_fmt_in* (str): The pixel format in which buffers will be
+            passed to :meth:`write_frame` for this stream. Can be one of
+            :attr:`ffpyplayer.tools.pix_fmts`.
+
+            *pix_fmt_out* (str): The pixel format in which frames will be
+            written to the file for this stream. Can be one of
+            :attr:`ffpyplayer.tools.pix_fmts`. Defaults to *pix_fmt_in*
+            if not provided. Not every pixel format is supported for each
+            encoding codec, see :func:`ffpyplayer.tools.get_supported_pixfmts`
+            for which pixel formats are supported for *codec*.
+
+            *width_in, height_in* (int): The width and height of the frames
+            that will be passed to :meth:`write_frame` for this stream.
+
+            *width_out, height_out* (int): The width and height in which frames
+            will be written to the file for this stream. Defaults to
+            *width_in, height_in*, respectively, if not provided.
+
+            *codec* (str): The codec used to write the frames to the file.
+            Can be one of the encoding codecs in
+            :attr:`ffpyplayer.tools.codecs_enc`.
+
+            *frame_rate* (2-tuple): A 2-tuple of ints representing the
+            frame rate used when writing the file. The first element is the
+            numerator, while the second is the denuminator of a ration
+            describing the rate. E.g. (2997, 100) describes 29.97 fps.
+            The timestamps of the frames written using :meth:`write_frame` do
+            not necessarily need to match the frame rate, or they might be
+            forced to matching timestamps if required. Not every frame rate is
+            supported for each encoding codec, see
+            :func:`ffpyplayer.tools.get_supported_framerates` for which frame
+            rates are supported for *codec*.
+
+        *fmt* (str): The format to use for the output. Can be one of
+        :attr:`ffpyplayer.tools.formats_out`. Defaults to empty string.
+        If not provided, *filename* will be used determine the format,
+        otherwise this arg will be used.
+
+        *lib_opts* (dict or list): A dictionary of options that will be passed
+        to the ffmpeg libraries, codecs, sws, and formats when opening them.
+        This accepts most of the options that can be passed to ffmpeg libraries.
+        See below for examples. Both the keywords and values must be strings.
+        It can be passed a dict in which case it'll be applied to all the streams
+        or a list containing a dict for each stream.
+
+        *metadata* (dict): Metadata that will be written to the streams, if
+        supported by the stream. See below for examples. Both the keywords and
+        values must be strings. It can be passed a dict in which case it'll be
+        applied to all the streams or a list containing a dict for each stream.
+
+        *loglevel* (str): The level of logs to emit. Its value is one of the keywords
+        defined in :attr:`ffpyplayer.tools.loglevels`. Note this only affects
+        the default FFmpeg logger, which prints to stderr. You can manipulate the
+        log stream directly using :attr:`ffpyplayer.tools.set_log_callback`.
+
+        *overwrite* (bool): Whether we should overwrite an existing file.
+        If False, an error will be raised if the file already exists. If True,
+        the file will be overwritten if it exists.
+
+        *\*\*kwargs*: Accepts default values for *streams* which will be used
+        if these keywords are not provided.
+
+    ::
+
+        from ffpyplayer.writer import MediaWriter
+
+        w = 640
+        h = 480
+        # write at 5 fps.
+        out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
+                    'frame_rate':(5, 1)}
+        # write using rgb24 frames into a two stream rawvideo file where the output
+        # is half the input size for both streams.
+        writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, width_out=w/2,
+                             height_out=h/2)
+        size = w * h * 3
+        for i in range(20):
+            buf = [int(x * 255 / size) for x in range(size)]
+            buf = ''.join(map(chr, buf))
+            writer.write_frame(pts=i / 5., stream=0, buffer=buf)
+
+            buf = [int((size - x) * 255 / size) for x in range(size)]
+            buf = ''.join(map(chr, buf))
+            writer.write_frame(pts=i / 5., stream=1, buffer=buf)
+
+    Or force an output format of avi, even though the filename is .mp4.::
+
+        writer = MediaWriter('C:\FFmpeg\output.mp4', [out_opts] * 2, fmt='avi',
+                     width_out=w/2, height_out=h/2)
+
+    Or writing compressed h264 files::
+
+        from ffpyplayer.writer import MediaWriter
+        from ffpyplayer.tools import get_supported_pixfmts, get_supported_framerates
+
+        # make sure the pixel format and rate are supported.
+        print get_supported_pixfmts('libx264', 'rgb24')
+        ['yuv420p', 'yuvj420p', 'yuv422p', 'yuvj422p', 'yuv444p', 'yuvj444p', 'nv12', 'nv16']
+        print get_supported_framerates('libx264', (5, 1))
+        []
+        w = 640
+        h = 480
+        # use the half the size for the output as the input
+        out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'libx264',
+                    'frame_rate':(5, 1)}
+        # write using yuv420p frames into a two stream h264 codec, mp4 file where the output
+        # is half the input size for both streams.
+
+        # use the following libx264 compression options
+        lib_opts = {'preset':'slow', 'crf':'22'}
+        # set the following metadata (ffmpeg doesn't always support writing metadata)
+        metadata = {'title':'Singing in the sun', 'author':'Rat', 'genre':'Animal sounds'}
+
+        writer = MediaWriter(filename, [out_opts] * 2, fmt='mp4',
+                             width_out=w/2, height_out=h/2, pix_fmt_out='yuv420p',
+                             lib_opts=lib_opts, metadata=metadata)
+        size = w * h * 3
+        for i in range(20):
+            buf = [int(x * 255 / size) for x in range(size)]
+            buf = ''.join(map(chr, buf))
+            writer.write_frame(pts=i / 5., stream=0, buffer=buf)
+
+            buf = [int((size - x) * 255 / size) for x in range(size)]
+            buf = ''.join(map(chr, buf))
+            writer.write_frame(pts=i / 5., stream=1, buffer=buf)
+    '''
 
     def __cinit__(self, filename, streams, fmt='', lib_opts={}, metadata={},
                   loglevel='error', overwrite=False, **kwargs):
@@ -55,7 +198,7 @@ cdef class MediaWriter(object):
         cdef AVDictionaryEntry *dict_temp = NULL
         cdef AVPicture dummy_pic
         cdef bytes msg2
-        cdef const AVCodecDescriptor *codec_desc
+        cdef const AVCodec *codec_desc
 
         self.format_opts = NULL
         if loglevel not in loglevels:
@@ -92,6 +235,10 @@ cdef class MediaWriter(object):
             lib_opts = [lib_opts, ] * n
         elif len(lib_opts) == 1:
             lib_opts = lib_opts * n
+        if type(metadata) is dict:
+            metadata = [metadata, ] * n
+        elif len(metadata) == 1:
+            metadata = metadata * n
 
         for r in range(n):
             s[r].codec_opts = NULL
@@ -102,10 +249,10 @@ cdef class MediaWriter(object):
                 config['width_out'] = config['width_in']
             if 'height_out' not in config or not config['height_out']:
                 config['height_out'] = config['height_in']
-            codec_desc = avcodec_descriptor_get_by_name(config['codec'])
+            codec_desc = avcodec_find_encoder_by_name(config['codec'])
             if codec_desc == NULL:
                 self.clean_up()
-                raise Exception('Codec %s not found.' % config['codec'])
+                raise Exception('Encoder codec %s not available.' % config['codec'])
             s[r].codec_id = codec_desc.id
             s[r].width_in = config['width_in']
             s[r].width_out = config['width_out']
@@ -148,7 +295,7 @@ cdef class MediaWriter(object):
             s[r].codec_ctx.time_base.num = s[r].den
             s[r].codec_ctx.pix_fmt = s[r].pix_fmt_out
 
-            for k, v in metadata.iteritems():
+            for k, v in metadata[r].iteritems():
                 res = av_dict_set(&s[r].av_stream.metadata, k, v, 0)
                 if res < 0:
                     av_dict_free(&s[r].av_stream.metadata)
@@ -271,18 +418,19 @@ cdef class MediaWriter(object):
         pass
 
     def __dealloc__(self):
-        cdef int r, got_pkt, res
+        cdef int r, got_pkt, res, wrote = 0
         cdef AVPacket pkt
-
         if self.fmt_ctx == NULL or (not self.n_streams) or self.streams[0].codec_ctx == NULL:
             self.clean_up()
             return
+
         for r in range(self.n_streams):
             if ((not self.streams[r].count) or
                 (self.streams[r].codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO and
                  (self.fmt_ctx.oformat.flags & AVFMT_RAWPICTURE) and
                  self.streams[r].codec_ctx.codec.id == AV_CODEC_ID_RAWVIDEO)):
                 continue
+            wrote = 1
             while 1:
                 av_init_packet(&pkt)
                 pkt.data = NULL
@@ -300,13 +448,44 @@ cdef class MediaWriter(object):
                 pkt.stream_index = self.streams[r].av_stream.index
                 if av_interleaved_write_frame(self.fmt_ctx, &pkt) < 0:
                     break
-        av_write_trailer(self.fmt_ctx)
+        if wrote:
+            av_write_trailer(self.fmt_ctx)
         self.clean_up()
 
     def write_frame(MediaWriter self, double pts, int stream, bytes buffer=bytes(''),
                    size_t frame_ref=0):
         '''
-        Takes a refrence such as one from :meth:`ffpyplayer.player.MediaPlayer.get_frame`.
+        Writes a frame to the specified stream.
+
+        Frames can be passed using either the *buffer* keyword, in which case it
+        must be a rgb24 bytes instance. Or if it's passed using the *frame_ref*
+        keyword it's a refrence to a frame such as one recieved from
+        :meth:`ffpyplayer.player.MediaPlayer.get_frame`.
+
+        If the input data is different than the frame written to disk in either
+        size or pixel format as specified when creating the writer, the frame
+        is converted before writing.
+
+        **Args**:
+            *pts* (float): The timestamp of this frame in video time. E.g. 0.5
+            means the frame should be displayed to a player at 0.5 seconds after
+            the video started playing. In a sense, the frame rate defines which
+            timestamps are valid timestamps. However, this is not always the
+            case, so if timestamps are invalid for a particular format, they are
+            forced to valid values, if possible.
+
+            *stream* (int): The stream numer to which to write this frame.
+
+            *buffer* (bytes): If not empty it contains a buffer of frame data
+            in the form of RGBRGB... The size of the buffer should be equal
+            to the 'frame_buffer_size' parameter returned by
+            :meth:`get_configuration`. Defaults to the empty string.
+
+            *frame_ref* (python int): If non-zero, a refrence to a frame.
+            The frame contains the input data, and its pixel format and size
+            must match the values specified when creating the writer. E.g.
+            width_in etc. This is really a pointer to a valid AVFrame struct.
+            Defaults to 0. See :ref:`examples` for its usage.
         '''
         cdef int res = 0, count = 1, i, got_pkt
         cdef AVFrame *frame_in = <AVFrame *>frame_ref, *frame_out
@@ -405,7 +584,33 @@ cdef class MediaWriter(object):
 
     def get_configuration(self):
         '''
-        Returns the configuration parameters used to initialize the writer.
+        Returns the configuration parameters used to initialize all the streams
+        in the writer.
+
+        **Returns**:
+            (list): List of dicts for each stream. Among its elements, *frame_buffer_size*
+            indicates the expected buffer size (can be different if a frame ref is
+            used). *linesize*: indicates the linesize of the frame in each of its
+            planes (for rgb24, only the first element is non-zero).
+
+        ::
+
+            >>> from ffpyplayer.writer import MediaWriter
+
+            >>> w = 640
+            >>> h = 480
+            >>> # use the half the size for the output as the input
+            >>> out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
+            ...             'frame_rate':(5, 1)}
+            >>> # write using rgb24 frames into a two stream rawvideo file where the output
+            >>> # is half the input size for both streams.
+            >>> writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, width_out=w/2, height_out=h/2)
+            >>> print writer.get_configuration()
+            [{'height_in': 480, 'codec': 'rawvideo', 'width_in': 640, 'frame_rate': (5, 1),
+            'pix_fmt_in': 'rgb24', 'width_out': 320, 'linesize': [1920, 0, 0, 0], 'height_out': 240,
+            'pix_fmt_out': 'rgb24', 'frame_buffer_size': 921600}, {'height_in': 480, 'codec': 'rawvideo',
+            'width_in': 640, 'frame_rate': (5, 1), 'pix_fmt_in': 'rgb24', 'width_out': 320,
+            'linesize': [1920, 0, 0, 0], 'height_out': 240, 'pix_fmt_out': 'rgb24', 'frame_buffer_size': 921600}]
         '''
         return self.config
 

@@ -72,7 +72,7 @@ class PlayerApp(App):
         self.callback_ref = WeakMethod(self.callback)
         filename = sys.argv[1]
         ff_opts = {}# try ff_opts = {'vf':'edgedetect'} http://ffmpeg.org/ffmpeg-filters.html
-        self.ffplayer = MediaPlayer(filename, vid_sink=self.callback_ref,
+        self.ffplayer = MediaPlayer(filename, callback=self.callback_ref,
                                     loglevel='info', ff_opts=ff_opts)
         Clock.schedule_once(self.redraw, 0)
         self.keyboard = Window.request_keyboard(None, self.root)

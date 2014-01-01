@@ -318,12 +318,14 @@ cdef:
         int AV_PKT_FLAG_KEY
         int CODEC_CAP_DELAY
         struct AVCodec:
+            const char *name
             int capabilities
             const AVClass *priv_class
             AVCodecID id
             uint8_t max_lowres
             const AVRational *supported_framerates
             const AVPixelFormat *pix_fmts
+            AVMediaType type
         struct AVCodecContext:
             int width
             int height
@@ -438,6 +440,9 @@ cdef:
         int avpicture_fill(AVPicture *, const uint8_t *, AVPixelFormat, int, int)
         int avcodec_encode_video2(AVCodecContext *, AVPacket *, const AVFrame *, int *)
         const char *avcodec_get_name(AVCodecID)
+        AVCodec *av_codec_next(const AVCodec *)
+        int av_codec_is_encoder(const AVCodec *)
+        int av_codec_is_decoder(const AVCodec *)
     extern from "libavfilter/avfilter.h" nogil:
         struct AVFilterContext:
             AVFilterLink **inputs

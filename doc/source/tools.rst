@@ -21,11 +21,11 @@ tools
 
 .. autoattribute:: ffpyplayer.tools.codecs_enc
 
-    A list of all the codecs available for encoding.
+    A list of all the codecs available for encoding video.
 
 .. autoattribute:: ffpyplayer.tools.codecs_dec
 
-    A list of all the codecs available for decoding.
+    A list of all the codecs available for decoding (including non-video).
 
 .. autoattribute:: ffpyplayer.tools.pix_fmts
 
