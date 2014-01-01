@@ -1848,7 +1848,9 @@ cdef class VideoState(object):
                 elif self.player.autoexit:
                     return self.failed(AVERROR_EOF)
                 else:
-                    self.reached_eof = 1
+                    if not self.reached_eof:
+                        self.reached_eof = 1
+                        self.vid_sink.request_thread(FF_EOF_EVENT)
             if eof:
                 if self.video_stream >= 0:
                     self.videoq.packet_queue_put_nullpacket(self.video_stream)

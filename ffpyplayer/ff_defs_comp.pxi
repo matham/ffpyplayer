@@ -1,5 +1,6 @@
 DEF FF_ALLOC_EVENT = 24
 DEF FF_QUIT_EVENT = FF_ALLOC_EVENT + 2
+DEF FF_EOF_EVENT = FF_ALLOC_EVENT + 3
 '-----------------------------------------------------------------------------'
 include "ffconfig.pxi"
 

@@ -2,7 +2,7 @@
 __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
            'formats_out', 'set_log_callback', 'get_supported_framerates',
            'get_supported_pixfmts', 'emit_library_info', 'list_dshow_devices',
-           'free_frame_ref')
+           'free_frame_ref', 'get_log_callback')
 
 
 include 'ff_defs.pxi'
@@ -92,6 +92,18 @@ def set_log_callback(object callback):
     else:
         av_log_set_callback(&_log_callback_func)
     _log_callback = callback
+    _log_mutex.unlock()
+    return old_callback
+
+def get_log_callback():
+    '''
+    Returns the last log callback set, or None. See :func:`set_log_callback`
+
+    **Returns**:
+        (callable) The last log callback set, or None.
+    '''
+    _log_mutex.lock()
+    old_callback = _log_callback
     _log_mutex.unlock()
     return old_callback
 

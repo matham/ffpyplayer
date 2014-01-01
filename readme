@@ -1,5 +1,5 @@
 
-See doc/source/installation.rst
+See http://matham.github.io/ffpyplayer/index.html
 
 TODO:
 * Implement CONFIG_SDL to be able to compile without needing SDL at all.

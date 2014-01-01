@@ -54,14 +54,23 @@ cdef class MediaPlayer(object):
         indicate the format needed to open the file (e.g. dshow).
 
         *vid_sink* (ref to function): A weak ref to a function that will be called
-        when quitting or when text subtitles are available. The function takes
-        two parameters, *selector*, and *value*. When the player is closing internally
-        due to some error the *selector* will be 'quit'.
+        when quitting, when eof is reached (determined by whichever is the *sync*
+        stream, audio or video), or when text subtitles are available. The function takes
+        two parameters, *selector*, and *value*.
+
+        When the player is closing internally due to some error the *selector* will be 'quit'.
+
+        When eof is reached the *selector* will be 'eof'.
+
         When a new subtitle string is available, *selector* will be 'display_sub'
         and *value* will be a 5-tuple of the form *(text, fmt, pts, start, end)*.
         Where *text* is the text, *fmt* is the subtitle format e.g. 'ass', *pts*
         is the timestamp of the text, *start*, and *end* respectively are the times
         in video time when to start and finish displaying the text.
+
+        .. note::
+
+            This functions gets called from a second internal thread.
 
         *loglevel* (str): The level of logs to emit. It value is one of the keywords
         defined in :attr:`ffpyplayer.tools.loglevels`. Note this only affects

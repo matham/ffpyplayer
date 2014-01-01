@@ -40,6 +40,9 @@ cdef class VideoSink(object):
         elif request == FF_QUIT_EVENT:
             with gil:
                 self.callback()('quit', '')
+        elif request == FF_EOF_EVENT:
+            with gil:
+                self.callback()('eof', '')
         return 0
 
     cdef int peep_alloc(VideoSink self) nogil except 1:
