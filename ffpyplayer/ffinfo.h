@@ -29,7 +29,7 @@
         }                                                               \
     }                                                                   \
 
-static void print_all_libs_info(int flags, int level)
+void print_all_libs_info(int flags, int level)
 {
     PRINT_LIB_INFO(avutil,   AVUTIL,   flags, level);
     PRINT_LIB_INFO(avcodec,  AVCODEC,  flags, level);
@@ -43,7 +43,7 @@ static void print_all_libs_info(int flags, int level)
 
 
 
-static const AVOption *opt_find(void *obj, const char *name, const char *unit,
+const AVOption *opt_find(void *obj, const char *name, const char *unit,
                             int opt_flags, int search_flags)
 {
     const AVOption *o = av_opt_find(obj, name, unit, opt_flags, search_flags);
