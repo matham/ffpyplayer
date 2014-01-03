@@ -497,10 +497,6 @@ cdef:
                         AVDictionary **, AVDictionary **)
 
 cdef:
-    struct MyAVPacketList:
-        AVPacket pkt
-        MyAVPacketList *next
-        int serial
     struct VideoPicture:
         double pts             # presentation timestamp for this picture
         double duration        # estimated duration based on frame rate

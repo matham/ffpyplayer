@@ -7,10 +7,17 @@ from ffthreading cimport MTGenerator, MTCond
 cdef AVPacket * get_flush_packet() nogil
 
 
+cdef struct MyAVPacketList:
+    AVPacket pkt
+    MyAVPacketList *next
+    int serial
+
+
 cdef class FFPacketQueue(object):
     cdef:
         MTGenerator mt_gen
-        MyAVPacketList *first_pkt, *last_pkt
+        MyAVPacketList *first_pkt
+        MyAVPacketList *last_pkt
         int nb_packets
         int size
         int abort_request

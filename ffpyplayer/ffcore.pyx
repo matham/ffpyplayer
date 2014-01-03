@@ -131,7 +131,8 @@ cdef AVDictionary *filter_codec_opts(AVDictionary *opts, AVCodecID codec_id,
     cdef AVDictionary *ret = NULL
     cdef AVDictionaryEntry *t = NULL
     cdef int flags
-    cdef char prefix = 0, *p
+    cdef char prefix = 0
+    cdef char *p
     cdef const AVClass *cc = avcodec_get_class()
     cdef int res
     if s.oformat != NULL:
@@ -426,9 +427,11 @@ cdef class VideoState(object):
 
     #XXX refactor this crappy function
     cdef object video_refresh(VideoState self, int force_refresh) with gil:
-        cdef VideoPicture *vp, *lastvp
+        cdef VideoPicture *vp
+        cdef VideoPicture *lastvp
         cdef double time, remaining_time = 0.
-        cdef SubPicture *sp, *sp2
+        cdef SubPicture *sp
+        cdef SubPicture *sp2
         cdef int redisplay
         cdef LoopState state = retry
         cdef double last_duration, duration, delay
@@ -716,7 +719,8 @@ cdef class VideoState(object):
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
                                        AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1:
             cdef int ret = 0
-            cdef AVFilterInOut *outputs = NULL, *inputs = NULL
+            cdef AVFilterInOut *outputs = NULL
+            cdef AVFilterInOut *inputs = NULL
 
             if filtergraph != NULL:
                 outputs = avfilter_inout_alloc()
@@ -755,7 +759,10 @@ cdef class VideoState(object):
             cdef char buffersrc_args[256]
             cdef char scale_args[256]
             cdef int ret
-            cdef AVFilterContext *filt_src = NULL, *filt_out = NULL, *filt_crop, *filt_scale
+            cdef AVFilterContext *filt_src = NULL
+            cdef AVFilterContext *filt_out = NULL
+            cdef AVFilterContext *filt_crop = NULL
+            cdef AVFilterContext *filt_scale = NULL
             cdef AVCodecContext *codec = self.video_st.codec
             cdef AVRational fr = av_guess_frame_rate(self.ic, self.video_st, NULL)
             cdef AVPixelFormat * pix_fmts = self.vid_sink.get_out_pix_fmts()
@@ -830,7 +837,8 @@ cdef class VideoState(object):
             cdef int *sample_rates = [0, -1]
             cdef int64_t *channel_layouts = [0, -1]
             cdef int *channels = [0, -1]
-            cdef AVFilterContext *filt_asrc = NULL, *filt_asink = NULL
+            cdef AVFilterContext *filt_asrc = NULL
+            cdef AVFilterContext *filt_asink = NULL
             cdef char aresample_swr_opts[512]
             cdef AVDictionaryEntry *e = NULL
             cdef char asrc_args[256]
@@ -905,7 +913,8 @@ cdef class VideoState(object):
         cdef char *errbuf_ptr = errbuf
         IF CONFIG_AVFILTER:
             cdef AVFilterGraph *graph = avfilter_graph_alloc()
-            cdef AVFilterContext *filt_out = NULL, *filt_in = NULL
+            cdef AVFilterContext *filt_out = NULL
+            cdef AVFilterContext *filt_in = NULL
             cdef int last_w = 0
             cdef int last_h = 0
             cdef int last_scr_h = 0, last_scr_w = 0
@@ -1014,7 +1023,8 @@ cdef class VideoState(object):
 
     cdef int subtitle_thread(VideoState self) nogil except 1:
         cdef SubPicture *sp
-        cdef AVPacket pkt1, *pkt = &pkt1
+        cdef AVPacket pkt1
+        cdef AVPacket *pkt = &pkt1
         cdef int got_subtitle
         cdef int serial
         cdef double pts
@@ -1143,7 +1153,8 @@ cdef class VideoState(object):
         cdef AVRational tb, tb2
         cdef int ret
         cdef int reconfigure
-        cdef char buf1[1024], buf2[1024]
+        cdef char buf1[1024]
+        cdef char buf2[1024]
 
         cdef const uint8_t **input
         cdef uint8_t **out
@@ -1634,7 +1645,8 @@ cdef class VideoState(object):
         cdef AVFormatContext *ic = NULL
         cdef int err, i, ret
         cdef int st_index[<int>AVMEDIA_TYPE_NB]
-        cdef AVPacket pkt1, *pkt = &pkt1
+        cdef AVPacket pkt1
+        cdef AVPacket *pkt = &pkt1
         cdef int eof = 0
         cdef int64_t stream_start_time
         cdef int pkt_in_play_range = 0

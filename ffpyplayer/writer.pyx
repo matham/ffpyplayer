@@ -184,8 +184,10 @@ cdef class MediaWriter(object):
 
     def __cinit__(self, filename, streams, fmt='', lib_opts={}, metadata={},
                   loglevel='error', overwrite=False, **kwargs):
-        cdef int res = 0, n = len(streams), r, linesize[4]
-        cdef char *format_name = NULL, msg[256]
+        cdef int res = 0, n = len(streams), r
+        cdef int linesize[4]
+        cdef char *format_name = NULL
+        cdef char msg[256]
         cdef MediaStream *s
         cdef list linesizes, frame_sizes
         cdef AVDictionaryEntry *dict_temp = NULL
@@ -481,7 +483,8 @@ cdef class MediaWriter(object):
             Defaults to 0. See :ref:`examples` for its usage.
         '''
         cdef int res = 0, count = 1, i, got_pkt
-        cdef AVFrame *frame_in = <AVFrame *>frame_ref, *frame_out
+        cdef AVFrame *frame_in = <AVFrame *>frame_ref
+        cdef AVFrame *frame_out
         cdef MediaStream *s
         cdef uint8_t *buff = buffer
         cdef double ipts, dpts

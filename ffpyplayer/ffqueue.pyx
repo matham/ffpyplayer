@@ -32,7 +32,7 @@ cdef class FFPacketQueue(object):
         cdef MyAVPacketList *pkt1
 
         if self.abort_request:
-           return -1
+            return -1
 
         pkt1 = <MyAVPacketList*>av_malloc(sizeof(MyAVPacketList))
         if pkt1 == NULL:
@@ -71,7 +71,8 @@ cdef class FFPacketQueue(object):
         return ret
 
     cdef int packet_queue_put_nullpacket(FFPacketQueue self, int stream_index) nogil except 1:
-        cdef AVPacket pkt1, *pkt = &pkt1
+        cdef AVPacket pkt1
+        cdef AVPacket *pkt = &pkt1
         av_init_packet(pkt)
         pkt.data = NULL
         pkt.size = 0
@@ -79,7 +80,8 @@ cdef class FFPacketQueue(object):
         return self.packet_queue_put(pkt)
 
     cdef int packet_queue_flush(FFPacketQueue self) nogil except 1:
-        cdef MyAVPacketList *pkt, *pkt1
+        cdef MyAVPacketList *pkt
+        cdef MyAVPacketList *pkt1
 
         self.cond.lock()
         pkt = self.first_pkt
