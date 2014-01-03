@@ -93,7 +93,7 @@ for sdl_obj in sdl_extra_objects:
     extra_objects.append(res)
 
 mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
-        'writer']
+        'writer', 'pic']
 extra_compile_args = ["-O3"]
 c_options['has_sdl2'] = sdl == 'SDL2'
 
