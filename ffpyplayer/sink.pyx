@@ -69,6 +69,7 @@ cdef class VideoSink(object):
 
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil:
         if vp.pict != NULL:
+            av_freep(&vp.pict.data[0])
             av_frame_free(&vp.pict)
             vp.pict = NULL
         if vp.pict_ref != NULL:
