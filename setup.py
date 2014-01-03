@@ -94,7 +94,7 @@ for sdl_obj in sdl_extra_objects:
 
 mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
         'writer', 'pic']
-extra_compile_args = ["-O3"]
+extra_compile_args = ["-O3", '-fno-strict-aliasing']
 c_options['has_sdl2'] = sdl == 'SDL2'
 
 if have_cython:
