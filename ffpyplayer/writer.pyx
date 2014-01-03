@@ -13,10 +13,10 @@ import copy
 from tools import get_supported_framerates, get_supported_pixfmts
 from tools import loglevels, _initialize_ffmpeg
 
+include "inline_funcs.pxi"
+
 cdef extern from "string.h" nogil:
     void *memset(void *, int, size_t)
-    void *memcpy(void *, const void *, size_t)
-    char *strerror(int)
 
 cdef extern from "stdlib.h" nogil:
     void *malloc(size_t)
@@ -26,7 +26,6 @@ cdef extern from "math.h" nogil:
     double floor(double)
 
 cdef extern from "errno.h" nogil:
-    int EDOM
     int ENOENT
 
 
@@ -35,12 +34,6 @@ DEF VSYNC_CFR = 1
 DEF VSYNC_VFR = 2
 DEF VSYNC_DROP = 0xff
 
-cdef inline char * emsg(int code, char *msg, int buff_size) except NULL:
-    if av_strerror(code, msg, buff_size) < 0:
-        if EDOM > 0:
-            code = -code
-        return strerror(code)
-    return msg
 cdef int AV_ENOENT = ENOENT if ENOENT < 0 else -ENOENT
 
 

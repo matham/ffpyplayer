@@ -1,6 +1,10 @@
 
+cdef extern from "string.h" nogil:
+    char *strerror(int)
+
 cdef extern from "errno.h" nogil:
     int EINVAL
+    int EDOM
 
 cdef extern from "limits.h" nogil:
     int INT_MAX
@@ -63,3 +67,10 @@ cdef inline int64_t get_valid_channel_layout(int64_t channel_layout, int channel
         return channel_layout
     else:
         return 0
+
+cdef inline char * emsg(int code, char *msg, int buff_size) except NULL:
+    if av_strerror(code, msg, buff_size) < 0:
+        if EDOM > 0:
+            code = -code
+        return strerror(code)
+    return msg
