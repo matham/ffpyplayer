@@ -496,29 +496,7 @@ cdef:
         int opt_default(const char *, const char *, SwsContext *, AVDictionary **,
                         AVDictionary **, AVDictionary **)
 
-cdef:
-    struct VideoPicture:
-        double pts             # presentation timestamp for this picture
-        double duration        # estimated duration based on frame rate
-        int64_t pos            # byte position in file
-        AVFrame *pict
-        int width, height  # source height & width
-        int allocated
-        int reallocate
-        int serial
-        AVRational sar
-        AVFrame *pict_ref
-        int use_ref
-    struct SubPicture:
-        double pts # presentation time stamp for this picture
-        AVSubtitle sub
-        int serial
-    struct AudioParams:
-        int freq
-        int channels
-        int64_t channel_layout
-        AVSampleFormat fmt
-    enum:
-        AV_SYNC_AUDIO_MASTER, # default choice
-        AV_SYNC_VIDEO_MASTER,
-        AV_SYNC_EXTERNAL_CLOCK, # synchronize to an external clock
+cdef enum:
+    AV_SYNC_AUDIO_MASTER, # default choice
+    AV_SYNC_VIDEO_MASTER,
+    AV_SYNC_EXTERNAL_CLOCK, # synchronize to an external clock

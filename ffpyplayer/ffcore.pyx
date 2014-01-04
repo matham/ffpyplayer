@@ -12,7 +12,7 @@ from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
 cimport ffclock
 from ffclock cimport Clock
 cimport sink
-from sink cimport VideoSink
+from sink cimport VideoSink, VideoPicture, SubPicture
 from cpython.ref cimport PyObject
 import traceback
 
@@ -199,7 +199,7 @@ cdef AVDictionary **setup_find_stream_info_opts(AVFormatContext *s, AVDictionary
 
     if not s.nb_streams:
         return NULL
-    opts = <AVDictionary **>av_mallocz(s.nb_streams * sizeof(opts[0]))
+    opts = <AVDictionary **>av_mallocz(s.nb_streams * sizeof(AVDictionary *))
     if opts == NULL:
         av_log(NULL, AV_LOG_ERROR, "Could not alloc memory for stream options.\n")
         return NULL

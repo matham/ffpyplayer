@@ -8,9 +8,15 @@ from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
 cimport ffclock
 from ffclock cimport Clock
 cimport sink
-from sink cimport VideoSettings, VideoSink
+from sink cimport VideoSettings, VideoSink, VideoPicture, SubPicture
 from cpython.ref cimport PyObject
 
+
+cdef struct AudioParams:
+    int freq
+    int channels
+    int64_t channel_layout
+    AVSampleFormat fmt
 
 cdef class VideoState(object):
     cdef:

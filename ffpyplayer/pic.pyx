@@ -62,7 +62,7 @@ cdef class SWScale(object):
     def scale(self, Image src, Image dst=None):
         if not dst:
             dst = Image(pix_fmt=self.dst_pix_fmt, size=(self.dst_w, self.dst_h))
-        sws_scale(self.sws_ctx, src.frame.data, src.frame.linesize,
+        sws_scale(self.sws_ctx, <const uint8_t *const *>src.frame.data, src.frame.linesize,
                       0, src.frame.height, dst.frame.data, dst.frame.linesize)
         return dst
 

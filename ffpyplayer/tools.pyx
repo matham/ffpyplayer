@@ -132,7 +132,7 @@ cdef list list_dec_codecs():
 
 cdef list list_pixfmts():
     cdef list fmts = []
-    cdef AVPixFmtDescriptor *desc = NULL
+    cdef const AVPixFmtDescriptor *desc = NULL
     desc = av_pix_fmt_desc_next(desc)
 
     while desc != NULL:

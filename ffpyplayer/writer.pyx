@@ -502,7 +502,7 @@ cdef class MediaWriter(object):
                 if frame_in == NULL:
                     frame_in = s.av_frame_src
                     avpicture_fill(<AVPicture *>frame_in, buff, s.pix_fmt_in, s.width_in, s.height_in)
-                sws_scale(s.sws_ctx, frame_in.data, frame_in.linesize,
+                sws_scale(s.sws_ctx, <const uint8_t *const *>frame_in.data, frame_in.linesize,
                           0, s.height_in, frame_out.data, frame_out.linesize)
             else:
                 frame_out = frame_in
@@ -523,7 +523,7 @@ cdef class MediaWriter(object):
                 elif dpts > 1.1:
                     count = <int>floor(dpts + 0.5)
             else:
-                s.pts = <int64_t>floor(dpts + 0.5)
+                s.pts = <int64_t>floor(ipts + 0.5)
             if count <= 0:
                 with gil:
                     raise Exception('Received bad timestamp.')
