@@ -168,7 +168,7 @@ cdef int lockmgr(void ** mtx, AVLockOp op, MT_lib lib) except 2 with gil:
     return 1
 
 cdef int SDL_lockmgr(void ** mtx, AVLockOp op) with gil:
-    cdef int res
+    cdef int res = 1
     cdef bytes msg
     try:
         with nogil:
@@ -181,7 +181,7 @@ cdef int SDL_lockmgr(void ** mtx, AVLockOp op) with gil:
         return res
 
 cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
-    cdef int res
+    cdef int res = 1
     cdef bytes msg
     try:
         with nogil:
