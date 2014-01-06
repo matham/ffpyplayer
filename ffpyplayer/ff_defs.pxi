@@ -32,6 +32,8 @@ cdef:
             AVMEDIA_TYPE_SUBTITLE,
             AVMEDIA_TYPE_ATTACHMENT,    #///< Opaque data information usually sparse
             AVMEDIA_TYPE_NB,
+        struct AVBufferRef:
+            pass
 
     extern from "libavformat/avio.h" nogil:
         int AVIO_FLAG_WRITE
@@ -69,6 +71,12 @@ cdef:
     extern from "libavutil/imgutils.h" nogil:
         int av_image_alloc(uint8_t **, int *, int, int, AVPixelFormat, int)
         int av_image_fill_linesizes(int *, AVPixelFormat, int)
+        void av_image_copy(uint8_t **, int *, const uint8_t **, const int *,
+                           AVPixelFormat, int, int)
+        int av_image_fill_pointers(uint8_t **, AVPixelFormat, int, uint8_t *,
+                                   const int *linesizes)
+        int av_image_fill_arrays(uint8_t **, int *, const uint8_t *,
+                                 AVPixelFormat, int, int, int)
 
     extern from "libavutil/dict.h" nogil:
         int AV_DICT_IGNORE_SUFFIX
@@ -160,6 +168,8 @@ cdef:
         void av_frame_free(AVFrame **)
         void av_frame_move_ref(AVFrame *, AVFrame *)
         AVFrame* av_frame_clone(const AVFrame *)
+        int av_frame_copy_props(AVFrame *, const AVFrame *)
+        int av_frame_get_buffer(AVFrame *, int)
         unsigned av_int_list_length_for_size(unsigned, const void *, uint64_t)
         int av_opt_set_bin(void *, const char *, const uint8_t *, int, int)
 
@@ -371,6 +381,7 @@ cdef:
             uint8_t **extended_data
             uint8_t **data
             int *linesize
+            AVBufferRef **buf
         struct AVPicture:
             uint8_t **data
             int *linesize
@@ -495,6 +506,7 @@ cdef:
         void print_all_libs_info(int, int)
         int opt_default(const char *, const char *, SwsContext *, AVDictionary **,
                         AVDictionary **, AVDictionary **)
+        int get_plane_sizes(int *, AVPixelFormat, int, const int *)
 
 cdef enum:
     AV_SYNC_AUDIO_MASTER, # default choice
