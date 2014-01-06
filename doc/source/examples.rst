@@ -4,6 +4,28 @@
 Examples
 ********
 
+
+Converting Image formats
+------------------------
+
+::
+
+    from ffpyplayer.pic import Image, SWScale
+    w, h = 500, 100
+    size = w * h * 3
+    buf = [int(x * 255 / size) for x in range(size)]
+    buf = ''.join(map(chr, buf))
+
+    img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+    sws = SWScale(w, h, img.get_pixel_format(), ofmt='yuv420p')
+
+    img2 = sws.scale(img)
+    img2.get_pixel_format()
+    'yuv420p'
+    planes = img2.to_bytearray()
+    map(len, planes)
+    [50000, 12500, 12500, 0]
+
 Simple transcoding example
 --------------------------
 

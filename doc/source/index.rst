@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to FFPyPlayer's documentation!
-===================================
+======================================
 
 Contents:
 
@@ -13,6 +13,6 @@ Contents:
 
    getting_started.rst
    api.rst
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+*  :ref:`genindex`
+*  :ref:`modindex`
+*  :ref:`search`

@@ -1,8 +1,13 @@
+'''
+Module for manipulating and finding information of FFmpeg formats, codecs,
+devices, pixel formats and more.
+'''
+
 
 __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
-           'formats_out', 'set_log_callback', 'get_supported_framerates',
-           'get_supported_pixfmts', 'emit_library_info', 'list_dshow_devices',
-           'free_frame_ref', 'get_log_callback')
+           'formats_out', 'set_log_callback', 'get_log_callback',
+           'get_supported_framerates', 'get_supported_pixfmts',
+           'list_dshow_devices', 'emit_library_info', 'free_frame_ref')
 
 
 include 'ff_defs.pxi'

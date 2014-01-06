@@ -1,7 +1,7 @@
 .. _tools-api:
 
 *****
-tools
+FFmpeg tools
 *****
 
 :mod:`ffpyplayer.tools`
