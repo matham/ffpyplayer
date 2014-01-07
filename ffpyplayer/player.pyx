@@ -175,7 +175,8 @@ cdef class MediaPlayer(object):
             elif frame is None:
                 time.sleep(0.01)
             else:
-                print val, frame[1], frame[0].get_pixel_format(), frame[0].get_buffer_size()
+                img, t = frame
+                print val, t, img.get_pixel_format(), img.get_buffer_size()
                 time.sleep(val)
         0.0 0.0 rgb24 (929280, 0, 0, 0)
         0.0 0.0611284 rgb24 (929280, 0, 0, 0)

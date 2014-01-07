@@ -38,14 +38,10 @@ cdef struct MediaStream:
     # if it's -1 (AV_PIX_FMT_NONE) then input will be used. '''
     AVPixelFormat pix_fmt_out
 
-    # The frame in which the final image to be written to disk is held.
+    # The frame in which the final image to be written to disk is held, when we
+    # need to convert.
     AVFrame *av_frame
-    # If the format passed in is different than the format that
-    # is written to disk, this frame holds the image passed in
-    AVFrame *av_frame_src
     SwsContext *sws_ctx
-    # buffer size of the frame passed in
-    int buff_len
     int count
     int64_t pts
     int sync_fmt

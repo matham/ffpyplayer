@@ -288,40 +288,43 @@ def list_dshow_devices():
 
     ::
 
-        >>> from ffpyplayer.player import MediaPlayer
-        >>> import time, weakref
-        >>> dev = list_dshow_devices()
-        >>> print dev
-        (['Laptop Integrated Webcam', 'wans'], ['Microphone Array (2- SigmaTel H', 'Microphone (Plantronics .Audio '])
+        from ffpyplayer.player import MediaPlayer
+        from ffpyplayer.tools import list_dshow_devices
+        import time, weakref
+        dev = list_dshow_devices()
+        print dev
+        (['Laptop Integrated Webcam', 'wans'], ['Microphone Array (2- SigmaTel H',
+        'Microphone (Plantronics .Audio '])
 
-        >>> def callback(selector, value):
-        ...     if selector == 'quit':
-        ...         print 'quitting'
-        >>> # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
-        >>> # 110592000 = 640*480*3 at 30fps, for 4 seconds.
-        >>> # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
-        >>> lib_opts = {'framerate':'30', 'video_size':'640x480', 'rtbufsize':'110592000'}
-        >>> ff_opts = {'f':'dshow'}
-        >>> player = MediaPlayer('video=%s:audio=%s' % (dev[0][0], dev[1][0]),
-        ...                      callback=weakref.ref(callback), ff_opts=ff_opts,
-        ...                      lib_opts=lib_opts)
-        >>> while 1:
-        ...     frame, val = player.get_frame()
-        ...     if val == 'eof':
-        ...         break
-        ...     elif frame is None:
-        ...         time.sleep(0.01)
-        ...     else:
-        ...         print val, len(frame[0]), frame[1:]
-        ...         time.sleep(val)
-        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265401.595)
-        1.19834589958 921600 ((640, 480), [1920, 0, 0, 0], 265401.73699999996)
-        1.31645727158 921600 ((640, 480), [1920, 0, 0, 0], 265401.85699999996)
-        0.262032270432 921600 ((640, 480), [1920, 0, 0, 0], 265401.995)
-        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265402.131)
-        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265402.258)
-        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265403.062)
-        0.0 921600 ((640, 480), [1920, 0, 0, 0], 265403.331)
+        def callback(selector, value):
+            if selector == 'quit':
+                print 'quitting'
+        # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
+        # 110592000 = 640*480*3 at 30fps, for 4 seconds.
+        # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
+        lib_opts = {'framerate':'30', 'video_size':'640x480', 'rtbufsize':'110592000'}
+        ff_opts = {'f':'dshow'}
+        player = MediaPlayer('video=%s:audio=%s' % (dev[0][0], dev[1][0]),
+                             callback=weakref.ref(callback), ff_opts=ff_opts,
+                             lib_opts=lib_opts)
+
+        while 1:
+            frame, val = player.get_frame()
+            if val == 'eof':
+                break
+            elif frame is None:
+                time.sleep(0.01)
+            else:
+                img, t = frame
+                print val, t, img.get_pixel_format(), img.get_buffer_size()
+                time.sleep(val)
+        0.0 264107.429 rgb24 (921600, 0, 0, 0)
+        0.0 264108.364 rgb24 (921600, 0, 0, 0)
+        0.0790016651154 264108.628 rgb24 (921600, 0, 0, 0)
+        0.135997533798 264108.764 rgb24 (921600, 0, 0, 0)
+        0.274529457092 264108.897 rgb24 (921600, 0, 0, 0)
+        0.272421836853 264109.028 rgb24 (921600, 0, 0, 0)
+        0.132406949997 264109.164 rgb24 (921600, 0, 0, 0)
         ...
     '''
     cdef AVFormatContext *fmt = NULL

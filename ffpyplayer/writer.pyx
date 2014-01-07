@@ -12,6 +12,7 @@ __all__ = ('MediaWriter', )
 import copy
 from tools import get_supported_framerates, get_supported_pixfmts
 from tools import loglevels, _initialize_ffmpeg
+from pic cimport Image
 
 include "inline_funcs.pxi"
 
@@ -55,8 +56,8 @@ cdef class MediaWriter(object):
         all streams using *kwargs*. Keywords also found in *streams* will
         overwrite those in *kwargs*:
 
-            *pix_fmt_in* (str): The pixel format in which buffers will be
-            passed to :meth:`write_frame` for this stream. Can be one of
+            *pix_fmt_in* (str): The pixel format of the :class:`ffpyplayer.pic.Image`
+            to be passed to :meth:`write_frame` for this stream. Can be one of
             :attr:`ffpyplayer.tools.pix_fmts`.
 
             *pix_fmt_out* (str): The pixel format in which frames will be
@@ -66,8 +67,9 @@ cdef class MediaWriter(object):
             encoding codec, see :func:`ffpyplayer.tools.get_supported_pixfmts`
             for which pixel formats are supported for *codec*.
 
-            *width_in, height_in* (int): The width and height of the frames
-            that will be passed to :meth:`write_frame` for this stream.
+            *width_in, height_in* (int): The width and height of the
+            :class:`ffpyplayer.pic.Image` that will be passed to
+            :meth:`write_frame` for this stream.
 
             *width_out, height_out* (int): The width and height in which frames
             will be written to the file for this stream. Defaults to
@@ -104,6 +106,7 @@ cdef class MediaWriter(object):
         supported by the stream. See below for examples. Both the keywords and
         values must be strings. It can be passed a dict in which case it'll be
         applied to all the streams or a list containing a dict for each stream.
+        If (these) metadata is not supported, it will silently fail to write them.
 
         *loglevel* (str): The level of logs to emit. Its value is one of the keywords
         defined in :attr:`ffpyplayer.tools.loglevels`. Note this only affects
@@ -120,43 +123,49 @@ cdef class MediaWriter(object):
     ::
 
         from ffpyplayer.writer import MediaWriter
+        from ffpyplayer.pic import Image
 
-        w = 640
-        h = 480
+        w, h = 640, 480
         # write at 5 fps.
         out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
                     'frame_rate':(5, 1)}
         # write using rgb24 frames into a two stream rawvideo file where the output
-        # is half the input size for both streams.
-        writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, width_out=w/2,
+        # is half the input size for both streams. Avi format will be used.
+        writer = MediaWriter('output.avi', [out_opts] * 2, width_out=w/2,
                              height_out=h/2)
-        size = w * h * 3
-        for i in range(20):
-            buf = [int(x * 255 / size) for x in range(size)]
-            buf = ''.join(map(chr, buf))
-            writer.write_frame(pts=i / 5., stream=0, buffer=buf)
 
-            buf = [int((size - x) * 255 / size) for x in range(size)]
-            buf = ''.join(map(chr, buf))
-            writer.write_frame(pts=i / 5., stream=1, buffer=buf)
+        # Construct images
+        size = w * h * 3
+        buf = [int(x * 255 / size) for x in range(size)]
+        buf = ''.join(map(chr, buf))
+        img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+
+        buf = [int((size - x) * 255 / size) for x in range(size)]
+        buf = ''.join(map(chr, buf))
+        img2 = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+
+        for i in range(20):
+            writer.write_frame(img=img, pts=i / 5., stream=0)  # stream 1
+            writer.write_frame(img=img2, pts=i / 5., stream=1)  # stream 2
 
     Or force an output format of avi, even though the filename is .mp4.::
 
-        writer = MediaWriter('C:\FFmpeg\output.mp4', [out_opts] * 2, fmt='avi',
+        writer = MediaWriter('output.mp4', [out_opts] * 2, fmt='avi',
                      width_out=w/2, height_out=h/2)
 
-    Or writing compressed h264 files::
+    Or writing compressed h264 files (notice the file is now only 5KB, while
+    the above results in a 10MB file)::
 
         from ffpyplayer.writer import MediaWriter
         from ffpyplayer.tools import get_supported_pixfmts, get_supported_framerates
+        from ffpyplayer.pic import Image
 
         # make sure the pixel format and rate are supported.
         print get_supported_pixfmts('libx264', 'rgb24')
         ['yuv420p', 'yuvj420p', 'yuv422p', 'yuvj422p', 'yuv444p', 'yuvj444p', 'nv12', 'nv16']
         print get_supported_framerates('libx264', (5, 1))
         []
-        w = 640
-        h = 480
+        w, h = 640, 480
         # use the half the size for the output as the input
         out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'libx264',
                     'frame_rate':(5, 1)}
@@ -168,30 +177,32 @@ cdef class MediaWriter(object):
         # set the following metadata (ffmpeg doesn't always support writing metadata)
         metadata = {'title':'Singing in the sun', 'author':'Rat', 'genre':'Animal sounds'}
 
-        writer = MediaWriter(filename, [out_opts] * 2, fmt='mp4',
+        writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, fmt='mp4',
                              width_out=w/2, height_out=h/2, pix_fmt_out='yuv420p',
                              lib_opts=lib_opts, metadata=metadata)
-        size = w * h * 3
-        for i in range(20):
-            buf = [int(x * 255 / size) for x in range(size)]
-            buf = ''.join(map(chr, buf))
-            writer.write_frame(pts=i / 5., stream=0, buffer=buf)
 
-            buf = [int((size - x) * 255 / size) for x in range(size)]
-            buf = ''.join(map(chr, buf))
-            writer.write_frame(pts=i / 5., stream=1, buffer=buf)
+        # Construct images
+        size = w * h * 3
+        buf = [int(x * 255 / size) for x in range(size)]
+        buf = ''.join(map(chr, buf))
+        img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+
+        buf = [int((size - x) * 255 / size) for x in range(size)]
+        buf = ''.join(map(chr, buf))
+        img2 = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+
+        for i in range(20):
+            writer.write_frame(img=img, pts=i / 5., stream=0)  # stream 1
+            writer.write_frame(img=img2, pts=i / 5., stream=1)  # stream 2
     '''
 
     def __cinit__(self, filename, streams, fmt='', lib_opts={}, metadata={},
                   loglevel='error', overwrite=False, **kwargs):
         cdef int res = 0, n = len(streams), r
-        cdef int linesize[4]
         cdef char *format_name = NULL
         cdef char msg[256]
         cdef MediaStream *s
-        cdef list linesizes, frame_sizes
         cdef AVDictionaryEntry *dict_temp = NULL
-        cdef AVPicture dummy_pic
         cdef bytes msg2
         cdef const AVCodec *codec_desc
 
@@ -201,7 +212,6 @@ cdef class MediaWriter(object):
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
         _initialize_ffmpeg()
-        memset(msg, 0, sizeof(msg))
         if fmt:
             format_name = fmt
         if not n:
@@ -222,10 +232,6 @@ cdef class MediaWriter(object):
         s = self.streams
         self.n_streams = n
         memset(s, 0, n * sizeof(MediaStream))
-        #self.linesizes = linesizes = [[0, ] * 4 for i in range(n)]
-        #self.frame_sizes = frame_sizes = [0, ] * n
-        linesizes = [[0, ] * 4 for i in range(n)]
-        frame_sizes = [0, ] * n
         if type(lib_opts) is dict:
             lib_opts = [lib_opts, ] * n
         elif len(lib_opts) == 1:
@@ -308,37 +314,21 @@ cdef class MediaWriter(object):
                 best valid format is %s' % (config['pix_fmt_out'], config['codec'],
                                             supported_fmts[0]))
 
-            s[r].av_frame = av_frame_alloc()
-            if s[r].av_frame == NULL:
-                self.clean_up()
-                raise MemoryError()
-            res = av_image_fill_linesizes(s[r].av_frame.linesize, s[r].pix_fmt_out, s[r].width_out)
-            if res < 0:
-                self.clean_up()
-                raise Exception('Failed to fill linesizes: ' + emsg(res, msg, sizeof(msg)))
-            ''' See avpicture_fill, av_image_fill_pointers, avpicture_layout, and avpicture_get_size for how
-            different pixfmts are stored in the linear buffer.
-            avpicture_fill will be called on the data buffer of each incoming picture so we don't need to allocate
-            a buffer for incoming pics, just the frame. '''
             if (s[r].codec_ctx.pix_fmt != s[r].pix_fmt_in or s[r].codec_ctx.width != s[r].width_in or
                 s[r].codec_ctx.height != s[r].height_in):
-                res = av_image_alloc(s[r].av_frame.data, s[r].av_frame.linesize, s[r].codec_ctx.width,
-                                     s[r].codec_ctx.height, s[r].codec_ctx.pix_fmt, 1)
-                if res < 0:
-                    self.clean_up()
-                    raise Exception('Failed to allocate image: ' + emsg(res, msg, sizeof(msg)))
-
-                s[r].av_frame_src = av_frame_alloc()
-                if s[r].av_frame_src == NULL:
+                s[r].av_frame = av_frame_alloc()
+                if s[r].av_frame == NULL:
                     self.clean_up()
                     raise MemoryError()
-                # But we still need to know the linesizes of the input image for the conversion.
-                res = av_image_fill_linesizes(s[r].av_frame_src.linesize, s[r].pix_fmt_in, s[r].width_in)
-                if res < 0:
-                    self.clean_up()
-                    raise Exception('Failed to fill linesizes: ' + emsg(res, msg, sizeof(msg)))
-                s[r].sws_ctx = sws_getCachedContext(NULL, s[r].width_in, s[r].height_in, s[r].pix_fmt_in,\
-                s[r].codec_ctx.width, s[r].codec_ctx.height, s[r].codec_ctx.pix_fmt, SWS_BICUBIC, NULL, NULL, NULL)
+                s[r].av_frame.format = s[r].pix_fmt_out
+                s[r].av_frame.width = s[r].width_out
+                s[r].av_frame.height = s[r].height_out
+                if av_frame_get_buffer(s[r].av_frame, 32) < 0:
+                    raise Exception('Cannot allocate frame buffers.')
+
+                s[r].sws_ctx = sws_getCachedContext(NULL, s[r].width_in, s[r].height_in,\
+                s[r].pix_fmt_in, s[r].codec_ctx.width, s[r].codec_ctx.height,\
+                s[r].codec_ctx.pix_fmt, SWS_BICUBIC, NULL, NULL, NULL)
                 if s[r].sws_ctx == NULL:
                     self.clean_up()
                     raise Exception('Cannot find conversion context.')
@@ -361,16 +351,6 @@ cdef class MediaWriter(object):
                 self.clean_up()
                 raise Exception('Failed to open codec for stream %d; %s' % (r, emsg(res, msg, sizeof(msg))))
 
-            # the required size of the buffer of the input image. includes padding and alignment
-            res = avpicture_fill(&dummy_pic, NULL, s[r].pix_fmt_in, s[r].width_in, s[r].height_in)
-            frame_sizes[r] = res
-            s[r].buff_len = res
-            if res >= 0:
-                res = av_image_fill_linesizes(linesize, s[r].pix_fmt_in, s[r].width_in)
-            if res < 0:
-                self.clean_up()
-                raise Exception('Failed to fill linesizes: ' + emsg(res, msg, sizeof(msg)))
-            linesizes[r][:] = linesize[0], linesize[1], linesize[2], linesize[3]
             s[r].pts = 0
             if self.fmt_ctx.oformat.flags & AVFMT_VARIABLE_FPS:
                 if self.fmt_ctx.oformat.flags & AVFMT_NOTIMESTAMPS:
@@ -379,8 +359,6 @@ cdef class MediaWriter(object):
                     s[r].sync_fmt = VSYNC_VFR
             else:
                 s[r].sync_fmt = VSYNC_CFR
-            config['linesize'] = linesizes[r]
-            config['frame_buffer_size'] = frame_sizes[r]
 
         if not (self.fmt_ctx.oformat.flags & AVFMT_NOFILE):
             res = avio_check(filename, 0)
@@ -447,68 +425,51 @@ cdef class MediaWriter(object):
             av_write_trailer(self.fmt_ctx)
         self.clean_up()
 
-    def write_frame(MediaWriter self, double pts, int stream, bytes buffer=bytes(''),
-                   size_t frame_ref=0):
+    def write_frame(MediaWriter self, Image img, double pts, int stream):
         '''
-        Writes a frame to the specified stream.
-
-        Frames can be passed using either the *buffer* keyword, in which case it
-        must be a rgb24 bytes instance. Or if it's passed using the *frame_ref*
-        keyword it's a refrence to a frame such as one recieved from
-        :meth:`ffpyplayer.player.MediaPlayer.get_frame`.
+        Writes a :class:`ffpyplayer.pic.Image` frame to the specified stream.
 
         If the input data is different than the frame written to disk in either
         size or pixel format as specified when creating the writer, the frame
-        is converted before writing.
+        is converted before writing. But the input image must match the size and
+        format to that specified when creating the writer.
 
         **Args**:
+            *img* (:class:`ffpyplayer.pic.Image`): The :class:`ffpyplayer.pic.Image`
+            instance containing the frame to be written to disk.
+
             *pts* (float): The timestamp of this frame in video time. E.g. 0.5
-            means the frame should be displayed to a player at 0.5 seconds after
+            means the frame should be displayed by a player at 0.5 seconds after
             the video started playing. In a sense, the frame rate defines which
             timestamps are valid timestamps. However, this is not always the
             case, so if timestamps are invalid for a particular format, they are
             forced to valid values, if possible.
 
-            *stream* (int): The stream numer to which to write this frame.
+            *stream* (int): The stream number to which to write this frame.
 
-            *buffer* (bytes): If not empty it contains a buffer of frame data
-            in the form of RGBRGB... The size of the buffer should be equal
-            to the 'frame_buffer_size' parameter returned by
-            :meth:`get_configuration`. Defaults to the empty string.
-
-            *frame_ref* (python int): If non-zero, a refrence to a frame.
-            The frame contains the input data, and its pixel format and size
-            must match the values specified when creating the writer. E.g.
-            width_in etc. This is really a pointer to a valid AVFrame struct.
-            Defaults to 0. See :ref:`examples` for its usage.
+        See :ref:`examples` for its usage.
         '''
         cdef int res = 0, count = 1, i, got_pkt
-        cdef AVFrame *frame_in = <AVFrame *>frame_ref
+        cdef AVFrame *frame_in = img.frame
         cdef AVFrame *frame_out
         cdef MediaStream *s
-        cdef uint8_t *buff = buffer
         cdef double ipts, dpts
         cdef AVPacket pkt
         cdef char msg[256]
         if stream >= self.n_streams:
             raise Exception('Invalid stream number %d' % stream)
         s = self.streams + stream
-        if len(buffer) < s.buff_len and frame_in == NULL:
-            raise Exception('Buffer is too small, or frame pointer is invalid.')
+        if (frame_in.width != s.width_in or frame_in.height != s.height_in or
+            frame_in.format != <AVPixelFormat>s.pix_fmt_in):
+            raise Exception("Input image doesn't match stream specified parameters.")
 
         with nogil:
-            if s.av_frame_src != NULL:
+            if s.av_frame != NULL:
                 frame_out = s.av_frame
-                if frame_in == NULL:
-                    frame_in = s.av_frame_src
-                    avpicture_fill(<AVPicture *>frame_in, buff, s.pix_fmt_in, s.width_in, s.height_in)
                 sws_scale(s.sws_ctx, <const uint8_t *const *>frame_in.data, frame_in.linesize,
-                          0, s.height_in, frame_out.data, frame_out.linesize)
+                          0, frame_in.height, frame_out.data, frame_out.linesize)
             else:
                 frame_out = frame_in
-                if frame_in == NULL:
-                    frame_out = s.av_frame
-                    avpicture_fill(<AVPicture *>frame_out, buff, s.pix_fmt_in, s.width_in, s.height_in)
 
             ipts = pts / av_q2d(s.codec_ctx.time_base)
             if s.sync_fmt != VSYNC_PASSTHROUGH and s.sync_fmt != VSYNC_DROP:
@@ -584,29 +545,23 @@ cdef class MediaWriter(object):
         in the writer.
 
         **Returns**:
-            (list): List of dicts for each stream. Among its elements, *frame_buffer_size*
-            indicates the expected buffer size (can be different if a frame ref is
-            used). *linesize*: indicates the linesize of the frame in each of its
-            planes (for rgb24, only the first element is non-zero).
+            (list): List of dicts for each stream.
 
         ::
 
-            >>> from ffpyplayer.writer import MediaWriter
+            from ffpyplayer.writer import MediaWriter
 
-            >>> w = 640
-            >>> h = 480
-            >>> # use the half the size for the output as the input
-            >>> out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
-            ...             'frame_rate':(5, 1)}
-            >>> # write using rgb24 frames into a two stream rawvideo file where the output
-            >>> # is half the input size for both streams.
-            >>> writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, width_out=w/2, height_out=h/2)
-            >>> print writer.get_configuration()
+            w, h = 640, 480
+            out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
+                        'frame_rate':(5, 1)}
+            writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, width_out=w/2, height_out=h/2)
+
+            print writer.get_configuration()
             [{'height_in': 480, 'codec': 'rawvideo', 'width_in': 640, 'frame_rate': (5, 1),
-            'pix_fmt_in': 'rgb24', 'width_out': 320, 'linesize': [1920, 0, 0, 0], 'height_out': 240,
-            'pix_fmt_out': 'rgb24', 'frame_buffer_size': 921600}, {'height_in': 480, 'codec': 'rawvideo',
-            'width_in': 640, 'frame_rate': (5, 1), 'pix_fmt_in': 'rgb24', 'width_out': 320,
-            'linesize': [1920, 0, 0, 0], 'height_out': 240, 'pix_fmt_out': 'rgb24', 'frame_buffer_size': 921600}]
+            'pix_fmt_in': 'rgb24', 'width_out': 320, 'height_out': 240, 'pix_fmt_out': 'rgb24'},
+            {'height_in': 480, 'codec': 'rawvideo', 'width_in': 640, 'frame_rate': (5, 1),
+            'pix_fmt_in': 'rgb24', 'width_out': 320, 'height_out': 240, 'pix_fmt_out': 'rgb24'}]
+
         '''
         return self.config
 
@@ -616,14 +571,8 @@ cdef class MediaWriter(object):
         for r in range(self.n_streams):
             # If the in and out formats are different we must delete the out frame data buffer
             if self.streams[r].av_frame != NULL:
-                if self.streams[r].av_frame_src != NULL and self.streams[r].av_frame.data[0] != NULL:
-                    av_freep(&self.streams[r].av_frame.data[0])
                 av_frame_free(&self.streams[r].av_frame)
                 self.streams[r].av_frame = NULL
-            # The temp frames data is only temporary data (supplied by user for each pic), so don't delete it.
-            if self.streams[r].av_frame_src != NULL:
-                av_frame_free(&self.streams[r].av_frame_src)
-                self.streams[r].av_frame_src = NULL
             if self.streams[r].sws_ctx != NULL:
                 sws_freeContext(self.streams[r].sws_ctx)
                 self.streams[r].sws_ctx= NULL
