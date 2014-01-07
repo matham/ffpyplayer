@@ -1,4 +1,7 @@
 '''
+FFmpeg tools
+============
+
 Module for manipulating and finding information of FFmpeg formats, codecs,
 devices, pixel formats and more.
 '''
@@ -7,7 +10,7 @@ devices, pixel formats and more.
 __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
            'formats_out', 'set_log_callback', 'get_log_callback',
            'get_supported_framerates', 'get_supported_pixfmts',
-           'list_dshow_devices', 'emit_library_info', 'free_frame_ref')
+           'list_dshow_devices', 'emit_library_info')
 
 
 include 'ff_defs.pxi'
@@ -351,14 +354,3 @@ def list_dshow_devices():
         if m:
             curr.append(m.group(1))
     return vid, aud
-
-def free_frame_ref(ref):
-    '''
-    Frees a reference to a frame such as one received from
-    :meth:`ffpyplayer.player.MediaPlayer.get_frame` when use_ref is True.
-
-    **Args**:
-        *ref* (python int): The frame refrence id.
-    '''
-    cdef AVFrame *frame = <AVFrame *><size_t>ref
-    av_frame_free(&frame)

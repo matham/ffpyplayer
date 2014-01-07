@@ -5,7 +5,6 @@ from ffpyplayer.player import MediaPlayer
 from ffpyplayer.tools import set_log_callback, loglevels
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
-from kivy.uix.image import Image
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.lang import Builder
@@ -158,17 +157,17 @@ class PlayerApp(App):
         if not self.ffplayer:
             return
         if self.next_frame and not force_refresh:
-            buffer, size, linesize, pts = self.next_frame
+            img, pts = self.next_frame
             self.next_frame = None
-            if size != self.size or self.texture is None:
+            if img.get_size() != self.size or self.texture is None:
                 self.root.image.canvas.remove_group(str(self)+'_display')
-                self.texture = Texture.create(size=size, colorfmt='rgb')
+                self.texture = Texture.create(size=img.get_size(), colorfmt='rgb')
                 # by adding 'vf':'vflip' to the player initialization ffmpeg will do the flipping
                 self.texture.flip_vertical()
                 self.texture.add_reload_observer(self.reload_buffer)
-                self.size = size
-            self.buffer = buffer
-            self.texture.blit_buffer(buffer)
+                self.size = img.get_size()
+            self.buffer = bytes(img.to_bytearray()[0])
+            self.texture.blit_buffer(self.buffer)
             self.root.image.texture = None
             self.root.image.texture = self.texture
             self.root.seek.value = pts

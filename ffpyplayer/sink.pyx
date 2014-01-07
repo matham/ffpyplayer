@@ -12,25 +12,25 @@ cdef extern from "Python.h":
 
 cimport ffthreading
 from ffthreading cimport MTMutex
+from pic cimport Image
 
 
 cdef AVPixelFormat *pix_fmts = [AV_PIX_FMT_RGB24, AV_PIX_FMT_NONE]
-cdef bytes sub_ass = str('ass'), sub_text = str('text'), sub_fmt
+cdef bytes sub_ass = str('ass'), sub_text = str('text'), sub_fmt, pix_fmt = str('rgb24')
 
 cdef class VideoSink(object):
 
-    def __cinit__(VideoSink self, MTMutex mutex=None, object callback=None,
-                  int use_ref=0, **kwargs):
+    def __cinit__(VideoSink self, MTMutex mutex=None, object callback=None, **kwargs):
         self.alloc_mutex = mutex
         self.callback = callback
         self.requested_alloc = 0
-        self.use_ref = use_ref
 
     cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil:
         return pix_fmts
 
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil:
         pix_fmts[0] = out_fmt
+        pix_fmt = av_get_pix_fmt_name(out_fmt)
 
     cdef int request_thread(VideoSink self, uint8_t request) nogil except 1:
         if request == FF_ALLOC_EVENT:
@@ -65,6 +65,9 @@ cdef class VideoSink(object):
             av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
             with gil:
                 raise Exception('Could not allocate avframe buffer of size %dx%d.' %(vp.width, vp.height))
+        vp.pict.width = vp.width
+        vp.pict.height = vp.height
+        vp.pict.format = <int>pix_fmts[0]
         return 0
 
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil:
@@ -79,26 +82,14 @@ cdef class VideoSink(object):
     cdef int copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil except 1:
 
-        vp.use_ref = 0
         IF CONFIG_AVFILTER:
-            if self.use_ref:
-                av_frame_unref(vp.pict_ref)
-                av_frame_move_ref(vp.pict_ref, src_frame)
-                vp.use_ref = 1
-            else:
-                av_picture_copy(<AVPicture *>vp.pict, <AVPicture *>src_frame,
-                                <AVPixelFormat>src_frame.format, vp.width, vp.height)
-                av_frame_unref(src_frame)
+            av_frame_unref(vp.pict_ref)
+            av_frame_move_ref(vp.pict_ref, src_frame)
         ELSE:
-            if self.use_ref and pix_fmts[0] == <AVPixelFormat>src_frame.format:
+            if pix_fmts[0] == <AVPixelFormat>src_frame.format:
                 av_frame_unref(vp.pict_ref)
                 av_frame_move_ref(vp.pict_ref, src_frame)
-                vp.use_ref = 1
                 return 0
-            if self.use_ref:
-                with gil:
-                    raise Exception('use_ref was used when CONFIG_AVFILTER is False,\
-                    and the input/output pixel formats are different.')
             av_opt_get_int(player.sws_opts, 'sws_flags', 0, &player.sws_flags)
             player.img_convert_ctx = sws_getCachedContext(player.img_convert_ctx,\
             vp.width, vp.height, <AVPixelFormat>src_frame.format, vp.width, vp.height,\
@@ -113,31 +104,22 @@ cdef class VideoSink(object):
         return 0
 
     cdef object video_image_display(VideoSink self, VideoPicture *vp) with gil:
-        cdef SubPicture *sp
-        cdef object buff
-        cdef object res
+        cdef Image img
         cdef int *ls
         cdef AVFrame *frame
         if vp.pict == NULL:
             return None
 
-        ls = vp.pict.linesize
-        if vp.use_ref:
-            frame = av_frame_clone(vp.pict_ref)
-            if frame == NULL:
-                raise MemoryError()
-            buff = (<size_t>frame, [<size_t>frame.data[0], <size_t>frame.data[1],
-                                    <size_t>frame.data[2], <size_t>frame.data[3]],
-                    av_get_pix_fmt_name(<AVPixelFormat>frame.format))
+        if CONFIG_AVFILTER or pix_fmts[0] == <AVPixelFormat>vp.pict_ref.format:
+            frame = vp.pict_ref
         else:
-            if pix_fmts[0] != AV_PIX_FMT_RGB24:
-                raise Exception('Output pixel format is not rgb24.')
-            buff = <object>PyString_FromStringAndSize(<const char *>vp.pict.data[0], 3 *vp.width * vp.height)
-        res = (buff, (vp.width, vp.height), [ls[0], ls[1], ls[2], ls[3]], vp.pts)
-        # XXX doesn't python automatically free?
-        if not vp.use_ref:
-            Py_DECREF(<PyObject *>buff)
-        return res
+            frame = vp.pict
+        ls = frame.linesize
+        img = Image(frame=<size_t>frame,
+                    pix_fmt=av_get_pix_fmt_name(<AVPixelFormat>frame.format),
+                    size=(frame.width, frame.height),
+                    linesize=[ls[0], ls[1], ls[2], ls[3]])
+        return (img, vp.pts)
 
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1:
         cdef PyObject *buff
