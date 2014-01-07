@@ -456,6 +456,8 @@ cdef class MediaWriter(object):
         cdef double ipts, dpts
         cdef AVPacket pkt
         cdef char msg[256]
+        cdef AVPictureType pict_type_src
+        cdef int64_t pts_src
         if stream >= self.n_streams:
             raise Exception('Invalid stream number %d' % stream)
         s = self.streams + stream
@@ -512,6 +514,8 @@ cdef class MediaWriter(object):
                             raise Exception('Error writing frame: ' + emsg(res, msg, sizeof(msg)))
                 else:
                     got_pkt = 0
+                    pict_type_src = frame_out.pict_type
+                    pts_src = frame_out.pts
                     if not s.codec_ctx.me_threshold:
                         frame_out.pict_type = AV_PICTURE_TYPE_NONE
                     frame_out.pts = s.pts
@@ -534,6 +538,8 @@ cdef class MediaWriter(object):
                         if res < 0:
                             with gil:
                                 raise Exception('Error writing frame: ' + emsg(res, msg, sizeof(msg)))
+                    frame_out.pts = pts_src
+                    frame_out.pict_type = pict_type_src
 
                 s.pts += 1
                 s.count += 1
