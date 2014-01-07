@@ -166,17 +166,16 @@ cdef class MediaWriter(object):
         print get_supported_framerates('libx264', (5, 1))
         []
         w, h = 640, 480
-        # use the half the size for the output as the input
         out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'libx264',
                     'frame_rate':(5, 1)}
-        # write using yuv420p frames into a two stream h264 codec, mp4 file where the output
-        # is half the input size for both streams.
 
         # use the following libx264 compression options
         lib_opts = {'preset':'slow', 'crf':'22'}
         # set the following metadata (ffmpeg doesn't always support writing metadata)
         metadata = {'title':'Singing in the sun', 'author':'Rat', 'genre':'Animal sounds'}
 
+        # write using yuv420p frames into a two stream h264 codec, mp4 file where the output
+        # is half the input size for both streams.
         writer = MediaWriter('output.avi', [out_opts] * 2, fmt='mp4',
                              width_out=w/2, height_out=h/2, pix_fmt_out='yuv420p',
                              lib_opts=lib_opts, metadata=metadata)
