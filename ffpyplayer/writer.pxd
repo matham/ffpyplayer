@@ -10,6 +10,7 @@ cdef class MediaWriter(object):
     cdef int n_streams
     cdef list config
     cdef AVDictionary *format_opts
+    cdef int64_t total_size
 
     cdef void clean_up(MediaWriter self)
 

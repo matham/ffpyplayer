@@ -177,7 +177,7 @@ cdef class MediaWriter(object):
         # set the following metadata (ffmpeg doesn't always support writing metadata)
         metadata = {'title':'Singing in the sun', 'author':'Rat', 'genre':'Animal sounds'}
 
-        writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, fmt='mp4',
+        writer = MediaWriter('output.avi', [out_opts] * 2, fmt='mp4',
                              width_out=w/2, height_out=h/2, pix_fmt_out='yuv420p',
                              lib_opts=lib_opts, metadata=metadata)
 
@@ -194,6 +194,12 @@ cdef class MediaWriter(object):
         for i in range(20):
             writer.write_frame(img=img, pts=i / 5., stream=0)  # stream 1
             writer.write_frame(img=img2, pts=i / 5., stream=1)  # stream 2
+
+    .. warning::
+
+        The file is is not fully written until the MediaWriter instance is deleted
+        because data is cached while writing. The encoders are only flushed when
+        the instance is deleted.
     '''
 
     def __cinit__(self, filename, streams, fmt='', lib_opts={}, metadata={},
@@ -206,6 +212,7 @@ cdef class MediaWriter(object):
         cdef bytes msg2
         cdef const AVCodec *codec_desc
 
+        self.total_size = 0
         self.format_opts = NULL
         if loglevel not in loglevels:
             raise ValueError('Invalid log level option.')
@@ -447,6 +454,22 @@ cdef class MediaWriter(object):
 
             *stream* (int): The stream number to which to write this frame.
 
+        **Returns**:
+            (int): The approximate number of bytes written to disk so far for
+            this file.
+
+            .. note::
+
+                This is not the same as the number of bytes passed to this function
+                so far, because the encoders cache data before writing to disk.
+                So although some frames may have been passed, the return value
+                may not represent this.
+
+                An extereme example is where the same frame is passed many times
+                to h264; the encoder will only write this frame when the Writer
+                object is deleted and encoders are flushed, so this function
+                will only return 0.
+
         See :ref:`examples` for its usage.
         '''
         cdef int res = 0, count = 1, i, got_pkt
@@ -512,6 +535,7 @@ cdef class MediaWriter(object):
                     if res < 0:
                         with gil:
                             raise Exception('Error writing frame: ' + emsg(res, msg, sizeof(msg)))
+                    self.total_size += sizeof(AVPicture)
                 else:
                     got_pkt = 0
                     pict_type_src = frame_out.pict_type
@@ -534,6 +558,7 @@ cdef class MediaWriter(object):
                         if s.sync_fmt == VSYNC_DROP:
                             pkt.pts = pkt.dts = AV_NOPTS_VALUE
                         pkt.stream_index = s.av_stream.index
+                        self.total_size += pkt.size
                         res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
                         if res < 0:
                             with gil:
@@ -543,7 +568,7 @@ cdef class MediaWriter(object):
 
                 s.pts += 1
                 s.count += 1
-        return 0
+        return self.total_size
 
     def get_configuration(self):
         '''
@@ -560,7 +585,7 @@ cdef class MediaWriter(object):
             w, h = 640, 480
             out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
                         'frame_rate':(5, 1)}
-            writer = MediaWriter('C:\FFmpeg\output.avi', [out_opts] * 2, width_out=w/2, height_out=h/2)
+            writer = MediaWriter('output.avi', [out_opts] * 2, width_out=w/2, height_out=h/2)
 
             print writer.get_configuration()
             [{'height_in': 480, 'codec': 'rawvideo', 'width_in': 640, 'frame_rate': (5, 1),
@@ -594,4 +619,5 @@ cdef class MediaWriter(object):
             avformat_free_context(self.fmt_ctx)
             self.fmt_ctx = NULL
         av_dict_free(&self.format_opts)
+        self.total_size = 0
 
