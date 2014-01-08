@@ -160,7 +160,8 @@ cdef class MediaPlayer(object):
 
             *out_fmt* (str): The pixel format of the data returned by :meth:`get_frame`. Can be
             one of :attr:`ffpyplayer.tools.pix_fmts`. Defaults to rgb24.
-    ::
+
+    A simple player::
 
         from ffpyplayer.player import MediaPlayer
         import time, weakref

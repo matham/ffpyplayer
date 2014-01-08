@@ -43,7 +43,7 @@ Copy the image::
     >>> img2 = copy.deepcopy(img)
 '''
 
-__all__ = ('Image', 'SWScale')
+__all__ = ('Image', 'SWScale', 'get_image_size')
 
 
 include "inline_funcs.pxi"
@@ -57,6 +57,50 @@ cdef extern from "string.h" nogil:
 cdef extern from "Python.h":
     PyObject* PyString_FromStringAndSize(const char *, Py_ssize_t)
     void Py_DECREF(PyObject *)
+
+
+def get_image_size(pix_fmt, width, height):
+    '''
+    Returns the size in bytes of the buffers of each plane of an image with a
+    given pixel format, width, and height.
+
+    **Args**:
+        *pix_fmt* (str): The pixel format in which the image is represented.
+        Can be one of :attr:`ffpyplayer.tools.pix_fmts`.
+
+        *width, height* (int): The width and height of the image.
+
+    **Returns**:
+        (4-tuple): A list of buffer sizes in bytes for each plane of this pixel
+        format, required to store the image.
+
+    ::
+
+        >>> print get_image_size('rgb24', 100, 100)
+        (30000, 0, 0, 0)
+        >>> print get_image_size('yuv420p', 100, 100)
+        (10000, 2500, 2500, 0)
+        >>> print get_image_size('gray', 100, 100)
+        (10000, 1024, 0, 0)
+    '''
+    cdef AVPixelFormat fmt
+    cdef int res, w = width, h = height
+    cdef int size[4]
+    cdef int ls[4]
+    cdef char msg[256]
+
+    fmt = av_get_pix_fmt(pix_fmt)
+    if fmt == AV_PIX_FMT_NONE:
+        raise Exception('Pixel format %s not found.' % pix_fmt)
+    res = av_image_fill_linesizes(ls, fmt, w)
+    if res < 0:
+        raise Exception('Failed to initialize linesizes: ' + emsg(res, msg, sizeof(msg)))
+
+    res = get_plane_sizes(size, fmt, h, ls)
+    if res < 0:
+        raise Exception('Failed to get planesizes: ' + emsg(res, msg, sizeof(msg)))
+    return (size[0], size[1], size[2], size[3])
+
 
 cdef class SWScale(object):
     '''
@@ -245,7 +289,7 @@ cdef class Image(object):
         copied if the originals are not reference counted to ensure they remain
         valid.
 
-        *pix_fmt* (str): The pixel format of the image.
+        *pix_fmt* (str): The pixel format of the image. Can be one of
         :attr:`ffpyplayer.tools.pix_fmts`. Must be provided when using
         *plane_buffers* or *plane_ptrs*.
 
