@@ -18,6 +18,7 @@ include 'ff_defs.pxi'
 cimport ffthreading
 from ffthreading cimport Py_MT, MTMutex
 import re
+from functools import partial
 
 
 cdef int ffmpeg_initialized = 0
@@ -277,83 +278,166 @@ def emit_library_info():
     print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
     print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
 
+def _dshow_log_callback(log, message, level):
+    log.append((message, level))
+
+cdef int list_dshow_opts(list log, str stream, str option) except 1:
+    cdef AVFormatContext *fmt = NULL
+    cdef AVDictionary* opts = NULL
+    cdef AVInputFormat *ifmt
+    cdef object old_callback
+
+    ifmt = av_find_input_format("dshow")
+    if ifmt == NULL:
+        raise Exception('Direct show not found.')
+
+    av_dict_set(&opts, option, "true", 0)
+    old_callback = set_log_callback(partial(_dshow_log_callback, log))
+    avformat_open_input(&fmt, stream, ifmt, &opts)
+    set_log_callback(old_callback)
+    avformat_close_input(&fmt)
+    av_dict_free(&opts)
+    return 0
+
 def list_dshow_devices():
     '''
     Returns a list of the dshow devices available.
 
     **Returns**:
-        *(2-tuple)*: A 2-tuple, where the first element is a list of the names of
-        all the direct show **video** devices and the second element is a list of
-        the names of all the direct show **audio** devices available for reading.
 
-    ::
+        *(2-tuple)*: A 2-tuple, of (`video`, `audio`)
+            `video` is a dict all the direct show **video** devices. The keys
+            of the dict are the names of the available direct show devices. The values
+            are a list of the available configurations for that device. Each
+            element in the list has the following format:
+            ``(pix_fmt, codec_fmt, (frame_width, frame_height), (min_framerate, max_framerate))``
+            `audio` is a dict all the direct show **audio** devices. The keys
+            of the dict are the names of the available direct show devices. The values
+            are a list of the available configurations for that device. Each
+            element in the list has the following format:
+            ``((min_num_channels, min_num_channels), (min_bits, max_bits), (min_rate, max_rate))``.
 
-        from ffpyplayer.player import MediaPlayer
-        from ffpyplayer.tools import list_dshow_devices
-        import time, weakref
-        dev = list_dshow_devices()
-        print dev
-        (['Laptop Integrated Webcam', 'wans'], ['Microphone Array (2- SigmaTel H',
-        'Microphone (Plantronics .Audio '])
+    For example::
 
-        def callback(selector, value):
-            if selector == 'quit':
-                print 'quitting'
-        # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
-        # 110592000 = 640*480*3 at 30fps, for 4 seconds.
-        # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
-        lib_opts = {'framerate':'30', 'video_size':'640x480', 'rtbufsize':'110592000'}
-        ff_opts = {'f':'dshow'}
-        player = MediaPlayer('video=%s:audio=%s' % (dev[0][0], dev[1][0]),
-                             callback=weakref.ref(callback), ff_opts=ff_opts,
-                             lib_opts=lib_opts)
-
-        while 1:
-            frame, val = player.get_frame()
-            if val == 'eof':
-                break
-            elif frame is None:
-                time.sleep(0.01)
-            else:
-                img, t = frame
-                print val, t, img.get_pixel_format(), img.get_buffer_size()
-                time.sleep(val)
-        0.0 264107.429 rgb24 (921600, 0, 0, 0)
-        0.0 264108.364 rgb24 (921600, 0, 0, 0)
-        0.0790016651154 264108.628 rgb24 (921600, 0, 0, 0)
-        0.135997533798 264108.764 rgb24 (921600, 0, 0, 0)
-        0.274529457092 264108.897 rgb24 (921600, 0, 0, 0)
-        0.272421836853 264109.028 rgb24 (921600, 0, 0, 0)
-        0.132406949997 264109.164 rgb24 (921600, 0, 0, 0)
+        >>> from ffpyplayer.player import MediaPlayer
+        >>> from ffpyplayer.tools import list_dshow_devices
+        >>> import time, weakref
+        >>> dev = list_dshow_devices()
+        >>> print dev
+        ({'Logitech HD Webcam C525': [('bgr24', '', (160, 120), (5, 30)),
+        ('bgr24', '', (176, 144), (5, 30)), ('bgr24', '', (320, 176), (5, 30)),
+        ('bgr24', '', (320, 240), (5, 30)), ('bgr24', '', (352, 288), (5, 30)),
         ...
+        ('yuv420p', '', (320, 240), (5, 30)), ('yuv420p', '', (352, 288), (5, 30))],
+        'Laptop Integrated Webcam': [('bgr24', '', (160, 120), (30, 30)),
+        ...
+        ('yuyv422', '', (352, 288), (30, 30)),
+        ('yuyv422', '', (640, 480), (30, 30))]},
+        {'Microphone (Plantronics .Audio ': [((1, 2), (8, 16), (11025, 44100))],
+        'Microphone Array (2- SigmaTel H': [((1, 2), (8, 16), (11025, 44100))],
+        'Microphone (HD Webcam C525)': [((1, 2), (8, 16), (11025, 44100))]})
+
+        >>> def callback(selector, value):
+        ...     if selector == 'quit':
+        ...         print 'quitting'
+        >>> # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
+        >>> # lets use the yuv420p, 320x240, 30fps
+        >>> # 27648000 = 320*240*3 at 30fps, for 4 seconds.
+        >>> # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
+        >>> lib_opts = {'framerate':'30', 'video_size':'320x240',
+        ... 'pixel_format': 'yuv420p', 'rtbufsize':'27648000'}
+        >>> ff_opts = {'f':'dshow'}
+        >>> player = MediaPlayer('video=Logitech HD Webcam C525:audio=Microphone (HD Webcam C525)',
+        ...                      callback=weakref.ref(callback), ff_opts=ff_opts,
+        ...                      lib_opts=lib_opts)
+
+        >>> while 1:
+        ...     frame, val = player.get_frame()
+        ...     if val == 'eof':
+        ...         break
+        ...     elif frame is None:
+        ...         time.sleep(0.01)
+        ...     else:
+        ...         img, t = frame
+        ...         print val, t, img.get_pixel_format(), img.get_buffer_size()
+        ...         time.sleep(val)
+        0.0 264107.429 rgb24 (230400, 0, 0, 0)
+        0.0 264108.364 rgb24 (230400, 0, 0, 0)
+        0.0790016651154 264108.628 rgb24 (230400, 0, 0, 0)
+        0.135997533798 264108.764 rgb24 (230400, 0, 0, 0)
+        0.274529457092 264108.897 rgb24 (230400, 0, 0, 0)
+        0.272421836853 264109.028 rgb24 (230400, 0, 0, 0)
+        0.132406949997 264109.164 rgb24 (230400, 0, 0, 0)
+        ...
+        # NOTE, by default the output is rgb24, that's why the output above is
+        # rgb24. To keep the output format the same as the input, do ff_opts['out_fmt'] = 'yuv420p'
     '''
-    cdef AVFormatContext *fmt = NULL
-    cdef AVDictionary* opts = NULL
-    cdef AVInputFormat *ifmt
-    cdef list res = [], vid = [], aud = [], curr = None
-    def log_callback(message, level):
-        res.append((message, level))
+    cdef list res = []
+    cdef dict video = {}, audio = {}, curr = None
+    cdef object last
 
-    av_dict_set(&opts, "list_devices", "true", 0)
-    ifmt = av_find_input_format("dshow")
-    old_callback = set_log_callback(log_callback)
-    avformat_open_input(&fmt, "video=dummy", ifmt, &opts)
-    set_log_callback(old_callback)
-    avformat_close_input(&fmt)
-    av_dict_free(&opts)
-
+    # list devices
+    list_dshow_opts(res, 'dummy', 'list_devices')
     pvid = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow video devices.*')
     paud = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow audio devices.*')
     pname = re.compile(' *\[dshow *@ *[\w]+\] *\"(.+)\"\\n.*')
     for message, level in res:
-        av_log(NULL, loglevels[level], message)
         if pvid.match(message):
-            curr = vid
+            curr = video
         elif paud.match(message):
-            curr = aud
+            curr = audio
         if curr is None:
+            av_log(NULL, loglevels[level], message)
             continue
         m = pname.match(message)
         if m:
-            curr.append(m.group(1))
-    return vid, aud
+            curr[m.group(1)] = []
+
+    # list video devices options
+    pvid_pix = re.compile(' *\[dshow *@ *[\w]+\] *pixel_format=([\w]+).*')
+    pvid_codec = re.compile(' *\[dshow *@ *[\w]+\] *vcodec=([\w]+).*')
+    pvid_opts = re.compile(' *\[dshow *@ *[\w]+\] *min +s=\d+x\d+ +fps=(\d+)\
+ +max +s=(\d+)x(\d+) +fps=(\d+).*')
+    pheader1 = re.compile(' *\[dshow *@ *[\w]+\] *Pin "(?:Capture|Output)".*')
+    pheader2 = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow (?:video|audio) device options.*')
+    for video_stream in video:
+        res = []
+        last = ()
+        list_dshow_opts(res, "video=%s" % video_stream, 'list_options')
+        for message, level in res:
+            mpix = pvid_pix.match(message)
+            mcodec = pvid_codec.match(message)
+            mopts = pvid_opts.match(message)
+            if mpix:
+                last = (mpix.group(1), '')
+            if mcodec:
+                last = ('', mcodec.group(1))
+            if mopts and not last:
+                av_log(NULL, loglevels[level], message)
+                continue
+            if mopts:
+                video[video_stream].append((last[0], last[1], (int(mopts.group(2)), int(mopts.group(3))),
+                                            (int(mopts.group(1)), int(mopts.group(4)))))
+                last = ()
+            if (not mpix) and (not mcodec) and (not mopts) and\
+            (not pheader1.match(message)) and (not pheader2.match(message)):
+                av_log(NULL, loglevels[level], message)
+        video[video_stream] = sorted(list(set(video[video_stream])))
+
+    # list audio devices options
+    paud_opts = re.compile(' *\[dshow *@ *[\w]+\] *min +ch= *(\d+) +bits= *(\d+)\
+ +rate= *(\d+) +max +ch= *(\d+) +bits= *(\d+) +rate= *(\d+).*')
+    for audio_stream in audio:
+        res = []
+        list_dshow_opts(res, "audio=%s" % audio_stream, 'list_options')
+        for message, level in res:
+            mopts = paud_opts.match(message)
+            if mopts:
+                audio[audio_stream].append(((int(mopts.group(1)), int(mopts.group(4))),
+                                            (int(mopts.group(2)), int(mopts.group(5))),
+                                            (int(mopts.group(3)), int(mopts.group(6)))))
+            elif (not pheader1.match(message)) and (not pheader2.match(message)):
+                av_log(NULL, loglevels[level], message)
+        audio[audio_stream] = sorted(list(set(audio[audio_stream])))
+
+    return video, audio
