@@ -1008,6 +1008,9 @@ cdef class VideoState(object):
                     pts = NAN
                 else:
                     pts = frame.pts * av_q2d(tb)
+                with gil:
+                    self.metadata['src_vid_size'] = (frame.width, frame.height)
+                    self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
                 ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame), serial)
                 #av_frame_unref(frame)
 
