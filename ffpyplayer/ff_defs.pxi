@@ -88,9 +88,6 @@ cdef:
         AVDictionaryEntry * av_dict_get(AVDictionary *, const char *,
                                         const AVDictionaryEntry *, int)
 
-    extern from "libavutil/parseutils.h" nogil:
-        pass
-
     extern from "libavutil/samplefmt.h" nogil:
         enum AVSampleFormat:
             AV_SAMPLE_FMT_S16,
@@ -99,9 +96,6 @@ cdef:
         const char *av_get_sample_fmt_name(AVSampleFormat)
         int av_samples_get_buffer_size(int *, int, int, AVSampleFormat, int)
         int av_get_bytes_per_sample(AVSampleFormat)
-
-    extern from "libavutil/avassert.h" nogil:
-        pass
 
     extern from "libavutil/time.h" nogil:
         int64_t av_gettime()
@@ -263,6 +257,7 @@ cdef:
         void avformat_free_context(AVFormatContext *)
         AVOutputFormat *av_oformat_next(AVOutputFormat *)
         AVInputFormat *av_iformat_next(AVInputFormat  *)
+
     extern from "libavdevice/avdevice.h" nogil:
         void avdevice_register_all()
 
@@ -319,7 +314,6 @@ cdef:
         int swr_set_compensation(SwrContext *, int, int)
         int swr_convert(SwrContext *, uint8_t **, int, const uint8_t ** , int)
 
-    #if CONFIG_AVFILTER
     extern from "libavfilter/avcodec.h" nogil:
         int CODEC_FLAG_EMU_EDGE
         int CODEC_FLAG2_FAST
@@ -454,6 +448,7 @@ cdef:
         AVCodec *av_codec_next(const AVCodec *)
         int av_codec_is_encoder(const AVCodec *)
         int av_codec_is_decoder(const AVCodec *)
+
     extern from "libavfilter/avfilter.h" nogil:
         struct AVFilterContext:
             AVFilterLink **inputs
@@ -489,15 +484,10 @@ cdef:
         AVFilterGraph *avfilter_graph_alloc()
 
     extern from "libavfilter/buffersink.h" nogil:
-        pass
+        int av_buffersink_get_frame_flags(AVFilterContext *, AVFrame *, int)
 
     extern from "libavfilter/buffersrc.h" nogil:
         int av_buffersrc_add_frame(AVFilterContext *, AVFrame *)
-        int av_buffersink_get_frame_flags(AVFilterContext *, AVFrame *, int)
-    #endif
-
-    extern from "libpostproc/postprocess.h" nogil:
-        pass
 
     extern from "ffinfo.h" nogil:
         uint8_t INDENT

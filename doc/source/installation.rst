@@ -40,10 +40,10 @@ Installation
 ------------
 
 After setting up the requirements download ffpyplayer from github and run
-python setup.py build_ext --inplace. Before running, you have the option to
-select which FFmpeg libraries are to be used by defining values for CONFIG variables
-in the environment. For example, CONFIG_AVFILTER=0 will not use the FFmpeg
-avfilter libraries. See setup.py for all the available flags.
+`make` or `make force`. Before running, you have the option to
+select which FFmpeg libraries are to be used by defining values for CONFIG
+variables in the environment. For example, CONFIG_AVFILTER=0 will not use the
+FFmpeg avfilter libraries. See setup.py for all the available flags.
 
 To test, there's a file in the top level called test.py. To use it,
 you need to pass as the first command line argument the path to a media file

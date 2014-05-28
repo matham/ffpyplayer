@@ -5,6 +5,11 @@
 #include "ffconfig.h"
 
 
+#if CONFIG_POSTPROC
+#include "libpostproc/postprocess.h"
+#endif
+
+
 #define INDENT        1
 #define SHOW_VERSION  2
 #define SHOW_CONFIG   4
@@ -31,14 +36,30 @@
 
 void print_all_libs_info(int flags, int level)
 {
+#if CONFIG_AVUTIL
     PRINT_LIB_INFO(avutil,   AVUTIL,   flags, level);
+#endif
+#if CONFIG_AVCODEC
     PRINT_LIB_INFO(avcodec,  AVCODEC,  flags, level);
+#endif
+#if CONFIG_AVFORMAT
     PRINT_LIB_INFO(avformat, AVFORMAT, flags, level);
+#endif
+#if CONFIG_AVDEVICE
     PRINT_LIB_INFO(avdevice, AVDEVICE, flags, level);
+#endif
+#if CONFIG_AVFILTER
     PRINT_LIB_INFO(avfilter, AVFILTER, flags, level);
+#endif
+#if CONFIG_SWSCALE
     PRINT_LIB_INFO(swscale,  SWSCALE,  flags, level);
+#endif
+#if CONFIG_SWRESAMPLE
     PRINT_LIB_INFO(swresample,SWRESAMPLE,  flags, level);
+#endif
+#if CONFIG_POSTPROC
     PRINT_LIB_INFO(postproc, POSTPROC, flags, level);
+#endif
 }
 
 
@@ -130,6 +151,9 @@ int get_plane_sizes(int size[4], enum AVPixelFormat pix_fmt, int height,
 
     const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
     memset(size, 0, sizeof(size[0])*4);
+
+    if (!height)
+        return AVERROR(EINVAL);
 
     if (!desc || desc->flags & AV_PIX_FMT_FLAG_HWACCEL)
         return AVERROR(EINVAL);
