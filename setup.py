@@ -7,7 +7,7 @@ from os import environ
 from ffpyplayer import version
 try:
     import Cython.Compiler.Options
-    Cython.Compiler.Options.annotate = True
+    #Cython.Compiler.Options.annotate = True
     from Cython.Distutils import build_ext
     have_cython = True
     cmdclass = {'build_ext': build_ext}
