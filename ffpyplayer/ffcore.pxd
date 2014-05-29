@@ -122,7 +122,7 @@ cdef class VideoState(object):
 
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                   VideoSettings *player) nogil except 1
+                   VideoSettings *player, int paused) nogil except 1
     cdef int cquit(VideoState self) nogil except 1
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil except? 0.0

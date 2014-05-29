@@ -199,7 +199,7 @@ cdef class VideoState(object):
                          'src_pix_fmt': ''}
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                   VideoSettings *player) nogil except 1:
+                   VideoSettings *player, int paused) nogil except 1:
         cdef int i
         self.player = player
         memset(self.pictq, 0, sizeof(self.pictq))
@@ -239,6 +239,8 @@ cdef class VideoState(object):
         self.audio_last_serial = -1
         self.av_sync_type = player.av_sync_type
         self.reached_eof = 0
+        if paused:
+            self.toggle_pause()
 
         with gil:
             self.read_tid = MTThread(mt_gen.mt_src)

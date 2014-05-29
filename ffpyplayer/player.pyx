@@ -97,6 +97,9 @@ cdef class MediaPlayer(object):
         the available options. Note, many options have identical names and meaning
         as in the FFplay options: www.ffmpeg.org/ffplay.html
 
+            *paused* (bool): If True, the player will be in a paused state
+            after creation, otherwise, it will immediately start playing.
+
             *cpuflags* (str): similar to ffplay
 
             *max_alloc* (int): similar to ffplay
@@ -327,7 +330,7 @@ cdef class MediaPlayer(object):
         if av_lockmgr_register(self.mt_gen.get_lockmgr()):
             raise ValueError('Could not initialize lock manager.')
         self.ivs = VideoState()
-        self.ivs.cInit(self.mt_gen, self.vid_sink, settings)
+        self.ivs.cInit(self.mt_gen, self.vid_sink, settings, ff_opts.get('paused', False))
         flags = SDL_INIT_AUDIO | SDL_INIT_TIMER
         if settings.audio_disable:# or audio_sink != 'SDL':
             flags &= ~SDL_INIT_AUDIO
@@ -369,7 +372,7 @@ cdef class MediaPlayer(object):
 
         The frame is returned as a :class:`ffpyplayer.pic.Image`. If CONFIG_AVFILTER
         is True when compiling, or if the video pixel format is the same as the
-        output pixel format, the Image returned is just a new refrence to the internal
+        output pixel format, the Image returned is just a new reference to the internal
         buffers and no copying occurs (see :class:`ffpyplayer.pic.Image`), otherwise
         the buffers are newly created and copied.
 
@@ -482,10 +485,11 @@ cdef class MediaPlayer(object):
         Returns metadata of the file being played.
 
         **Returns**:
-            (dict): Some player metadata. e.g. frame_rate is reported as a
-            numerator anddenominator. src and sink video sizes correspond to
+            (dict): Some player metadata. e.g. `frame_rate` is reported as a
+            numerator and denominator. src and sink video sizes correspond to
             the frame size of the original video, and the frames returned by
-            :meth:`get_frame`, respectively.
+            :meth:`get_frame`, respectively. `src_pix_fmt` is the pixel format
+            of the original input stream.
 
         ::
 
@@ -493,20 +497,25 @@ cdef class MediaPlayer(object):
             {'duration': 71.972, 'sink_vid_size': (0, 0), 'src_vid_size':
              (704, 480), 'frame_rate': (13978, 583),
              'title': 'The Melancholy of Haruhi Suzumiya: Special Ending',
-             'src_pix_fmt': 'rgb24'}
+             'src_pix_fmt': 'yuv420p'}
 
         .. warning::
 
             The dictionary returned will have default values until the file is
             open and read. Because a second thread is created and used to read
             the file, when the constructor returns the dict might still have
-            the default values. After the first frame is read, the dictionary
-            entries are correct with respect to the file metadata.
+            the default values.
+
+            After the first frame is read, the dictionary entries are correct
+            with respect to the file metadata. Alternatively, you can wait
+            until the desired parameter is updated from its default value.
+            Note, the metadata dict will be updated even if the video is
+            paused.
 
         .. note::
 
             Some paramteres can change as the streams are manipulated (e.g. the
-            frame size parameters).
+            frame size and source format parameters).
         '''
         return self.ivs.metadata
 
@@ -626,20 +635,42 @@ cdef class MediaPlayer(object):
 
     def get_output_pix_fmt(self):
         '''
-        Returns the current output pixel fmt. If output has already been queued
-        images returned with get_frame may not be in this format.
+        Returns the pixel fmt in which output images are returned when calling
+        :attr:`get_frame`.
+
+        You can set the output format by specifying `out_fmt` in `ff_opts`
+        when creating this instance. Also, if avfilter is enabled, you can
+        change it dynamically with :meth:`set_output_pix_fmt`.
+
+        ::
+
+            >>> print(player.get_output_pix_fmt())
+            rgb24
         '''
         return self.vid_sink.get_out_pix_fmt()
 
     def set_output_pix_fmt(self, pix_fmt):
         '''
+        Sets the pixel fmt in which output images are returned when calling
+        :attr:`get_frame`.
+
+        ::
+
+            >>> player.set_output_pix_fmt('yuv420p')
+
         sets the output format to use, this will only take effect on images that
         have not been queued yet.
 
         .. note::
 
             if CONFIG_AVFILTER was False when compiling, this function will raise
-            an error.
+            an exception.
+
+        .. note::
+
+            It may take a few calls to :attr:`get_frame` before it starts returning
+            frames in the newly set output format. If images have been queued internally
+            before this is called, they will still be returned in the old format.
         '''
         cdef AVPixelFormat fmt
         if not CONFIG_AVFILTER:
