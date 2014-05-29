@@ -49,6 +49,7 @@ __all__ = ('Image', 'SWScale', 'get_image_size')
 include "inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
+from cython cimport view as cyview
 
 cdef extern from "string.h" nogil:
     void *memset(void *, int, size_t)
@@ -437,7 +438,7 @@ cdef class Image(object):
                           frame.width, frame.height)
         return Image(frame=<size_t>frame)
 
-    def is_ref(self):
+    cpdef is_ref(Image self):
         '''
         Returns whether the image buffer is FFmpeg referenced. This can only be
         True when the buffers were allocated internally or by FFmpeg, see
@@ -465,7 +466,7 @@ cdef class Image(object):
         '''
         return self.frame.buf[0] != NULL
 
-    def get_linesizes(Image self, keep_align=False):
+    cpdef get_linesizes(Image self, keep_align=False):
         '''
         Returns the linesize of each plane.
 
@@ -536,7 +537,7 @@ cdef class Image(object):
             ls = lsl
         return (ls[0], ls[1], ls[2], ls[3])
 
-    def get_size(Image self):
+    cpdef get_size(Image self):
         '''
         Returns the size of the frame.
 
@@ -550,7 +551,7 @@ cdef class Image(object):
         '''
         return (self.frame.width, self.frame.height)
 
-    def get_pixel_format(Image self):
+    cpdef get_pixel_format(Image self):
         '''
         Returns the pixel format of the image. Can be one of
         :attr:`ffpyplayer.tools.pix_fmts`.
@@ -565,7 +566,7 @@ cdef class Image(object):
         '''
         return av_get_pix_fmt_name(self.pix_fmt)
 
-    def get_buffer_size(Image self, keep_align=False):
+    cpdef get_buffer_size(Image self, keep_align=False):
         '''
         Returns the size of the buffers of each plane.
 
@@ -618,7 +619,7 @@ cdef class Image(object):
             raise Exception('Failed to get planesizes: ' + emsg(res, msg, sizeof(msg)))
         return (size[0], size[1], size[2], size[3])
 
-    def to_bytearray(Image self, keep_align=False):
+    cpdef to_bytearray(Image self, keep_align=False):
         '''
         Returns a copy of the plane buffers as bytearrays.
 
@@ -696,5 +697,94 @@ cdef class Image(object):
                 data[i] = planes[i]
         with nogil:
             av_image_copy(data, ls, <const uint8_t **>self.frame.data, self.frame.linesize,
+                          <AVPixelFormat>self.frame.format, self.frame.width, self.frame.height)
+        return planes
+
+    cpdef to_memoryview(Image self, keep_align=False):
+        '''
+        Returns a memoryviews of the buffers of the image.
+
+        :Parameters:
+
+            `keep_align`: bool
+                If True, the buffers of the original image will be returned
+                without making any additional copies. If False, then if the
+                image alignment is already 1, the original buffers will be
+                returned, otherwise, new buffers will be created with an
+                alignment of 1 and the buffers will be copied into them
+                and returned. See :meth:`to_bytearray`.
+
+        :Returns:
+
+            (4-element list): A list of cython arrays for each plane of this
+            image's pixel format. If the data didn't have to be copied, the
+            arrays point directly to the original image data. The arrays
+            can be used where memoryviews are accepted, since cython arrays
+            implement the memoryview interface.
+
+        .. warning::
+            If the data points to the original image data, you must ensure
+            that this :class:`Image` instance does not go out of memory
+            while the returned arrays are in use. Otherwise when the
+            :class:`Image` goes out of memory, the original data will become
+            invalid and usage of the returned arrays will crash python.
+
+        Get the buffer of an RGB image::
+
+            >>> w, h = 100, 10
+            >>> img = Image(pix_fmt='rgb24', size=(w, h))
+            >>> img.get_linesizes(keep_align=True)
+            (300, 0, 0, 0)
+            >>> img.to_memoryview()
+            [<ffpyplayer.pic.array object at 0x055DCE58>, None, None, None]
+            >>> arr = img.to_memoryview()[0]
+            >>> # memview is the only attribute of cython arrays
+            >>> arr.memview
+            <MemoryView of 'array' at 0x55d1468>
+            >>> arr.memview.size
+            3000
+        '''
+        cdef list planes = [None, None, None, None]
+        cdef cyview.array cyarr
+        cdef int i, res
+        cdef int size[4]
+        cdef char *data[4]
+        cdef int ls[4]
+        cdef int *cls = self.frame.linesize
+        cdef char msg[256]
+        memset(data, 0, sizeof(data))
+
+        res = av_image_fill_linesizes(ls, self.pix_fmt, self.frame.width)
+        if res < 0:
+            raise Exception('Failed to initialize linesizes: ' +
+                            emsg(res, msg, sizeof(msg)))
+
+        if keep_align or (cls[0] == ls[0] and cls[1] == ls[1] and
+                          cls[2] == ls[2] and cls[3] == ls[3]):
+            res = get_plane_sizes(size, <AVPixelFormat>self.frame.format,
+                                  self.frame.height, self.frame.linesize)
+            if res < 0:
+                raise Exception('Failed to get plane sizes: ' + emsg(res, msg, sizeof(msg)))
+
+            for i in range(4):
+                if not size[i]:
+                    continue
+                planes[i] = cyarr = cyview.array(shape=(size[i], ), itemsize=sizeof(char),
+                format="B", mode="c", allocate_buffer=False)
+                cyarr.data = <char *>self.frame.data[i]
+            return planes
+
+        res = get_plane_sizes(size, <AVPixelFormat>self.frame.format, self.frame.height, ls)
+        if res < 0:
+            raise Exception('Failed to get plane sizes: ' + emsg(res, msg, sizeof(msg)))
+        for i in range(4):
+            if not size[i]:
+                continue
+            planes[i] = cyarr = cyview.array(shape=(size[i], ), itemsize=sizeof(char),
+            format="B", mode="c", allocate_buffer=True)
+            data[i] = cyarr.data
+
+        with nogil:
+            av_image_copy(<uint8_t **>data, ls, <const uint8_t **>self.frame.data, self.frame.linesize,
                           <AVPixelFormat>self.frame.format, self.frame.width, self.frame.height)
         return planes

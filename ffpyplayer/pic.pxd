@@ -17,3 +17,11 @@ cdef class Image(object):
     cdef AVFrame *frame
     cdef list byte_planes
     cdef AVPixelFormat pix_fmt
+
+    cpdef is_ref(Image self)
+    cpdef get_linesizes(Image self, keep_align=*)
+    cpdef get_size(Image self)
+    cpdef get_pixel_format(Image self)
+    cpdef get_buffer_size(Image self, keep_align=*)
+    cpdef to_bytearray(Image self, keep_align=*)
+    cpdef to_memoryview(Image self, keep_align=*)
