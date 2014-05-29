@@ -27,6 +27,9 @@ cdef class VideoSink(object):
     cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil:
         return pix_fmts
 
+    cdef object get_out_pix_fmt(VideoSink self):
+        return pix_fmt
+
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil:
         pix_fmts[0] = out_fmt
         pix_fmt = av_get_pix_fmt_name(out_fmt)

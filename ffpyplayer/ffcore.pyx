@@ -195,7 +195,8 @@ cdef class VideoState(object):
     def __cinit__(VideoState self):
         self.self_id = <PyObject*>self
         self.metadata = {'src_vid_size':(0, 0), 'sink_vid_size':(0, 0),
-                         'title':'', 'duration':0.0, 'frame_rate':(0, 0)}
+                         'title':'', 'duration':0.0, 'frame_rate':(0, 0),
+                         'src_pix_fmt': ''}
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player) nogil except 1:

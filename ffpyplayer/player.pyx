@@ -492,7 +492,8 @@ cdef class MediaPlayer(object):
             >>> print player.get_metadata()
             {'duration': 71.972, 'sink_vid_size': (0, 0), 'src_vid_size':
              (704, 480), 'frame_rate': (13978, 583),
-             'title': 'The Melancholy of Haruhi Suzumiya: Special Ending'}
+             'title': 'The Melancholy of Haruhi Suzumiya: Special Ending',
+             'src_pix_fmt': 'rgb24'}
 
         .. warning::
 
@@ -622,6 +623,25 @@ cdef class MediaPlayer(object):
         self.settings.screen_width = width
         self.settings.screen_height = height
         self.settings_mutex.unlock()
+
+    def get_output_pix_fmt(self):
+        return self.vid_sink.get_out_pix_fmt()
+
+    def set_output_pix_fmt(self, pix_fmt):
+        '''
+        .. note::
+
+            This should only be called from the main thread (the thread that calls
+            get_frame).
+
+        .. note::
+
+            if CONFIG_AVFILTER was False when compiling, this function will raise
+            an error.
+        '''
+        if not CONFIG_AVFILTER:
+            raise Exception('You can only change the fmt when avfilter is enabled.')
+        pass
 
     # Currently, if a stream is re-opened when the stream was not open before
     # it'l cause some seeking. We can probably remove it by setting a seek flag
