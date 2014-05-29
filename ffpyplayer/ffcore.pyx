@@ -89,6 +89,7 @@ cdef int video_thread_enter(void *obj_id) except? 1 with gil:
             raise
         else:
             return 1
+
 cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
     cdef bytes msg
@@ -103,22 +104,11 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
             raise
         else:
             return 1
+
 cdef int decode_interrupt_cb(void *obj_id) with gil:
     cdef VideoState vs = <VideoState>obj_id
     with nogil:
         return vs.abort_request
-cdef void sdl_audio_callback(void *obj_id, uint8_t *stream, int len) with gil:
-    cdef VideoState vs = <VideoState>obj_id
-    cdef bytes msg
-    try:
-        with nogil:
-            vs.sdl_audio_callback(stream, len)
-    except:
-        msg = traceback.format_exc()
-        av_log(NULL, AV_LOG_FATAL, msg)
-        vs.vid_sink.request_thread(FF_QUIT_EVENT)
-        if vs.mt_gen.mt_src == Py_MT:
-            raise
 
 cdef int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec) nogil:
     cdef int ret = avformat_match_stream_specifier(s, st, spec)
@@ -1428,7 +1418,7 @@ cdef class VideoState(object):
         wanted_spec.format = AUDIO_S16SYS
         wanted_spec.silence = 0
         wanted_spec.samples = SDL_AUDIO_BUFFER_SIZE
-        wanted_spec.callback = sdl_audio_callback
+        wanted_spec.callback = <void (*)(void *, uint8_t *, int)>self.sdl_audio_callback
         wanted_spec.userdata = self.self_id
         while SDL_OpenAudio(&wanted_spec, &spec) < 0:
             av_log(NULL, AV_LOG_WARNING, "SDL_OpenAudio (%d channels): %s\n",
