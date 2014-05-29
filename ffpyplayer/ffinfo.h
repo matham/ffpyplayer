@@ -34,7 +34,7 @@
         }                                                               \
     }                                                                   \
 
-void print_all_libs_info(int flags, int level)
+static void print_all_libs_info(int flags, int level)
 {
 #if CONFIG_AVUTIL
     PRINT_LIB_INFO(avutil,   AVUTIL,   flags, level);
@@ -64,7 +64,7 @@ void print_all_libs_info(int flags, int level)
 
 
 
-const AVOption *opt_find(void *obj, const char *name, const char *unit,
+static const AVOption *opt_find(void *obj, const char *name, const char *unit,
                             int opt_flags, int search_flags)
 {
     const AVOption *o = av_opt_find(obj, name, unit, opt_flags, search_flags);
@@ -74,7 +74,7 @@ const AVOption *opt_find(void *obj, const char *name, const char *unit,
 }
 
 #define FLAGS (o->type == AV_OPT_TYPE_FLAGS) ? AV_DICT_APPEND : 0
-int opt_default(const char *opt, const char *arg,
+static int opt_default(const char *opt, const char *arg,
 		struct SwsContext *sws_opts, AVDictionary **swr_opts,
 		AVDictionary **format_opts, AVDictionary **codec_opts)
 {
@@ -144,7 +144,7 @@ int opt_default(const char *opt, const char *arg,
     return AVERROR_OPTION_NOT_FOUND;
 }
 
-int get_plane_sizes(int size[4], enum AVPixelFormat pix_fmt, int height,
+static int get_plane_sizes(int size[4], enum AVPixelFormat pix_fmt, int height,
                            const int linesizes[4])
 {
     int i, total_size, has_plane[4] = { 0 };
