@@ -189,7 +189,7 @@ cdef class MediaPlayer(object):
     '''
 
     def __cinit__(self, filename, callback, loglevel='error', ff_opts={},
-                  thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
+                  thread_lib='SDL', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
