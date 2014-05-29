@@ -10,9 +10,8 @@ cdef extern from "Python.h":
     PyObject* PyString_FromString(const char *)
     void Py_DECREF(PyObject *)
 
-cimport ffthreading
-from ffthreading cimport MTMutex
-from pic cimport Image
+from ffpyplayer.ffthreading cimport MTMutex
+from ffpyplayer.pic cimport Image
 
 
 cdef AVPixelFormat *pix_fmts = [AV_PIX_FMT_RGB24, AV_PIX_FMT_NONE]

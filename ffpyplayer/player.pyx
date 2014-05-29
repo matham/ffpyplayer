@@ -22,15 +22,11 @@ cdef extern from "string.h" nogil:
     void * memset(void *, int, size_t)
 
 
-cimport ffthreading
-from ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
-cimport ffqueue
-from ffqueue cimport FFPacketQueue
-cimport ffcore
-from ffcore cimport VideoState
-cimport sink
-from sink cimport VideoSettings, VideoSink
-from tools import loglevels, _initialize_ffmpeg
+from ffpyplayer.ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
+from ffpyplayer.ffqueue cimport FFPacketQueue
+from ffpyplayer.ffcore cimport VideoState
+from ffpyplayer.sink cimport VideoSettings, VideoSink
+from ffpyplayer.tools import loglevels, _initialize_ffmpeg
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 

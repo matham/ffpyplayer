@@ -15,8 +15,7 @@ __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
 
 include 'ff_defs.pxi'
 
-cimport ffthreading
-from ffthreading cimport Py_MT, MTMutex
+from ffpyplayer.ffthreading cimport Py_MT, MTMutex
 import re
 from functools import partial
 

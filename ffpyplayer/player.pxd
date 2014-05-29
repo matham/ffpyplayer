@@ -1,12 +1,9 @@
 
 include 'ff_defs.pxi'
 
-cimport ffthreading
-from ffthreading cimport MTGenerator, MTThread, MTMutex
-cimport ffcore
-from ffcore cimport VideoState
-cimport sink
-from sink cimport VideoSettings, VideoSink
+from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex
+from ffpyplayer.ffcore cimport VideoState
+from ffpyplayer.sink cimport VideoSettings, VideoSink
 
 
 

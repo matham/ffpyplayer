@@ -1,14 +1,10 @@
 
 include 'ff_defs.pxi'
 
-cimport ffqueue
-from ffqueue cimport FFPacketQueue
-cimport ffthreading
-from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
-cimport ffclock
-from ffclock cimport Clock
-cimport sink
-from sink cimport VideoSettings, VideoSink, VideoPicture, SubPicture
+from ffpyplayer.ffqueue cimport FFPacketQueue
+from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
+from ffpyplayer.ffclock cimport Clock
+from ffpyplayer.sink cimport VideoSettings, VideoSink, VideoPicture, SubPicture
 from cpython.ref cimport PyObject
 
 

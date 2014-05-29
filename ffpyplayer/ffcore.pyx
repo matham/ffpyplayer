@@ -5,14 +5,10 @@ __all__ = ('VideoState', )
 include 'ff_defs_comp.pxi'
 include "inline_funcs.pxi"
 
-cimport ffqueue
-from ffqueue cimport FFPacketQueue, get_flush_packet
-cimport ffthreading
-from ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
-cimport ffclock
-from ffclock cimport Clock
-cimport sink
-from sink cimport VideoSink, VideoPicture, SubPicture
+from ffpyplayer.ffqueue cimport FFPacketQueue, get_flush_packet
+from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
+from ffpyplayer.ffclock cimport Clock
+from ffpyplayer.sink cimport VideoSink, VideoPicture, SubPicture
 from cpython.ref cimport PyObject
 import traceback
 

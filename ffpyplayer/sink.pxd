@@ -1,8 +1,7 @@
 
 include "ff_defs.pxi"
 
-cimport ffthreading
-from ffthreading cimport MTMutex
+from ffpyplayer.ffthreading cimport MTMutex
 
 cdef class VideoSink(object):
     cdef MTMutex alloc_mutex
