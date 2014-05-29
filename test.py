@@ -16,6 +16,8 @@ from kivy.lang import Builder
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.weakmethod import WeakMethod
 import sys
+import time
+from threading import RLock, Thread
 import logging
 logging.root.setLevel(logging.DEBUG)
 
@@ -71,8 +73,12 @@ class PlayerApp(App):
         super(PlayerApp, self).__init__(**kwargs)
         self.texture = None
         self.size = (0, 0)
-        self.buffer = None
         self.next_frame = None
+        self._done = False
+        self._lock = RLock()
+        self._thread = Thread(target=self._next_frame, name='Next frame')
+        self._trigger = Clock.create_trigger(self.redraw)
+        self._force_refresh = False
 
     def build(self):
         self.root = Root()
@@ -86,7 +92,7 @@ class PlayerApp(App):
         ff_opts = {}
         self.ffplayer = MediaPlayer(filename, callback=self.callback_ref,
                                     loglevel=log_level, ff_opts=ff_opts)
-        Clock.schedule_once(self.redraw, 0)
+        self._thread.start()
         self.keyboard = Window.request_keyboard(None, self.root)
         self.keyboard.bind(on_key_down=self.on_keyboard_down)
 
@@ -95,10 +101,13 @@ class PlayerApp(App):
             w, h = self.ffplayer.get_metadata()['src_vid_size']
             if not h:
                 return
+            lock = self._lock
+            lock.acquire()
             if self.root.image.width < self.root.image.height * w / float(h):
                 self.ffplayer.set_size(-1, self.root.image.height)
             else:
                 self.ffplayer.set_size(self.root.image.width, -1)
+            lock.release()
             logging.debug('ffpyplayer: Resized video.')
 
     def update_pts(self, *args):
@@ -108,45 +117,41 @@ class PlayerApp(App):
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if not self.ffplayer:
             return False
+        lock = self._lock
         ctrl = 'ctrl' in modifiers
         if keycode[1] == 'p' or keycode[1] == 'spacebar':
             logging.info('Toggled pause.')
             self.ffplayer.toggle_pause()
-            Clock.unschedule(self.redraw)
-            Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'r':
             logging.debug('ffpyplayer: Forcing a refresh.')
-            self.redraw(force_refresh=True)
+            self._force_refresh = True
         elif keycode[1] == 'v':
             logging.debug('ffpyplayer: Changing video stream.')
+            lock.acquire()
             self.ffplayer.request_channel('video',
                                           'close' if ctrl else 'cycle')
+            lock.release()
             Clock.unschedule(self.update_pts)
-            Clock.unschedule(self.redraw)
             if ctrl:    # need to continue updating pts, since video is disabled.
                 Clock.schedule_interval(self.update_pts, 0.05)
-            else:
-                Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'a':
             logging.debug('ffpyplayer: Changing audio stream.')
+            lock.acquire()
             self.ffplayer.request_channel('audio',
                                           'close' if ctrl else 'cycle')
+            lock.release()
         elif keycode[1] == 't':
             logging.debug('ffpyplayer: Changing subtitle stream.')
+            lock.acquire()
             self.ffplayer.request_channel('subtitle',
                                           'close' if ctrl else 'cycle')
+            lock.release()
         elif keycode[1] == 'right':
             logging.debug('ffpyplayer: Seeking forward by 10s.')
             self.ffplayer.seek(10.)
-            self.next_frame = None
-            Clock.unschedule(self.redraw)
-            Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'left':
             logging.debug('ffpyplayer: Seeking back by 10s.')
             self.ffplayer.seek(-10.)
-            self.next_frame = None
-            Clock.unschedule(self.redraw)
-            Clock.schedule_once(self.redraw, 0)
         elif keycode[1] == 'up':
             logging.debug('ffpyplayer: Increasing volume.')
             self.ffplayer.set_volume(self.ffplayer.get_volume() + 0.01)
@@ -163,9 +168,7 @@ class PlayerApp(App):
             self.root.seek.width * self.ffplayer.get_metadata()['duration'])
             logging.debug('ffpyplayer: Seeking to {}.'.format(pts))
             self.ffplayer.seek(pts, relative=False)
-            self.next_frame = None
-            Clock.unschedule(self.redraw)
-            Clock.schedule_once(self.redraw, 0)
+            self._force_refresh = True
             return True
         return False
 
@@ -175,19 +178,46 @@ class PlayerApp(App):
         if selector == 'quit':
             logging.debug('ffpyplayer: Quitting.')
             def close(*args):
-                Clock.unschedule(self.redraw)
+                self._done = True
                 self.ffplayer = None
             Clock.schedule_once(close, 0)
         # called from internal thread, it typically reads forward
         elif selector == 'display_sub':
             self.display_subtitle(*value)
 
+    def _next_frame(self):
+        ffplayer = self.ffplayer
+        sleep = time.sleep
+        trigger = self._trigger
+        while not self._done:
+            force = self._force_refresh
+            if force:
+                self._force_refresh = False
+            frame, val = ffplayer.get_frame(force_refresh=force)
+
+            if val == 'eof':
+                logging.debug('ffpyplayer: Got eof.')
+                sleep(1 / 30.)
+            elif val == 'paused':
+                logging.debug('ffpyplayer: Got paused.')
+                sleep(1 / 30.)
+            else:
+                if frame:
+                    logging.debug('ffpyplayer: Next frame: {}.'.format(val))
+                    sleep(val)
+                    self.next_frame = frame
+                    trigger()
+                else:
+                    val = val if val else (1 / 30.)
+                    logging.debug('ffpyplayer: Schedule next frame check: {}.'
+                                  .format(val))
+                    sleep(val)
+
     def redraw(self, dt=0, force_refresh=False):
         if not self.ffplayer:
             return
-        if self.next_frame and not force_refresh:
+        if self.next_frame:
             img, pts = self.next_frame
-            self.next_frame = None
             if img.get_size() != self.size or self.texture is None:
                 self.root.image.canvas.remove_group(str(self)+'_display')
                 self.texture = Texture.create(size=img.get_size(),
@@ -199,26 +229,13 @@ class PlayerApp(App):
                 self.size = img.get_size()
                 logging.debug('ffpyplayer: Creating new image texture of '
                               'size: {}.'.format(self.size))
-            self.buffer = bytes(img.to_bytearray()[0])
-            self.texture.blit_buffer(self.buffer)
+            self.texture.blit_buffer(img.to_memoryview()[0])
             self.root.image.texture = None
             self.root.image.texture = self.texture
             self.root.seek.value = pts
             logging.debug('ffpyplayer: Blitted new frame with time: {}.'
                           .format(pts))
-        self.next_frame, val = self.ffplayer.get_frame(force_refresh=
-                                                       force_refresh)
-        if val == 'eof':
-            logging.debug('ffpyplayer: Got eof.')
-            return
-        elif val == 'paused':
-            logging.debug('ffpyplayer: Got paused.')
-            return
-        else:
-            logging.debug('ffpyplayer: Next frame scheduled at {}.'
-                          .format(val))
-        Clock.schedule_once(self.redraw,
-                            val if val or self.next_frame else 1/60.)
+
         if self.root.seek.value:
             self.root.seek.max = self.ffplayer.get_metadata()['duration']
 
@@ -227,7 +244,10 @@ class PlayerApp(App):
 
     def reload_buffer(self, *args):
         logging.debug('ffpyplayer: Reloading buffer.')
-        self.texture.blit_buffer(self.buffer, colorfmt='rgb',
+        frame = self.next_frame
+        if not frame:
+            return
+        self.texture.blit_buffer(frame[0].to_memoryview()[0], colorfmt='rgb',
                                  bufferfmt='ubyte')
 
 if __name__ == '__main__':
@@ -237,5 +257,6 @@ if __name__ == '__main__':
     # because MediaPlayer runs non-daemon threads, when the main thread exists
     # it'll get stuck waiting for those threads to close, so we manually
     # have to delete these threads by deleting the MediaPlayer object.
+    a._done = True
     a.ffplayer = None
     set_log_callback(None)
