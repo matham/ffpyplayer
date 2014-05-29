@@ -101,11 +101,6 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
         else:
             return 1
 
-cdef int decode_interrupt_cb(void *obj_id) with gil:
-    cdef VideoState vs = <VideoState>obj_id
-    with nogil:
-        return vs.abort_request
-
 cdef int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec) nogil:
     cdef int ret = avformat_match_stream_specifier(s, st, spec)
     if ret < 0:
@@ -269,6 +264,9 @@ cdef class VideoState(object):
             sws_freeContext(self.player.img_convert_ctx)
 
         return 0
+
+    cdef int decode_interrupt_cb(VideoState self) nogil:
+        return self.abort_request
 
     cdef int get_master_sync_type(VideoState self) nogil:
         if self.av_sync_type == AV_SYNC_VIDEO_MASTER:
@@ -1656,7 +1654,7 @@ cdef class VideoState(object):
 
         ic = avformat_alloc_context()
         #av_opt_set_int(ic, "threads", 1, 0)
-        ic.interrupt_callback.callback = decode_interrupt_cb
+        ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
         with gil:
             err = avformat_open_input(&ic, self.player.input_filename, self.iformat, &self.player.format_opts)
