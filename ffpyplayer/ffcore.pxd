@@ -137,13 +137,15 @@ cdef class VideoState(object):
     cdef object video_refresh(VideoState self, int force_refresh) with gil
     cdef int alloc_picture(VideoState self) nogil except 1
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           double duration, int64_t pos, int serial) nogil except 1
+                           double duration, int64_t pos, int serial,
+                           AVPixelFormat out_fmt) nogil except 1
     cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
                                        AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1
         cdef int configure_video_filters(VideoState self, AVFilterGraph *graph,
-                                         const char *vfilters, AVFrame *frame) nogil except? 1
+                                         const char *vfilters, AVFrame *frame,
+                                         AVPixelFormat pix_fmt) nogil except? 1
         cdef int configure_audio_filters(VideoState self, const char *afilters,
                                          int force_output_format) nogil except? 1
     cdef int video_thread(VideoState self) nogil except 1

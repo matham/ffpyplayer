@@ -200,8 +200,13 @@ cdef class VideoState(object):
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player) nogil except 1:
+        cdef int i
         self.player = player
         memset(self.pictq, 0, sizeof(self.pictq))
+
+        for i in range(VIDEO_PICTURE_QUEUE_SIZE):
+            self.pictq[i].pix_fmt = <AVPixelFormat>-1
+
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
         with gil:
@@ -589,7 +594,8 @@ cdef class VideoState(object):
 
 
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           double duration, int64_t pos, int serial) nogil except 1:
+                           double duration, int64_t pos, int serial,
+                           AVPixelFormat out_fmt) nogil except 1:
         cdef VideoPicture *vp
 
         IF 0:# and defined(DEBUG_SYNC):
@@ -611,11 +617,13 @@ cdef class VideoState(object):
 
         # alloc or resize hardware picture buffer
         if (vp.pict == NULL or vp.reallocate or (not vp.allocated) or
-            vp.width != src_frame.width or vp.height != src_frame.height):
+            vp.width != src_frame.width or vp.height != src_frame.height
+            or <int>vp.pix_fmt != <int>out_fmt):
             vp.allocated = 0
             vp.reallocate = 0
             vp.width = src_frame.width
             vp.height = src_frame.height
+            vp.pix_fmt = out_fmt
             ''' the allocation must be done in the main thread to avoid
             locking problems. '''
             self.vid_sink.request_thread(FF_ALLOC_EVENT)
@@ -739,7 +747,8 @@ cdef class VideoState(object):
             return ret
 
         cdef int configure_video_filters(VideoState self, AVFilterGraph *graph,
-                                         const char *vfilters, AVFrame *frame) nogil except? 1:
+                                         const char *vfilters, AVFrame *frame,
+                                         AVPixelFormat pix_fmt) nogil except? 1:
             cdef char sws_flags_str[128]
             cdef char buffersrc_args[256]
             cdef char scale_args[256]
@@ -750,7 +759,7 @@ cdef class VideoState(object):
             cdef AVFilterContext *filt_scale = NULL
             cdef AVCodecContext *codec = self.video_st.codec
             cdef AVRational fr = av_guess_frame_rate(self.ic, self.video_st, NULL)
-            cdef AVPixelFormat * pix_fmts = self.vid_sink.get_out_pix_fmts()
+            cdef AVPixelFormat *pix_fmts = [pix_fmt, AV_PIX_FMT_NONE]
             with gil:
                 pystr = "flags=%"+PRId64
 
@@ -896,6 +905,7 @@ cdef class VideoState(object):
         cdef AVRational frame_rate = av_guess_frame_rate(self.ic, self.video_st, NULL)
         cdef char errbuf[256]
         cdef char *errbuf_ptr = errbuf
+        cdef AVPixelFormat last_out_fmt = self.vid_sink._get_out_pix_fmt()
         IF CONFIG_AVFILTER:
             cdef AVFilterGraph *graph = avfilter_graph_alloc()
             cdef AVFilterContext *filt_out = NULL
@@ -904,6 +914,7 @@ cdef class VideoState(object):
             cdef int last_h = 0
             cdef int last_scr_h = 0, last_scr_w = 0
             cdef AVPixelFormat last_format = <AVPixelFormat>-2
+            cdef AVPixelFormat last_out_fmt_temp
             cdef int last_serial = -1
         memset(&pkt, 0, sizeof(pkt))
 
@@ -920,10 +931,12 @@ cdef class VideoState(object):
                 continue
 
             IF CONFIG_AVFILTER:
+                last_out_fmt_temp = self.vid_sink._get_out_pix_fmt()
                 if (last_w != frame.width or last_h != frame.height
                     or last_scr_h != self.player.screen_height
                     or last_scr_w != self.player.screen_width
-                    or last_format != frame.format or last_serial != serial):
+                    or last_format != frame.format or last_serial != serial
+                    or last_out_fmt != last_out_fmt_temp):
                     av_log(NULL, AV_LOG_DEBUG,
                            "Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
                            last_w, last_h,
@@ -932,7 +945,7 @@ cdef class VideoState(object):
                            <const char *>av_x_if_null(av_get_pix_fmt_name(<AVPixelFormat>frame.format), "none"), serial)
                     avfilter_graph_free(&graph)
                     graph = avfilter_graph_alloc()
-                    ret = self.configure_video_filters(graph, self.player.vfilters, frame)
+                    ret = self.configure_video_filters(graph, self.player.vfilters, frame, last_out_fmt_temp)
                     if ret < 0:
                         if av_strerror(ret, errbuf, sizeof(errbuf)) < 0:
                             errbuf_ptr = strerror(AVUNERROR(ret))
@@ -947,6 +960,7 @@ cdef class VideoState(object):
                     last_scr_h = self.player.screen_height
                     last_scr_w = self.player.screen_width
                     last_format = <AVPixelFormat>frame.format
+                    last_out_fmt = last_out_fmt_temp
                     last_serial = serial
                     frame_rate = filt_out.inputs[0].frame_rate
                     with gil:
@@ -981,7 +995,8 @@ cdef class VideoState(object):
                         pts = NAN
                     else:
                         pts = frame.pts * av_q2d(tb)
-                    ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame), serial)
+                    ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame),
+                                             serial, last_out_fmt)
                     #av_frame_unref(frame)
             ELSE:
                 duration = 0
@@ -996,7 +1011,8 @@ cdef class VideoState(object):
                 with gil:
                     self.metadata['src_vid_size'] = (frame.width, frame.height)
                     self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
-                ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame), serial)
+                ret = self.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame),
+                                         serial, last_out_fmt)
                 #av_frame_unref(frame)
 
             if ret < 0:
@@ -1555,6 +1571,8 @@ cdef class VideoState(object):
             self.audioq.packet_queue_start()
             SDL_PauseAudio(0)
         elif avctx.codec_type ==  AVMEDIA_TYPE_VIDEO:
+            with gil:
+                self.metadata['src_pix_fmt'] = av_get_pix_fmt_name(avctx.pix_fmt)
             self.video_stream = stream_index
             self.video_st = ic.streams[stream_index]
             self.videoq.packet_queue_start()

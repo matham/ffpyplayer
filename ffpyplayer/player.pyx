@@ -625,23 +625,30 @@ cdef class MediaPlayer(object):
         self.settings_mutex.unlock()
 
     def get_output_pix_fmt(self):
+        '''
+        Returns the current output pixel fmt. If output has already been queued
+        images returned with get_frame may not be in this format.
+        '''
         return self.vid_sink.get_out_pix_fmt()
 
     def set_output_pix_fmt(self, pix_fmt):
         '''
-        .. note::
-
-            This should only be called from the main thread (the thread that calls
-            get_frame).
+        sets the output format to use, this will only take effect on images that
+        have not been queued yet.
 
         .. note::
 
             if CONFIG_AVFILTER was False when compiling, this function will raise
             an error.
         '''
+        cdef AVPixelFormat fmt
         if not CONFIG_AVFILTER:
             raise Exception('You can only change the fmt when avfilter is enabled.')
-        pass
+
+        fmt = av_get_pix_fmt(pix_fmt)
+        if fmt == AV_PIX_FMT_NONE:
+            raise Exception('Unrecognized output pixel format {}.'.format(pix_fmt))
+        self.vid_sink.set_out_pix_fmt(fmt)
 
     # Currently, if a stream is re-opened when the stream was not open before
     # it'l cause some seeking. We can probably remove it by setting a seek flag

@@ -7,10 +7,11 @@ cdef class VideoSink(object):
     cdef MTMutex alloc_mutex
     cdef object callback
     cdef int requested_alloc
+    cdef AVPixelFormat pix_fmt
 
-    cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil
-    cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil
+    cdef AVPixelFormat _get_out_pix_fmt(VideoSink self) nogil
     cdef object get_out_pix_fmt(VideoSink self)
+    cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt)
     cdef int request_thread(VideoSink self, uint8_t type) nogil except 1
     cdef int peep_alloc(VideoSink self) nogil except 1
     cdef int alloc_picture(VideoSink self, VideoPicture *vp) nogil except 1
@@ -76,6 +77,8 @@ cdef struct VideoPicture:
     int serial
     AVRational sar
     AVFrame *pict_ref
+    AVPixelFormat pix_fmt
+
 cdef struct SubPicture:
     double pts # presentation time stamp for this picture
     AVSubtitle sub

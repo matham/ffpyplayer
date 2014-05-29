@@ -14,25 +14,34 @@ from ffpyplayer.ffthreading cimport MTMutex
 from ffpyplayer.pic cimport Image
 
 
-cdef AVPixelFormat *pix_fmts = [AV_PIX_FMT_RGB24, AV_PIX_FMT_NONE]
-cdef bytes sub_ass = str('ass'), sub_text = str('text'), sub_fmt, pix_fmt = str('rgb24')
+cdef bytes sub_ass = b'ass', sub_text = b'text', sub_fmt
 
 cdef class VideoSink(object):
 
-    def __cinit__(VideoSink self, MTMutex mutex=None, object callback=None, **kwargs):
+    def __cinit__(VideoSink self, MTMutex mutex=None, object callback=None,
+                  **kwargs):
         self.alloc_mutex = mutex
         self.callback = callback
         self.requested_alloc = 0
+        self.pix_fmt = AV_PIX_FMT_NONE
 
-    cdef AVPixelFormat * get_out_pix_fmts(VideoSink self) nogil:
-        return pix_fmts
+    cdef AVPixelFormat _get_out_pix_fmt(VideoSink self) nogil:
+        return self.pix_fmt
 
     cdef object get_out_pix_fmt(VideoSink self):
-        return pix_fmt
+        return av_get_pix_fmt_name(self.pix_fmt)
 
-    cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt) nogil:
-        pix_fmts[0] = out_fmt
-        pix_fmt = av_get_pix_fmt_name(out_fmt)
+    cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt):
+        '''
+        Users set the pixel fmt here. If avfilter is enabled, the filter is
+        changed when this is changed. If disabled, this method may only
+        be called before other methods below, and can not be called once things
+        are running.
+
+        After the user changes the pix_fmt, it might take a few frames until they
+        receive the new fmt in case pics were already queued.
+        '''
+        self.pix_fmt = out_fmt
 
     cdef int request_thread(VideoSink self, uint8_t request) nogil except 1:
         if request == FF_ALLOC_EVENT:
@@ -63,13 +72,13 @@ cdef class VideoSink(object):
             with gil:
                 raise Exception('Could not allocate avframe.')
         if (av_image_alloc(vp.pict.data, vp.pict.linesize, vp.width,
-                           vp.height, pix_fmts[0], 1) < 0):
+                           vp.height, vp.pix_fmt, 1) < 0):
             av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
             with gil:
                 raise Exception('Could not allocate avframe buffer of size %dx%d.' %(vp.width, vp.height))
         vp.pict.width = vp.width
         vp.pict.height = vp.height
-        vp.pict.format = <int>pix_fmts[0]
+        vp.pict.format = <int>vp.pix_fmt
         return 0
 
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil:
@@ -88,14 +97,14 @@ cdef class VideoSink(object):
             av_frame_unref(vp.pict_ref)
             av_frame_move_ref(vp.pict_ref, src_frame)
         ELSE:
-            if pix_fmts[0] == <AVPixelFormat>src_frame.format:
+            if vp.pix_fmt == <AVPixelFormat>src_frame.format:
                 av_frame_unref(vp.pict_ref)
                 av_frame_move_ref(vp.pict_ref, src_frame)
                 return 0
             av_opt_get_int(player.sws_opts, 'sws_flags', 0, &player.sws_flags)
             player.img_convert_ctx = sws_getCachedContext(player.img_convert_ctx,\
             vp.width, vp.height, <AVPixelFormat>src_frame.format, vp.width, vp.height,\
-            pix_fmts[0], player.sws_flags, NULL, NULL, NULL)
+            vp.pix_fmt, player.sws_flags, NULL, NULL, NULL)
             if player.img_convert_ctx == NULL:
                 av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n")
                 with gil:
@@ -112,7 +121,7 @@ cdef class VideoSink(object):
         if vp.pict == NULL:
             return None
 
-        if CONFIG_AVFILTER or pix_fmts[0] == <AVPixelFormat>vp.pict_ref.format:
+        if CONFIG_AVFILTER or vp.pix_fmt == <AVPixelFormat>vp.pict_ref.format:
             frame = vp.pict_ref
         else:
             frame = vp.pict
