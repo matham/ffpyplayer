@@ -1382,8 +1382,8 @@ cdef class VideoState(object):
             len1 = self.audio_buf_size - self.audio_buf_index
             if len1 > len:
                 len1 = len
-            SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1, self.player.volume)
-            #memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+            #SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1, self.player.volume)
+            memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
             len -= len1
             stream += len1
             self.audio_buf_index += len1
