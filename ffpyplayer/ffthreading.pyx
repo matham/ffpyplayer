@@ -137,9 +137,7 @@ cdef class MTThread(object):
     cdef int wait_thread(MTThread self, int *status) nogil except 2:
         if self.lib == SDL_MT:
             if self.thread != NULL:
-                #XXX If sdl wait thread is called the program freezes
-                #SDL_WaitThread(<SDL_Thread *>self.thread, status)
-                pass
+                SDL_WaitThread(<SDL_Thread *>self.thread, status)
         elif self.lib == Py_MT:
             with gil:
                 (<object>self.thread).join()

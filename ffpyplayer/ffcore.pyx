@@ -248,7 +248,8 @@ cdef class VideoState(object):
         return 0
 
     def __dealloc__(VideoState self):
-        self.cquit()
+        with nogil:
+            self.cquit()
 
     cdef int cquit(VideoState self) nogil except 1:
         cdef int i

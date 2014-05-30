@@ -349,7 +349,8 @@ cdef class MediaPlayer(object):
         #XXX: cquit has to be called, otherwise the read_thread never exists.
         # probably some circular referencing somewhere (in event_loop)
         if self.ivs:
-            self.ivs.cquit()
+            with nogil:
+                self.ivs.cquit()
         av_lockmgr_register(NULL)
         IF CONFIG_SWSCALE:
             sws_freeContext(self.settings.sws_opts)
