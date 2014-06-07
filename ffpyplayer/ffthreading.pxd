@@ -11,7 +11,9 @@ cdef class MTMutex(object):
     cdef void* mutex
 
     cdef int lock(MTMutex self) nogil except 2
+    cdef int _lock_py(MTMutex self) nogil except 2
     cdef int unlock(MTMutex self) nogil except 2
+    cdef int _unlock_py(MTMutex self) nogil except 2
 
 cdef class MTCond(object):
     cdef MT_lib lib
@@ -21,8 +23,11 @@ cdef class MTCond(object):
     cdef int lock(MTCond self) nogil except 2
     cdef int unlock(MTCond self) nogil except 2
     cdef int cond_signal(MTCond self) nogil except 2
+    cdef int _cond_signal_py(MTCond self) nogil except 2
     cdef int cond_wait(MTCond self) nogil except 2
+    cdef int _cond_wait_py(MTCond self) nogil except 2
     cdef int cond_wait_timeout(MTCond self, uint32_t val) nogil except 2
+    cdef int _cond_wait_timeout_py(MTCond self, uint32_t val) nogil except 2
 
 cdef class MTThread(object):
     cdef MT_lib lib

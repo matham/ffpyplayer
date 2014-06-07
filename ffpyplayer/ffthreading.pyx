@@ -39,15 +39,22 @@ cdef class MTMutex(object):
         if self.lib == SDL_MT:
             return SDL_mutexP(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
-            with gil:
-                return not (<object>self.mutex).acquire()
+            return self._lock_py()
+
+    cdef int _lock_py(MTMutex self) nogil except 2:
+        with gil:
+            return not (<object>self.mutex).acquire()
+
     cdef int unlock(MTMutex self) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_mutexV(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
-            with gil:
-                (<object>self.mutex).release()
-            return 0
+            return self._unlock_py()
+
+    cdef int _unlock_py(MTMutex self) nogil except 2:
+        with gil:
+            (<object>self.mutex).release()
+        return 0
 
 cdef class MTCond(object):
 
@@ -82,25 +89,34 @@ cdef class MTCond(object):
         if self.lib == SDL_MT:
             return SDL_CondSignal(<SDL_cond *>self.cond)
         elif self.lib == Py_MT:
-            with gil:
-                (<object>self.cond).notify()
-            return 0
+            return self._cond_signal_py()
+
+    cdef int _cond_signal_py(MTCond self) nogil except 2:
+        with gil:
+            (<object>self.cond).notify()
+        return 0
 
     cdef int cond_wait(MTCond self) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_CondWait(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex)
         elif self.lib == Py_MT:
-            with gil:
-                (<object>self.cond).wait()
-            return 0
+            return self._cond_wait_py()
+
+    cdef int _cond_wait_py(MTCond self) nogil except 2:
+        with gil:
+            (<object>self.cond).wait()
+        return 0
 
     cdef int cond_wait_timeout(MTCond self, uint32_t val) nogil except 2:
         if self.lib == SDL_MT:
             return SDL_CondWaitTimeout(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex, val)
         elif self.lib == Py_MT:
-            with gil:
-                (<object>self.cond).wait(val / 1000.)
-            return 0
+            return self._cond_wait_timeout_py(val)
+
+    cdef int _cond_wait_timeout_py(MTCond self, uint32_t val) nogil except 2:
+        with gil:
+            (<object>self.cond).wait(val / 1000.)
+        return 0
 
 def enterance_func(target_func, target_arg):
     return (<int_void_func><uintptr_t>target_func)(<void *><uintptr_t>target_arg)
