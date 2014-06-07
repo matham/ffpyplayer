@@ -9,6 +9,7 @@ from ffpyplayer.ffqueue cimport FFPacketQueue, get_flush_packet
 from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
 from ffpyplayer.ffclock cimport Clock
 from ffpyplayer.sink cimport VideoSink, VideoPicture, SubPicture
+from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 import traceback
 
@@ -421,6 +422,7 @@ cdef class VideoState(object):
     #XXX refactor this crappy function
     cdef object video_refresh(VideoState self, int force_refresh) with gil:
         cdef VideoPicture *vp
+        cdef VideoPicture *vp_temp
         cdef VideoPicture *lastvp
         cdef double time, remaining_time = 0.
         cdef SubPicture *sp
@@ -436,6 +438,8 @@ cdef class VideoState(object):
         cdef char *m
         cdef int64_t m2, m3
         cdef object image = None
+        cdef Image img
+        cdef AVFrame *frame
         self.py_pat = bytes("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"+PRId64+"/%"+PRId64+"   \r")
         pat = self.py_pat
         with nogil: # <-- ugly
@@ -532,8 +536,17 @@ cdef class VideoState(object):
                     elif state == display:
                         # display picture
                         if (not self.player.video_disable) and self.video_st != NULL:
-                            with gil:
-                                image = self.vid_sink.video_image_display(&(self.pictq[self.pictq_rindex]))
+                                if vp.pict != NULL:
+                                    vp_temp = &(self.pictq[self.pictq_rindex])
+                                    if CONFIG_AVFILTER or vp_temp.pix_fmt == <AVPixelFormat>vp_temp.pict_ref.format:
+                                        frame = vp_temp.pict_ref
+                                    else:
+                                        frame = vp_temp.pict
+                                    with gil:
+                                        img = Image.__new__(Image, no_create=True)
+                                        with nogil:
+                                            img.cython_init(frame)
+                                        image = img, vp.pts
                         self.pictq_next_picture()
                     break
 

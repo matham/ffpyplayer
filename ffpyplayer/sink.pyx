@@ -10,7 +10,6 @@ cdef extern from "Python.h":
     void Py_DECREF(PyObject *)
 
 from ffpyplayer.ffthreading cimport MTMutex
-from ffpyplayer.pic cimport Image
 
 
 cdef bytes sub_ass = b'ass', sub_text = b'text', sub_fmt
@@ -119,24 +118,6 @@ cdef class VideoSink(object):
                       0, vp.height, vp.pict.data, vp.pict.linesize)
             av_frame_unref(src_frame)
         return 0
-
-    cdef object video_image_display(VideoSink self, VideoPicture *vp) with gil:
-        cdef Image img
-        cdef int *ls
-        cdef AVFrame *frame
-        if vp.pict == NULL:
-            return None
-
-        if CONFIG_AVFILTER or vp.pix_fmt == <AVPixelFormat>vp.pict_ref.format:
-            frame = vp.pict_ref
-        else:
-            frame = vp.pict
-        ls = frame.linesize
-        img = Image(frame=<size_t>frame,
-                    pix_fmt=av_get_pix_fmt_name(<AVPixelFormat>frame.format),
-                    size=(frame.width, frame.height),
-                    linesize=[ls[0], ls[1], ls[2], ls[3]])
-        return (img, vp.pts)
 
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1:
         cdef PyObject *buff

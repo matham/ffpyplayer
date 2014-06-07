@@ -19,7 +19,6 @@ cdef class VideoSink(object):
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil
     cdef int copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil except 1
-    cdef object video_image_display(VideoSink self, VideoPicture *vp) with gil
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1
 
 
