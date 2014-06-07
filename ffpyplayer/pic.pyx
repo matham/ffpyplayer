@@ -308,6 +308,10 @@ cdef class Image(object):
         every valid plane. If it's not provided, an alignment of 1 (i.e. no
         alignment) is assumed. See :meth:`get_buffer_size` for more details.
 
+        *no_create* (bool): A optional argument, which if provided will just
+        create the instance and not initialize anything. This is useful when
+        instantiating from cython.
+
     **Copying**
 
     FFmpeg has an internal ref counting system where when used, it frees buffers
@@ -338,7 +342,7 @@ cdef class Image(object):
     '''
 
     def __cinit__(self, plane_buffers=[], plane_ptrs=[], frame=0, pix_fmt='',
-                  size=(), linesize=[], **kargs):
+                  size=(), linesize=[], **kwargs):
         cdef int i, w, h, res
         cdef object plane = None
         cdef char msg[256]
@@ -348,6 +352,9 @@ cdef class Image(object):
 
         self.frame = NULL
         self.byte_planes = None
+
+        if kwargs.get('no_create', False):
+            return
 
         if frame:
             avframe = <AVFrame *><size_t>frame
@@ -413,6 +420,15 @@ cdef class Image(object):
 
     def __dealloc__(self):
         av_frame_free(&self.frame)
+
+    cdef int cython_init(self, AVFrame *frame) nogil:
+        ''' Can be called only once after object creation.
+        '''
+        self.frame = av_frame_clone(frame)
+        if self.frame == NULL:
+            return 1
+        self.pix_fmt = <AVPixelFormat>self.frame.format
+        return 0
 
     def __copy__(self):
         cdef AVFrame *frame = av_frame_clone(self.frame)
