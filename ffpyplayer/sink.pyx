@@ -6,7 +6,6 @@ include "inline_funcs.pxi"
 from cpython.ref cimport PyObject
 
 cdef extern from "Python.h":
-    PyObject* PyString_FromStringAndSize(const char *, Py_ssize_t)
     PyObject* PyString_FromString(const char *)
     void Py_DECREF(PyObject *)
 
@@ -15,6 +14,11 @@ from ffpyplayer.pic cimport Image
 
 
 cdef bytes sub_ass = b'ass', sub_text = b'text', sub_fmt
+
+cdef void raise_py_exception(bytes msg) nogil except *:
+    with gil:
+        raise Exception(msg)
+
 
 cdef class VideoSink(object):
 
@@ -48,7 +52,12 @@ cdef class VideoSink(object):
             self.alloc_mutex.lock()
             self.requested_alloc = 1
             self.alloc_mutex.unlock()
-        elif request == FF_QUIT_EVENT:
+        else:
+            self.request_thread_py(request)
+        return 0
+
+    cdef int request_thread_py(VideoSink self, uint8_t request) nogil except 1:
+        if request == FF_QUIT_EVENT:
             with gil:
                 self.callback()('quit', '')
         elif request == FF_EOF_EVENT:
@@ -68,14 +77,12 @@ cdef class VideoSink(object):
         vp.pict = av_frame_alloc()
         vp.pict_ref = av_frame_alloc()
         if vp.pict == NULL or vp.pict_ref == NULL:
-            av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe.\n")
-            with gil:
-                raise Exception('Could not allocate avframe.')
+            av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe of size %dx%d.\n", vp.width, vp.height)
+            raise_py_exception(b'Could not allocate avframe.')
         if (av_image_alloc(vp.pict.data, vp.pict.linesize, vp.width,
                            vp.height, vp.pix_fmt, 1) < 0):
             av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
-            with gil:
-                raise Exception('Could not allocate avframe buffer of size %dx%d.' %(vp.width, vp.height))
+            raise_py_exception(b'Could not allocate avframe buffer')
         vp.pict.width = vp.width
         vp.pict.height = vp.height
         vp.pict.format = <int>vp.pix_fmt
@@ -107,8 +114,7 @@ cdef class VideoSink(object):
             vp.pix_fmt, player.sws_flags, NULL, NULL, NULL)
             if player.img_convert_ctx == NULL:
                 av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n")
-                with gil:
-                    raise Exception('Cannot initialize the conversion context.')
+                raise_py_exception(b'Cannot initialize the conversion context.')
             sws_scale(player.img_convert_ctx, src_frame.data, src_frame.linesize,
                       0, vp.height, vp.pict.data, vp.pict.linesize)
             av_frame_unref(src_frame)

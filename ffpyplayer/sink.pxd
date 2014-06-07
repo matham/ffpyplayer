@@ -13,6 +13,7 @@ cdef class VideoSink(object):
     cdef object get_out_pix_fmt(VideoSink self)
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt)
     cdef int request_thread(VideoSink self, uint8_t type) nogil except 1
+    cdef int request_thread_py(VideoSink self, uint8_t request) nogil except 1
     cdef int peep_alloc(VideoSink self) nogil except 1
     cdef int alloc_picture(VideoSink self, VideoPicture *vp) nogil except 1
     cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil
