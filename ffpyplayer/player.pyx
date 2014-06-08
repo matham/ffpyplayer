@@ -196,6 +196,7 @@ cdef class MediaPlayer(object):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
+        cdef int res
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
         PyEval_InitThreads()
@@ -327,8 +328,12 @@ cdef class MediaPlayer(object):
             self.vid_sink.set_out_pix_fmt(out_fmt)
         else:
             raise Exception('Video sink parameter not recognized.')
-        if av_lockmgr_register(self.mt_gen.get_lockmgr()):
+
+        with nogil:
+            res = av_lockmgr_register(self.mt_gen.get_lockmgr())
+        if res:
             raise ValueError('Could not initialize lock manager.')
+
         self.ivs = VideoState()
         self.ivs.cInit(self.mt_gen, self.vid_sink, settings, ff_opts.get('paused', False))
         flags = SDL_INIT_AUDIO | SDL_INIT_TIMER

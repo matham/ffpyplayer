@@ -162,50 +162,60 @@ cdef class MTThread(object):
         return 0
 
 
-cdef int lockmgr(void ** mtx, AVLockOp op, MT_lib lib) except 2 with gil:
-    cdef MTMutex mutex
-    if op == AV_LOCK_CREATE:
-        mutex = MTMutex(lib)
-        Py_INCREF(<PyObject *>mutex)
-        mtx[0] = <PyObject *>mutex
-        return 0
-    if op == AV_LOCK_OBTAIN:
-        mutex = <MTMutex>mtx[0]
-        return not not mutex.lock() # force it to 0, or 1
-    if op == AV_LOCK_RELEASE:
-        mutex = <MTMutex>mtx[0]
-        return not not mutex.unlock()
-    if op == AV_LOCK_DESTROY:
-        if mtx[0] != NULL:
-            Py_DECREF(<PyObject *>mtx[0])
-        return 0
-    return 1
-
-cdef int SDL_lockmgr(void ** mtx, AVLockOp op) with gil:
-    cdef int res = 1
+cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
     cdef bytes msg
+    cdef int res = 1
+    cdef MTMutex mutex
+
     try:
-        with nogil:
-            res = lockmgr(mtx, op, SDL_MT)
+        if op == AV_LOCK_CREATE:
+            mutex = MTMutex(SDL_MT)
+            Py_INCREF(<PyObject *>mutex)
+            mtx[0] = <PyObject *>mutex
+            res = 0
+        elif op == AV_LOCK_DESTROY:
+            if mtx[0] != NULL:
+                Py_DECREF(<PyObject *>mtx[0])
+            res = 0
     except:
         msg = traceback.format_exc()
         av_log(NULL, AV_LOG_ERROR, msg)
-        res = 1
-    finally:
-        return res
+    return res
+
+cdef int SDL_lockmgr(void ** mtx, AVLockOp op) nogil:
+    if op == AV_LOCK_OBTAIN:
+        return not not (<int (*)(void *) nogil>MTMutex.lock)(mtx[0])
+    elif op == AV_LOCK_RELEASE:
+        return not not (<int (*)(void *) nogil>MTMutex.unlock)(mtx[0])
+    else:
+        return _SDL_lockmgr_py(mtx, op)
 
 cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
     cdef int res = 1
     cdef bytes msg
+    cdef MTMutex mutex
+
     try:
-        with nogil:
-            res = lockmgr(mtx, op, Py_MT)
+        if op == AV_LOCK_CREATE:
+            mutex = MTMutex(Py_MT)
+            Py_INCREF(<PyObject *>mutex)
+            mtx[0] = <PyObject *>mutex
+            res = 0
+        elif op == AV_LOCK_OBTAIN:
+            mutex = <MTMutex>mtx[0]
+            res = not not mutex.lock() # force it to 0, or 1
+        elif op == AV_LOCK_RELEASE:
+            mutex = <MTMutex>mtx[0]
+            res = not not mutex.unlock()
+        elif op == AV_LOCK_DESTROY:
+            if mtx[0] != NULL:
+                Py_DECREF(<PyObject *>mtx[0])
+            res = 0
     except:
         msg = traceback.format_exc()
         av_log(NULL, AV_LOG_ERROR, msg)
         res = 1
-    finally:
-        return res
+    return res
 
 
 cdef class MTGenerator(object):
