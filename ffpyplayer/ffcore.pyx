@@ -1701,8 +1701,7 @@ cdef class VideoState(object):
         #av_opt_set_int(ic, "threads", 1, 0)
         ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
-        with gil:
-            err = avformat_open_input(&ic, self.player.input_filename, self.iformat, &self.player.format_opts)
+        err = avformat_open_input(&ic, self.player.input_filename, self.iformat, &self.player.format_opts)
         if err < 0:
             if av_strerror(err, errbuf, sizeof(errbuf)) < 0:
                 errbuf_ptr = strerror(AVUNERROR(err))
