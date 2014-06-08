@@ -1481,6 +1481,10 @@ cdef class VideoState(object):
         audio_hw_params.freq = spec.freq
         audio_hw_params.channel_layout = wanted_channel_layout
         audio_hw_params.channels =  spec.channels
+        av_log(NULL, AV_LOG_DEBUG,
+               "openaudio with fmt=%u freq=%u channel_layout=%u channels=%hhu\n",
+               audio_hw_params.fmt, audio_hw_params.freq,
+               audio_hw_params.channel_layout, audio_hw_params.channels)
         return spec.size
 
 
