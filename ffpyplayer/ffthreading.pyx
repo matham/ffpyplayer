@@ -60,7 +60,7 @@ cdef class MTCond(object):
 
     def __cinit__(MTCond self, MT_lib lib):
         self.lib = lib
-        self.mutex = MTMutex(lib)
+        self.mutex = MTMutex.__new__(MTMutex, lib)
         self.cond = NULL
         if self.lib == SDL_MT:
             self.cond = SDL_CreateCond()
@@ -169,7 +169,7 @@ cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
 
     try:
         if op == AV_LOCK_CREATE:
-            mutex = MTMutex(SDL_MT)
+            mutex = MTMutex.__new__(MTMutex, SDL_MT)
             Py_INCREF(<PyObject *>mutex)
             mtx[0] = <PyObject *>mutex
             res = 0
@@ -197,7 +197,7 @@ cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
 
     try:
         if op == AV_LOCK_CREATE:
-            mutex = MTMutex(Py_MT)
+            mutex = MTMutex.__new__(MTMutex, Py_MT)
             Py_INCREF(<PyObject *>mutex)
             mtx[0] = <PyObject *>mutex
             res = 0

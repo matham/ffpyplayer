@@ -245,7 +245,8 @@ cdef class SWScale(object):
             self.src_w != src.frame.width or self.src_h != src.frame.height):
             raise Exception("Source image doesn't match the specified input parameters.")
         if not dst:
-            dst = Image(pix_fmt=self.dst_pix_fmt, size=(self.dst_w, self.dst_h))
+            dst = Image.__new__(Image, pix_fmt=self.dst_pix_fmt,
+                                size=(self.dst_w, self.dst_h))
         with nogil:
             sws_scale(self.sws_ctx, <const uint8_t *const *>src.frame.data, src.frame.linesize,
                           0, src.frame.height, dst.frame.data, dst.frame.linesize)
@@ -434,7 +435,7 @@ cdef class Image(object):
         cdef AVFrame *frame = av_frame_clone(self.frame)
         if frame == NULL:
             raise MemoryError()
-        return Image(frame=<size_t>frame)
+        return Image.__new__(Image, frame=<size_t>frame)
 
     def __deepcopy__(self, memo):
         cdef AVFrame *frame = av_frame_alloc()
@@ -452,7 +453,7 @@ cdef class Image(object):
             av_image_copy(frame.data, frame.linesize, <const uint8_t **>self.frame.data,
                           self.frame.linesize, <AVPixelFormat>frame.format,
                           frame.width, frame.height)
-        return Image(frame=<size_t>frame)
+        return Image.__new__(Image, frame=<size_t>frame)
 
     cpdef is_ref(Image self):
         '''
