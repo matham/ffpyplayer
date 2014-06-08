@@ -27,6 +27,7 @@ from ffpyplayer.ffqueue cimport FFPacketQueue
 from ffpyplayer.ffcore cimport VideoState
 from ffpyplayer.sink cimport VideoSettings, VideoSink
 from ffpyplayer.tools import loglevels, _initialize_ffmpeg
+from ffpyplayer.pic cimport Image
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
@@ -196,7 +197,7 @@ cdef class MediaPlayer(object):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
-        cdef int res
+        cdef int res, paused
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
         PyEval_InitThreads()
@@ -334,8 +335,11 @@ cdef class MediaPlayer(object):
         if res:
             raise ValueError('Could not initialize lock manager.')
 
+        self.next_image = Image.__new__(Image, no_create=True)
         self.ivs = VideoState()
-        self.ivs.cInit(self.mt_gen, self.vid_sink, settings, ff_opts.get('paused', False))
+        paused = ff_opts.get('paused', False)
+        with nogil:
+            self.ivs.cInit(self.mt_gen, self.vid_sink, settings, paused)
         flags = SDL_INIT_AUDIO | SDL_INIT_TIMER
         if settings.audio_disable:# or audio_sink != 'SDL':
             flags &= ~SDL_INIT_AUDIO
@@ -481,10 +485,24 @@ cdef class MediaPlayer(object):
             0.12150645256 0.1833852 yuv420p (309760, 77440, 77440, 0)
             0.122756242752 0.2445136 yuv420p (309760, 77440, 77440, 0)
         '''
+        cdef Image next_image = self.next_image
+        cdef int res, f = force_refresh
+        cdef double pts, remaining_time
+
         self.settings_mutex.lock()
-        res = self.ivs.video_refresh(force_refresh)
+        with nogil:
+            res = self.ivs.video_refresh(next_image, &pts, &remaining_time, f)
         self.settings_mutex.unlock()
-        return res
+
+        if res == 1:
+            return (None, 'paused')
+        elif res == 2:
+            return (None, 'eof')
+        elif res == 3:
+            return (None, remaining_time)
+
+        self.next_image = Image.__new__(Image, no_create=True)
+        return ((next_image, pts), remaining_time)
 
     def get_metadata(self):
         '''

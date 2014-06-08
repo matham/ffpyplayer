@@ -23,4 +23,3 @@ cdef class MediaPlayer(object):
         bytes py_video_codec_name
         bytes py_subtitle_codec_name
         Image next_image
-
