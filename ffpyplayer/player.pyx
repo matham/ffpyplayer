@@ -190,6 +190,12 @@ cdef class MediaPlayer(object):
     See also :ref:`examples`.
 
     TODO: offer audio buffers, similar to video frames (if wanted?).
+
+    .. warning::
+
+        Most of the methods of this class are not thread safe. That is, they
+        should not be called from different threads without fully protecting
+        them.
     '''
 
     def __cinit__(self, filename, callback, loglevel='error', ff_opts={},
@@ -317,7 +323,6 @@ cdef class MediaPlayer(object):
             raise Exception('Thread library parameter not recognized.')
         if audio_sink != 'SDL':
             raise Exception('Currently, only SDL is supported as a audio sink.')
-        self.settings_mutex = MTMutex(self.mt_gen.mt_src)
         if callable(callback):
             self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), callback)
             if 'out_fmt' in ff_opts:
@@ -355,7 +360,7 @@ cdef class MediaPlayer(object):
 
     def __dealloc__(self):
         cdef const char *empty = ''
-        #XXX: cquit has to be called, otherwise the read_thread never exists.
+        #XXX: cquit has to be called, otherwise the read_thread never exitsts.
         # probably some circular referencing somewhere (in event_loop)
         if self.ivs:
             with nogil:
@@ -489,10 +494,8 @@ cdef class MediaPlayer(object):
         cdef int res, f = force_refresh
         cdef double pts, remaining_time
 
-        self.settings_mutex.lock()
         with nogil:
             res = self.ivs.video_refresh(next_image, &pts, &remaining_time, f)
-        self.settings_mutex.unlock()
 
         if res == 1:
             return (None, 'paused')
@@ -565,10 +568,8 @@ cdef class MediaPlayer(object):
         '''
         Pauses or unpauses the player.
         '''
-        self.settings_mutex.lock()
         with nogil:
             self.ivs.toggle_pause()
-        self.settings_mutex.unlock()
 
     def get_pts(VideoState self):
         '''
@@ -642,20 +643,13 @@ cdef class MediaPlayer(object):
 
         .. note::
 
-            This should only be called from the main thread (the thread that calls
-            get_frame).
-
-        .. note::
-
             if CONFIG_AVFILTER was False when compiling, this function will raise
             an error.
         '''
         if not CONFIG_AVFILTER and (width or height):
             raise Exception('You can only set the screen size when avfilter is enabled.')
-        self.settings_mutex.lock()
         self.settings.screen_width = width
         self.settings.screen_height = height
-        self.settings_mutex.unlock()
 
     def get_output_pix_fmt(self):
         '''
@@ -725,12 +719,6 @@ cdef class MediaPlayer(object):
             *requested_stream* (int): The stream to open next when *action* is
             'cycle' or 'open'. If -1, the next stream will be opened. Otherwise,
             this stream will be attempted to be opened.
-
-        .. note::
-
-            This should only be called from the main thread (the thread that calls
-            get_frame).
-
         '''
         cdef int stream, old_index
         if stream_type == 'audio':
@@ -786,7 +774,6 @@ cdef class MediaPlayer(object):
         '''
         cdef double incr, pos
         cdef int64_t t
-        self.settings_mutex.lock()
         if relative:
             incr = pts
             if seek_by_bytes:
@@ -828,4 +815,3 @@ cdef class MediaPlayer(object):
                     if self.ivs.ic.start_time != AV_NOPTS_VALUE and t < self.ivs.ic.start_time:
                         t = self.ivs.ic.start_time
                     self.ivs.stream_seek(t, 0, 0, 1)
-        self.settings_mutex.unlock()

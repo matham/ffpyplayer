@@ -14,7 +14,6 @@ cdef class MediaPlayer(object):
         MTGenerator mt_gen
         VideoSink vid_sink
         VideoState ivs
-        MTMutex settings_mutex
         bytes py_window_title
         bytes py_vfilters
         bytes py_afilters
