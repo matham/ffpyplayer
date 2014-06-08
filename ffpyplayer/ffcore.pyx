@@ -49,6 +49,8 @@ cdef extern from "string.h" nogil:
     int strncmp(const char *, const char *, size_t)
     char * strerror(int)
     size_t strlen(const char *)
+    char * strcat(char *, const char *)
+    char * strcpy(char *, const char *)
 
 ctypedef enum LoopState:
     retry,
@@ -189,6 +191,15 @@ cdef AVDictionary **setup_find_stream_info_opts(AVFormatContext *s, AVDictionary
         opts[i] = filter_codec_opts(codec_opts, s.streams[i].codec.codec_id,
                                     s, s.streams[i], NULL)
     return opts
+
+cdef bytes py_pat = <bytes>("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" +
+                            PRId64 + "/%" + PRId64 + "   \r")
+cdef char *py_pat_str = py_pat
+cdef bytes av_str = b"A-V", mv_str = b"M-V", ma_str = b"M-A", empty_str = b"   "
+cdef char *str_av = av_str
+cdef char *str_mv = mv_str
+cdef char *str_ma = ma_str
+cdef char *str_empty = empty_str
 
 
 cdef class VideoState(object):
@@ -566,12 +577,12 @@ cdef class VideoState(object):
                     av_diff = self.get_master_clock() - self.vidclk.get_clock()
                 elif self.audio_st != NULL:
                     av_diff = self.get_master_clock() - self.audclk.get_clock()
-                with gil:
-                    self.py_m = bytes("A-V" if self.audio_st != NULL and self.video_st != NULL else\
-                    ("M-V" if self.video_st != NULL else ("M-A" if self.audio_st != NULL else "   ")))
-                    m = self.py_m
+
+                m = (str_av if self.audio_st != NULL and self.video_st != NULL else\
+                (str_mv if self.video_st != NULL else (str_ma if self.audio_st != NULL else str_empty)))
                 m2 = self.video_st.codec.pts_correction_num_faulty_dts if self.video_st != NULL else 0
                 m3 = self.video_st.codec.pts_correction_num_faulty_pts if self.video_st != NULL else 0
+
                 av_log(NULL, AV_LOG_INFO,
                        py_pat_str,
                        self.get_master_clock(),
@@ -763,6 +774,7 @@ cdef class VideoState(object):
             cdef char sws_flags_str[128]
             cdef char buffersrc_args[256]
             cdef char scale_args[256]
+            cdef char str_flags[64]
             cdef int ret
             cdef AVFilterContext *filt_src = NULL
             cdef AVFilterContext *filt_out = NULL
@@ -771,12 +783,13 @@ cdef class VideoState(object):
             cdef AVCodecContext *codec = self.video_st.codec
             cdef AVRational fr = av_guess_frame_rate(self.ic, self.video_st, NULL)
             cdef AVPixelFormat *pix_fmts = [pix_fmt, AV_PIX_FMT_NONE]
-            with gil:
-                pystr = "flags=%"+PRId64
+            memset(str_flags, 0, sizeof(str_flags))
+            strcpy(str_flags, "flags=%")
+            strcat(str_flags, PRId64)
 
-                av_opt_get_int(self.player.sws_opts, "sws_flags", 0, &self.player.sws_flags)
-                snprintf(sws_flags_str, sizeof(sws_flags_str), pystr, self.player.sws_flags)
-            graph.scale_sws_opts = av_strdup(sws_flags_str);
+            av_opt_get_int(self.player.sws_opts, "sws_flags", 0, &self.player.sws_flags)
+            snprintf(sws_flags_str, sizeof(sws_flags_str), str_flags, self.player.sws_flags)
+            graph.scale_sws_opts = av_strdup(sws_flags_str)
 
             snprintf(buffersrc_args, sizeof(buffersrc_args),
                      "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
@@ -847,9 +860,12 @@ cdef class VideoState(object):
             cdef char aresample_swr_opts[512]
             cdef AVDictionaryEntry *e = NULL
             cdef char asrc_args[256]
+            cdef char str_flags[64]
             cdef int ret
-            with gil:
-                pystr = ":channel_layout=0x%" + PRIx64
+
+            memset(str_flags, 0, sizeof(str_flags))
+            strcpy(str_flags, ":channel_layout=0x%")
+            strcat(str_flags, PRIx64)
             aresample_swr_opts[0] = 0
             avfilter_graph_free(&self.agraph)
             self.agraph = avfilter_graph_alloc()
@@ -868,9 +884,8 @@ cdef class VideoState(object):
                            self.audio_filter_src.freq, av_get_sample_fmt_name(self.audio_filter_src.fmt),
                            self.audio_filter_src.channels, 1, self.audio_filter_src.freq)
             if self.audio_filter_src.channel_layout:
-                with gil:
-                    snprintf(asrc_args + ret, sizeof(asrc_args) - ret, pystr,
-                             self.audio_filter_src.channel_layout)
+                snprintf(asrc_args + ret, sizeof(asrc_args) - ret, str_flags,
+                         self.audio_filter_src.channel_layout)
 
             ret = avfilter_graph_create_filter(&filt_asrc, avfilter_get_by_name("abuffer"),
                                                "ffpyplayer_abuffer", asrc_args, NULL, self.agraph)
