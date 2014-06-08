@@ -137,9 +137,11 @@ with open(join('ffpyplayer', 'ffconfig.pxi'), 'wb') as f:
         f.write('DEF %s = %d\n' % (k.upper(), int(v)))
 
 
-ext_modules = [Extension('ffpyplayer.' + src_file, [join('ffpyplayer', src_file+mod_suffix)],
-                         include_dirs=include_dirs, extra_objects=extra_objects,
-                         extra_compile_args=extra_compile_args) for src_file in mods]
+ext_modules = [Extension('ffpyplayer.' + src_file,
+    sources=[join('ffpyplayer', src_file+mod_suffix), join('ffpyplayer', 'ffinfo.c')],
+    include_dirs=include_dirs, extra_objects=extra_objects,
+    extra_compile_args=extra_compile_args) for src_file in mods]
+
 for e in ext_modules:
     e.cython_directives = {"embedsignature": True}
 
