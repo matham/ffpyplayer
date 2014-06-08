@@ -42,8 +42,8 @@ for key in list(c_options.keys()):
         c_options[key] = value
 if (not c_options['config_avfilter']) and not c_options['config_swscale']:
     raise Exception('At least one of config_avfilter and config_swscale must be enabled.')
-if c_options['config_avfilter'] and ((not c_options['config_postproc']) or not c_options['config_swscale']):
-    raise Exception('config_avfilter implicitly requires the postproc and swscale binaries.')
+#if c_options['config_avfilter'] and ((not c_options['config_postproc']) or not c_options['config_swscale']):
+#    raise Exception('config_avfilter implicitly requires the postproc and swscale binaries.')
 c_options['config_avutil'] = c_options['config_avutil'] = True
 c_options['config_avformat'] = c_options['config_swresample'] = True
 
@@ -162,4 +162,4 @@ setup(name='ffpyplayer',
                    'Operating System :: POSIX :: Linux',
                    'Intended Audience :: Developers'],
       packages=['ffpyplayer'],
-      cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
+      cmdclass=cmdclass, ext_modules=ext_modules)
