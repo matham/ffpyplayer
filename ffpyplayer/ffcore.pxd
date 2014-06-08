@@ -5,6 +5,7 @@ from ffpyplayer.ffqueue cimport FFPacketQueue
 from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
 from ffpyplayer.ffclock cimport Clock
 from ffpyplayer.sink cimport VideoSettings, VideoSink, VideoPicture, SubPicture
+from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 
 
@@ -134,7 +135,8 @@ cdef class VideoState(object):
     cdef int pictq_next_picture(VideoState self) nogil except 1
     cdef int pictq_prev_picture(VideoState self) nogil except -1
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
-    cdef object video_refresh(VideoState self, int force_refresh) with gil
+    cdef int video_refresh(VideoState self, Image next_image, double *pts, double *remaining_time,
+                           int force_refresh) nogil except -1
     cdef int alloc_picture(VideoState self) nogil except 1
     cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
                            double duration, int64_t pos, int serial,
