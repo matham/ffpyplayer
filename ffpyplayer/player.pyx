@@ -772,46 +772,52 @@ cdef class MediaPlayer(object):
 
         Note that it may take a few calls to get new frames after seeking.
         '''
+        cdef int c_relative = relative
+        cdef int c_seek_by_bytes = seek_by_bytes
+        cdef double c_pts = pts
+        with nogil:
+            self._seek(c_pts, c_relative, c_seek_by_bytes)
+
+    cdef void _seek(self, double pts, int relative, int seek_by_bytes) nogil:
         cdef double incr, pos
-        cdef int64_t t
+        cdef int64_t t_pos = 0, t_rel = 0
+
         if relative:
             incr = pts
             if seek_by_bytes:
-                with nogil:
-                    if self.ivs.video_stream >= 0 and self.ivs.video_current_pos >= 0:
-                        pos = self.ivs.video_current_pos
-                    elif self.ivs.audio_stream >= 0 and self.ivs.audio_pkt.pos >= 0:
-                        pos = self.ivs.audio_pkt.pos
-                    else:
-                        pos = avio_tell(self.ivs.ic.pb)
-                    if self.ivs.ic.bit_rate:
-                        incr *= self.ivs.ic.bit_rate / 8.0
-                    else:
-                        incr *= 180000.0;
-                    pos += incr
-                    self.ivs.stream_seek(<int64_t>pos, <int64_t>incr, 1, 1)
+                if self.ivs.video_stream >= 0 and self.ivs.video_current_pos >= 0:
+                    pos = self.ivs.video_current_pos
+                elif self.ivs.audio_stream >= 0 and self.ivs.audio_pkt.pos >= 0:
+                    pos = self.ivs.audio_pkt.pos
+                else:
+                    pos = avio_tell(self.ivs.ic.pb)
+                if self.ivs.ic.bit_rate:
+                    incr *= self.ivs.ic.bit_rate / 8.0
+                else:
+                    incr *= 180000.0
+                pos += incr
+                t_pos = <int64_t>pos
+                t_rel = <int64_t>incr
             else:
-                with nogil:
-                    pos = self.ivs.get_master_clock()
-                    if isnan(pos):
-                        # seek_pos might never have been set
-                        pos = <double>self.ivs.seek_pos / <double>AV_TIME_BASE
-                    pos += incr
-                    if self.ivs.ic.start_time != AV_NOPTS_VALUE and pos < self.ivs.ic.start_time / <double>AV_TIME_BASE:
-                        pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
-                    self.ivs.stream_seek(<int64_t>(pos * AV_TIME_BASE), <int64_t>(incr * AV_TIME_BASE), 0, 1)
+                pos = self.ivs.get_master_clock()
+                if isnan(pos):
+                    # seek_pos might never have been set
+                    pos = <double>self.ivs.seek_pos / <double>AV_TIME_BASE
+                pos += incr
+                if self.ivs.ic.start_time != AV_NOPTS_VALUE and pos < self.ivs.ic.start_time / <double>AV_TIME_BASE:
+                    pos = self.ivs.ic.start_time / <double>AV_TIME_BASE
+                t_pos = <int64_t>(pos * AV_TIME_BASE)
+                t_rel = <int64_t>(incr * AV_TIME_BASE)
         else:
             pos = pts
             if seek_by_bytes:
-                with nogil:
-                    if self.ivs.ic.bit_rate:
-                        pos *= self.ivs.ic.bit_rate / 8.0
-                    else:
-                        pos *= 180000.0;
-                    self.ivs.stream_seek(<int64_t>pos, 0, 1, 1)
+                if self.ivs.ic.bit_rate:
+                    pos *= self.ivs.ic.bit_rate / 8.0
+                else:
+                    pos *= 180000.0
+                t_pos = <int64_t>pos
             else:
-                with nogil:
-                    t = <int64_t>(pos * AV_TIME_BASE)
-                    if self.ivs.ic.start_time != AV_NOPTS_VALUE and t < self.ivs.ic.start_time:
-                        t = self.ivs.ic.start_time
-                    self.ivs.stream_seek(t, 0, 0, 1)
+                t_pos = <int64_t>(pos * AV_TIME_BASE)
+                if self.ivs.ic.start_time != AV_NOPTS_VALUE and t_pos < self.ivs.ic.start_time:
+                    t_pos = self.ivs.ic.start_time
+        self.ivs.stream_seek(t_pos, t_rel, seek_by_bytes, 1)
