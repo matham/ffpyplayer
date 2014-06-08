@@ -210,31 +210,30 @@ cdef class VideoState(object):
 
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
+        self.iformat = player.file_iformat
         with gil:
             self.subtitle_tid = None
             self.read_tid = None
             self.video_tid = None
             self.mt_gen = mt_gen
             self.vid_sink = vid_sink
-            self.audioq = FFPacketQueue(mt_gen)
-            self.subtitleq = FFPacketQueue(mt_gen)
-            self.videoq = FFPacketQueue(mt_gen)
+            self.audioq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
+            self.subtitleq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
+            self.videoq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
 
-        self.iformat = player.file_iformat
-
-        with gil:
             # start video display
-            self.pictq_cond = MTCond(mt_gen.mt_src)
-            self.subpq_cond = MTCond(mt_gen.mt_src)
-            self.continue_read_thread = MTCond(mt_gen.mt_src)
-            self.pause_cond = MTCond(mt_gen.mt_src)
+            self.pictq_cond = MTCond.__new__(MTCond, mt_gen.mt_src)
+            self.subpq_cond = MTCond.__new__(MTCond, mt_gen.mt_src)
+            self.continue_read_thread = MTCond.__new__(MTCond, mt_gen.mt_src)
+            self.pause_cond = MTCond.__new__(MTCond, mt_gen.mt_src)
 
-            self.vidclk = Clock()
-            self.vidclk.cInit(&self.videoq.serial)
-            self.audclk = Clock()
-            self.audclk.cInit(&self.audioq.serial)
-            self.extclk = Clock()
-            self.extclk.cInit(NULL)
+            self.vidclk = Clock.__new__(Clock)
+            self.audclk = Clock.__new__(Clock)
+            self.extclk = Clock.__new__(Clock)
+
+        self.vidclk.cInit(&self.videoq.serial)
+        self.audclk.cInit(&self.audioq.serial)
+        self.extclk.cInit(NULL)
 
         self.audio_clock_serial = -1
         self.audio_last_serial = -1
@@ -244,7 +243,7 @@ cdef class VideoState(object):
             self.toggle_pause()
 
         with gil:
-            self.read_tid = MTThread(mt_gen.mt_src)
+            self.read_tid = MTThread.__new__(MTThread, mt_gen.mt_src)
             self.read_tid.create_thread(read_thread_enter, self.self_id)
         return 0
 

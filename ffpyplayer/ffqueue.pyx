@@ -19,7 +19,7 @@ cdef class FFPacketQueue(object):
         self.mt_gen = mt_gen
         self.first_pkt = self.last_pkt = NULL
         self.nb_packets = self.size = self.serial = 0
-        self.cond = MTCond(mt_gen.mt_src)
+        self.cond = MTCond.__new__(MTCond, mt_gen.mt_src)
         self.abort_request = 1
 
     def __dealloc__(self):
