@@ -43,13 +43,13 @@ Copy the image::
     >>> img2 = copy.deepcopy(img)
 '''
 
-__all__ = ('Image', 'SWScale', 'get_image_size')
-
+__all__ = ('Image', 'SWScale', 'get_image_size', 'ImageLoader')
 
 include "inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
 from cython cimport view as cyview
+from ffpyplayer.tools import loglevels, _initialize_ffmpeg
 
 cdef extern from "string.h" nogil:
     void *memset(void *, int, size_t)
@@ -58,6 +58,8 @@ cdef extern from "string.h" nogil:
 cdef extern from "Python.h":
     PyObject* PyString_FromStringAndSize(const char *, Py_ssize_t)
     void Py_DECREF(PyObject *)
+
+_initialize_ffmpeg()
 
 
 def get_image_size(pix_fmt, width, height):
@@ -809,88 +811,160 @@ cdef class Image(object):
                           <AVPixelFormat>self.frame.format, self.frame.width, self.frame.height)
         return planes
 
-    @staticmethod
-    def load_file(filename):
-        '''
-        Reads an image from a file and returns it.
 
-        :Parameters:
+cdef class ImageLoader(object):
+    '''
+    Class that reads an on or more images from a file and returns them.
 
-            `filename`: string type
-                The full path to the image file.
+    :Parameters:
 
-        :returns:
-            a :class:`Image` - the image read.
+        `filename`: string type
+            The full path to the image file.
 
-        '''
-        cdef AVInputFormat *iformat = NULL
-        cdef AVFormatContext *format_ctx = NULL
-        cdef AVCodec *codec
-        cdef AVCodecContext *codec_ctx
-        cdef AVFrame *frame
-        cdef int frame_decoded, ret = 0
-        cdef AVPacket pkt
+    For example reading a simple jpg::
+
+        >>> loader = ImageLoader(r'DoD-3-Huge.jpg')
+        >>> print(loader.next_frame())
+        (<ffpyplayer.pic.Image object at 0x02EB1080>, 0.0)
+        >>> print(loader.next_frame())
+        (None, 0)
+
+    Or ot read a gif::
+
+        loader = ImageLoader(r'sample2.gif')
+        >>> print(loader.next_frame())
+        (<ffpyplayer.pic.Image object at 0x02EB1800>, 0.0)
+        >>> print(loader.next_frame())
+        (<ffpyplayer.pic.Image object at 0x02EB1828>, 0.1)
+        >>> print(loader.next_frame())
+        (<ffpyplayer.pic.Image object at 0x02EB1878>, 0.2)
+        ...
+        >>> print(loader.next_frame())
+        (<ffpyplayer.pic.Image object at 0x02EB1878>, 1.1)
+        >>> print(loader.next_frame())
+        (None, 0)
+    '''
+
+    def __cinit__(self, filename, **kwargs):
+
         cdef AVDictionary *opts = NULL
         cdef AVDictionaryEntry *t = NULL
-        cdef Image image
-        cdef bytes fn = bytes(filename)
-        cdef char msg[256]
+        cdef int ret = 0
 
-        av_init_packet(&pkt)
-        av_register_all()
+        self.filename = bytes(filename)
+        self.format_ctx = NULL
+        self.codec = NULL
+        self.codec_ctx = NULL
+        self.frame = NULL
+        self.eof = 0
+        av_init_packet(&self.pkt)
 
-        iformat = av_find_input_format('image2')
-        ret = avformat_open_input(&format_ctx, filename, iformat, NULL)
+        ret = avformat_open_input(&self.format_ctx, self.filename, NULL, NULL)
         if ret < 0:
-            raise Exception("Failed to open input file {}: {}", filename,
-                            emsg(ret, msg, sizeof(msg)))
+            raise Exception("Failed to open input file {}: {}", self.filename,
+                            emsg(ret, self.msg, sizeof(self.msg)))
 
-        codec_ctx = format_ctx.streams[0].codec
-        codec = avcodec_find_decoder(codec_ctx.codec_id)
-        if codec is NULL:
-            avformat_close_input(&format_ctx)
+        self.codec_ctx = self.format_ctx.streams[0].codec
+        self.codec = avcodec_find_decoder(self.codec_ctx.codec_id)
+        if self.codec is NULL:
             raise Exception("Failed to find supported codec for file {}"
                             .format(filename))
 
-        if codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO:
+        if self.codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO:
             av_dict_set(&opts, "refcounted_frames", "1", 0)
 
-        ret = avcodec_open2(codec_ctx, codec, &opts)
+        ret = avcodec_open2(self.codec_ctx, self.codec, &opts)
         if ret < 0:
-            avformat_close_input(&format_ctx)
-            raise Exception("Failed to open codec {}", filename)
+            raise Exception("Failed to open codec for {}: {}", self.filename,
+                            emsg(ret, self.msg, sizeof(self.msg)))
         t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
-            avcodec_close(codec_ctx)
-            avformat_close_input(&format_ctx)
             raise Exception("Option {} not found.".format(t.key))
 
-        frame = av_frame_alloc()
-        if frame is NULL:
-            avcodec_close(codec_ctx)
-            avformat_close_input(&format_ctx)
-            raise Exception("Failed to alloc frame {}", filename)
+    def __init__(self, filename, **kwargs):
+        pass
 
-        ret = av_read_frame(format_ctx, &pkt)
+    def __dealloc__(self):
+        av_free_packet(&self.pkt)
+        av_frame_free(&self.frame)
+        avcodec_close(self.codec_ctx)
+        avformat_close_input(&self.format_ctx)
+
+    cpdef next_frame(self):
+        ''' Returns the next available frame, or `(None, 0)` if there are no
+        more frames available.
+
+        :returns:
+            a 2-tuple of `(:class:`Image`, pts)`, where the first element is
+            the next image to be displayed and `pts` is the time, relative
+            to the first frame, when to display it e.g. in the case of a gif.
+
+            If we reached the eof of the file and there are no more frames
+            to be returned, it returns `(None, 0)`.
+        '''
+
+        cdef int frame_decoded, ret = 0
+        cdef Image image
+        cdef double t = 0
+
+        if self.eof:
+            return self.eof_frame()
+
+        ret = av_read_frame(self.format_ctx, &self.pkt)
         if ret < 0:
-            avcodec_close(codec_ctx)
-            avformat_close_input(&format_ctx)
-            av_frame_free(&frame)
-            raise Exception("Failed to read frame {}", filename)
+            if ret == AVERROR_EOF:
+                self.eof = 1
+                self.pkt.data = NULL
+                return self.eof_frame()
+            raise Exception("Failed to read frame: {}",
+                            emsg(ret, self.msg, sizeof(self.msg)))
 
-        ret = avcodec_decode_video2(codec_ctx, frame, &frame_decoded, &pkt)
+        self.frame = av_frame_alloc()
+        if self.frame is NULL:
+            raise MemoryError("Failed to alloc frame")
+
+        ret = avcodec_decode_video2(self.codec_ctx, self.frame, &frame_decoded,
+                                    &self.pkt)
         if ret < 0 or not frame_decoded:
-            av_free_packet(&pkt)
-            avcodec_close(codec_ctx)
-            avformat_close_input(&format_ctx)
-            av_frame_free(&frame)
             raise Exception("Failed to decode image from file")
 
+        self.frame.pts = av_frame_get_best_effort_timestamp(self.frame)
+        if self.frame.pts == AV_NOPTS_VALUE:
+            t = 0.
+        else:
+            t = av_q2d(self.format_ctx.streams[0].time_base) * self.frame.pts
         image = Image(no_create=True)
-        image.cython_init(frame)
+        image.cython_init(self.frame)
+        av_free_packet(&self.pkt)
+        av_frame_free(&self.frame)
+        return image, t
 
-        av_free_packet(&pkt)
-        avcodec_close(codec_ctx)
-        avformat_close_input(&format_ctx)
-        av_frame_free(&frame)
-        return image
+    cdef inline object eof_frame(self):
+        ''' Used to flush the remaining frames until no more cached.
+        '''
+        cdef int frame_decoded, ret = 0
+        cdef Image image
+        cdef double t = 0
+        if self.eof == 2:
+            return None, 0
+
+        self.frame = av_frame_alloc()
+        if self.frame is NULL:
+            raise MemoryError("Failed to alloc frame")
+
+        ret = avcodec_decode_video2(self.codec_ctx, self.frame, &frame_decoded,
+                                    &self.pkt)
+        if ret < 0 or not frame_decoded:
+            self.eof = 2
+            av_frame_free(&self.frame)
+            return None, 0
+
+        self.frame.pts = av_frame_get_best_effort_timestamp(self.frame)
+        if self.frame.pts == AV_NOPTS_VALUE:
+            t = 0.
+        else:
+            t = av_q2d(self.format_ctx.streams[0].time_base) * self.frame.pts
+        image = Image(no_create=True)
+        image.cython_init(self.frame)
+        av_frame_free(&self.frame)
+        return image, t

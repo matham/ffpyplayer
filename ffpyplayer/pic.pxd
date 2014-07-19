@@ -1,7 +1,6 @@
 include 'ff_defs.pxi'
 
 
-
 cdef class SWScale(object):
     cdef SwsContext *sws_ctx
     cdef bytes dst_pix_fmt
@@ -26,3 +25,17 @@ cdef class Image(object):
     cpdef get_buffer_size(Image self, keep_align=*)
     cpdef to_bytearray(Image self, keep_align=*)
     cpdef to_memoryview(Image self, keep_align=*)
+
+
+cdef class ImageLoader(object):
+    cdef AVFormatContext *format_ctx
+    cdef AVCodec *codec
+    cdef AVCodecContext *codec_ctx
+    cdef AVPacket pkt
+    cdef AVFrame *frame
+    cdef bytes filename
+    cdef char msg[256]
+    cdef int eof
+
+    cpdef next_frame(self)
+    cdef inline object eof_frame(self)
