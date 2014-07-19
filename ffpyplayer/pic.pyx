@@ -808,3 +808,89 @@ cdef class Image(object):
             av_image_copy(<uint8_t **>data, ls, <const uint8_t **>self.frame.data, self.frame.linesize,
                           <AVPixelFormat>self.frame.format, self.frame.width, self.frame.height)
         return planes
+
+    @staticmethod
+    def load_file(filename):
+        '''
+        Reads an image from a file and returns it.
+
+        :Parameters:
+
+            `filename`: string type
+                The full path to the image file.
+
+        :returns:
+            a :class:`Image` - the image read.
+
+        '''
+        cdef AVInputFormat *iformat = NULL
+        cdef AVFormatContext *format_ctx = NULL
+        cdef AVCodec *codec
+        cdef AVCodecContext *codec_ctx
+        cdef AVFrame *frame
+        cdef int frame_decoded, ret = 0
+        cdef AVPacket pkt
+        cdef AVDictionary *opts = NULL
+        cdef AVDictionaryEntry *t = NULL
+        cdef Image image
+        cdef bytes fn = bytes(filename)
+        cdef char msg[256]
+
+        av_init_packet(&pkt)
+        av_register_all()
+
+        iformat = av_find_input_format('image2')
+        ret = avformat_open_input(&format_ctx, filename, iformat, NULL)
+        if ret < 0:
+            raise Exception("Failed to open input file {}: {}", filename,
+                            emsg(ret, msg, sizeof(msg)))
+
+        codec_ctx = format_ctx.streams[0].codec
+        codec = avcodec_find_decoder(codec_ctx.codec_id)
+        if codec is NULL:
+            avformat_close_input(&format_ctx)
+            raise Exception("Failed to find supported codec for file {}"
+                            .format(filename))
+
+        if codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO:
+            av_dict_set(&opts, "refcounted_frames", "1", 0)
+
+        ret = avcodec_open2(codec_ctx, codec, &opts)
+        if ret < 0:
+            avformat_close_input(&format_ctx)
+            raise Exception("Failed to open codec {}", filename)
+        t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
+        if t != NULL:
+            avcodec_close(codec_ctx)
+            avformat_close_input(&format_ctx)
+            raise Exception("Option {} not found.".format(t.key))
+
+        frame = av_frame_alloc()
+        if frame is NULL:
+            avcodec_close(codec_ctx)
+            avformat_close_input(&format_ctx)
+            raise Exception("Failed to alloc frame {}", filename)
+
+        ret = av_read_frame(format_ctx, &pkt)
+        if ret < 0:
+            avcodec_close(codec_ctx)
+            avformat_close_input(&format_ctx)
+            av_frame_free(&frame)
+            raise Exception("Failed to read frame {}", filename)
+
+        ret = avcodec_decode_video2(codec_ctx, frame, &frame_decoded, &pkt)
+        if ret < 0 or not frame_decoded:
+            av_free_packet(&pkt)
+            avcodec_close(codec_ctx)
+            avformat_close_input(&format_ctx)
+            av_frame_free(&frame)
+            raise Exception("Failed to decode image from file")
+
+        image = Image(no_create=True)
+        image.cython_init(frame)
+
+        av_free_packet(&pkt)
+        avcodec_close(codec_ctx)
+        avformat_close_input(&format_ctx)
+        av_frame_free(&frame)
+        return image
