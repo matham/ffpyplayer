@@ -90,6 +90,9 @@ def get_image_size(pix_fmt, width, height):
     cdef int ls[4]
     cdef char msg[256]
 
+    if not pix_fmt or not width or not height:
+        return 0
+
     fmt = av_get_pix_fmt(pix_fmt)
     if fmt == AV_PIX_FMT_NONE:
         raise Exception('Pixel format %s not found.' % pix_fmt)
