@@ -204,6 +204,7 @@ cdef class MediaPlayer(object):
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
         cdef int res, paused
+        self.is_closed = 0
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
         PyEval_InitThreads()
@@ -359,12 +360,24 @@ cdef class MediaPlayer(object):
         pass
 
     def __dealloc__(self):
+        self.close_player()
+
+    cpdef close_player(self):
+        '''Closes the player and all resources. Calling any class method after
+        this, may result in exceptions.
+        '''
         cdef const char *empty = ''
+        if self.is_closed:
+            return
+        self.is_closed = 1
+
         #XXX: cquit has to be called, otherwise the read_thread never exitsts.
         # probably some circular referencing somewhere (in event_loop)
         if self.ivs:
             with nogil:
                 self.ivs.cquit()
+        self.ivs = None
+        self.vid_sink = None
         av_lockmgr_register(NULL)
         IF CONFIG_SWSCALE:
             sws_freeContext(self.settings.sws_opts)

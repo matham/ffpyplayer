@@ -21,5 +21,7 @@ cdef class MediaPlayer(object):
         bytes py_video_codec_name
         bytes py_subtitle_codec_name
         Image next_image
+        int is_closed
 
     cdef void _seek(self, double pts, int relative, int seek_by_bytes) nogil
+    cpdef close_player(self)
