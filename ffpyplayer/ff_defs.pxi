@@ -238,15 +238,15 @@ cdef:
         int avformat_match_stream_specifier(AVFormatContext *, AVStream *,
                                             const char *)
         AVFormatContext *avformat_alloc_context()
-        int avformat_open_input(AVFormatContext **, const char *, AVInputFormat *, AVDictionary **) with gil
+        int avformat_open_input(AVFormatContext **, const char *, AVInputFormat *, AVDictionary **)
         void avformat_close_input(AVFormatContext **)
-        int avformat_find_stream_info(AVFormatContext *, AVDictionary **) with gil
+        int avformat_find_stream_info(AVFormatContext *, AVDictionary **)
         int avformat_seek_file(AVFormatContext *, int, int64_t, int64_t, int64_t, int)
         int av_find_best_stream(AVFormatContext *, AVMediaType, int, int, AVCodec **, int)
         void av_dump_format(AVFormatContext *, int, const char *, int)
         int av_read_pause(AVFormatContext *)
         int av_read_play(AVFormatContext *)
-        int av_read_frame(AVFormatContext *, AVPacket *) with gil
+        int av_read_frame(AVFormatContext *, AVPacket *)
         AVProgram *av_find_program_from_stream(AVFormatContext *, AVProgram *, int)
         int avformat_write_header(AVFormatContext *, AVDictionary **)
         int av_write_trailer(AVFormatContext *)
