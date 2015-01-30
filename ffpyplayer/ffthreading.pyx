@@ -12,6 +12,8 @@ cdef extern from "Python.h":
     void Py_XINCREF(PyObject *)
     void Py_DECREF(PyObject *)
 
+ctypedef int (*int_cls_method)(void *) nogil
+
 
 cdef class MTMutex(object):
 
@@ -162,6 +164,9 @@ cdef class MTThread(object):
         return 0
 
 
+cdef int_cls_method mutex_lock = <int_cls_method>MTMutex.lock
+cdef int_cls_method mutex_release = <int_cls_method>MTMutex.unlock
+
 cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
     cdef bytes msg
     cdef int res = 1
@@ -184,9 +189,9 @@ cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
 
 cdef int SDL_lockmgr(void ** mtx, AVLockOp op) nogil:
     if op == AV_LOCK_OBTAIN:
-        return not not (<int (*)(void *) nogil>MTMutex.lock)(mtx[0])
+        return not not mutex_lock(mtx[0])
     elif op == AV_LOCK_RELEASE:
-        return not not (<int (*)(void *) nogil>MTMutex.unlock)(mtx[0])
+        return not not mutex_release(mtx[0])
     else:
         return _SDL_lockmgr_py(mtx, op)
 
