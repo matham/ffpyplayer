@@ -223,6 +223,13 @@ cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
     return res
 
 
+cdef lockmgr_func get_lib_lockmgr(MT_lib lib) nogil:
+    if lib == SDL_MT:
+        return SDL_lockmgr
+    elif lib == Py_MT:
+        return Py_lockmgr
+
+
 cdef class MTGenerator(object):
 
     def __cinit__(MTGenerator self, MT_lib mt_src, **kwargs):
@@ -238,7 +245,4 @@ cdef class MTGenerator(object):
         return 0
 
     cdef lockmgr_func get_lockmgr(MTGenerator self) nogil:
-        if self.mt_src == SDL_MT:
-            return SDL_lockmgr
-        elif self.mt_src == Py_MT:
-            return Py_lockmgr
+        return get_lib_lockmgr(self.mt_src)

@@ -15,7 +15,7 @@ __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
 
 include 'ff_defs.pxi'
 
-from ffpyplayer.ffthreading cimport Py_MT, MTMutex
+from ffpyplayer.ffthreading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
 import re
 from functools import partial
 
@@ -36,6 +36,16 @@ def _initialize_ffmpeg():
         avformat_network_init()
         ffmpeg_initialized = 1
 _initialize_ffmpeg()
+
+
+def set_ffmpeg_lockmagr():
+    cdef int res
+    with nogil:
+        res = av_lockmgr_register(get_lib_lockmgr(SDL_MT))
+    if res:
+        raise ValueError('Could not initialize lock manager.')
+set_ffmpeg_lockmagr()
+
 
 
 'see http://ffmpeg.org/ffmpeg.html for log levels'

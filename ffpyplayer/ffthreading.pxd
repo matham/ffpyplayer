@@ -42,3 +42,5 @@ cdef class MTGenerator(object):
 
     cdef int delay(MTGenerator self, int delay) nogil except 2
     cdef lockmgr_func get_lockmgr(MTGenerator self) nogil
+
+cdef lockmgr_func get_lib_lockmgr(MT_lib lib) nogil

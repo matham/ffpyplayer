@@ -3,6 +3,8 @@ FFmpeg based media player
 =========================
 
 A FFmpeg based python media player. See :class:`MediaPlayer` for details.
+
+TDOD: make callback not ref by default.
 '''
 
 
@@ -336,10 +338,10 @@ cdef class MediaPlayer(object):
         else:
             raise Exception('Video sink parameter not recognized.')
 
-        with nogil:
-            res = av_lockmgr_register(self.mt_gen.get_lockmgr())
-        if res:
-            raise ValueError('Could not initialize lock manager.')
+#         with nogil:
+#             res = av_lockmgr_register(self.mt_gen.get_lockmgr())
+#         if res:
+#             raise ValueError('Could not initialize lock manager.')
 
         self.next_image = Image.__new__(Image, no_create=True)
         self.ivs = VideoState()
