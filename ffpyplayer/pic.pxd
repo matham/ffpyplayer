@@ -23,6 +23,7 @@ cdef class Image(object):
     cpdef get_size(Image self)
     cpdef get_pixel_format(Image self)
     cpdef get_buffer_size(Image self, keep_align=*)
+    cpdef get_required_buffers(Image self)
     cpdef to_bytearray(Image self, keep_align=*)
     cpdef to_memoryview(Image self, keep_align=*)
 

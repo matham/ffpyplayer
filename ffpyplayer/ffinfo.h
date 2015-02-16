@@ -54,8 +54,8 @@ int opt_default(const char *opt, const char *arg,
         struct SwsContext *sws_opts, AVDictionary **swr_opts,
         AVDictionary **format_opts, AVDictionary **codec_opts);
 
-int get_plane_sizes(int size[4], enum AVPixelFormat pix_fmt, int height,
-        const int linesizes[4]);
+int get_plane_sizes(int size[4], int required_plane[4], enum AVPixelFormat pix_fmt, 
+		int height, const int linesizes[4]);
 
 
 #endif
