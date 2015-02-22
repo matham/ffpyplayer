@@ -55,42 +55,54 @@ else:
     suffix = '.a'
 prefix = 'lib'
 
-# locate sdl and ffmpeg headers and binaries
-ffmpeg_root = environ.get('FFMPEG_ROOT')
-sdl_root = environ.get('SDL_ROOT')
-if (not ffmpeg_root) and os.path.exists('./ffmpeg'):
-    ffmpeg_root = os.path.realpath('./ffmpeg')
-if (not sdl_root) and os.path.exists('./sdl'):
-    sdl_root = os.path.realpath('./sdl')
-if not sdl_root:
-    raise Exception('Cannot locate sdl root.')
-if not ffmpeg_root:
-    raise Exception('Cannot locate ffmpeg root.')
-sdl = 'SDL2' if os.path.exists(join(sdl_root, 'include', 'SDL2')) else 'SDL'
-print 'Selecting %s out of (SDL, SDL2)' % sdl
+if "KIVYIOSROOT" in environ:
+    # enable kivy-ios compilation
+    include_dirs = [
+        environ.get("SDL_INCLUDE_DIR"),
+        environ.get("FFMPEG_INCLUDE_DIR")]
+    sdl_extra_objects = []
+    ff_extra_objects = []
+    extra_objects = []
+    sdl = "SDL2"
 
-include_dirs = [join(sdl_root, 'include', sdl), join(ffmpeg_root, 'include')]
-ff_extra_objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
-               'avutil', 'swscale', 'swresample', 'postproc']
-for libname in ff_extra_objects[:]:
-    for key, val in c_options.iteritems():
-        if key.endswith(libname) and not val:
-            ff_extra_objects.remove(libname)
-            break
-sdl_extra_objects = [sdl]
+else:
 
-# if .so files are available use them
-extra_objects = []
-for ff_obj in ff_extra_objects:
-    res = join(ffmpeg_root, 'lib', prefix + ff_obj + suffix)
-    if exists(join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')):
-        res = join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')
-    extra_objects.append(res)
-for sdl_obj in sdl_extra_objects:
-    res = join(sdl_root, 'lib', prefix + sdl_obj + suffix)
-    if exists(join(sdl_root, 'lib', prefix + sdl_obj + '.so')):
-        res = join(sdl_root, 'lib', prefix + sdl_obj + '.so')
-    extra_objects.append(res)
+    # locate sdl and ffmpeg headers and binaries
+    ffmpeg_root = environ.get('FFMPEG_ROOT')
+    sdl_root = environ.get('SDL_ROOT')
+    if (not ffmpeg_root) and os.path.exists('./ffmpeg'):
+        ffmpeg_root = os.path.realpath('./ffmpeg')
+    if (not sdl_root) and os.path.exists('./sdl'):
+        sdl_root = os.path.realpath('./sdl')
+    if not sdl_root:
+        raise Exception('Cannot locate sdl root.')
+    if not ffmpeg_root:
+        raise Exception('Cannot locate ffmpeg root.')
+    sdl = 'SDL2' if os.path.exists(join(sdl_root, 'include', 'SDL2')) else 'SDL'
+    print 'Selecting %s out of (SDL, SDL2)' % sdl
+
+    include_dirs = [join(sdl_root, 'include', sdl), join(ffmpeg_root, 'include')]
+    ff_extra_objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
+                   'avutil', 'swscale', 'swresample', 'postproc']
+    for libname in ff_extra_objects[:]:
+        for key, val in c_options.iteritems():
+            if key.endswith(libname) and not val:
+                ff_extra_objects.remove(libname)
+                break
+    sdl_extra_objects = [sdl]
+
+    # if .so files are available use them
+    extra_objects = []
+    for ff_obj in ff_extra_objects:
+        res = join(ffmpeg_root, 'lib', prefix + ff_obj + suffix)
+        if exists(join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')):
+            res = join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')
+        extra_objects.append(res)
+    for sdl_obj in sdl_extra_objects:
+        res = join(sdl_root, 'lib', prefix + sdl_obj + suffix)
+        if exists(join(sdl_root, 'lib', prefix + sdl_obj + '.so')):
+            res = join(sdl_root, 'lib', prefix + sdl_obj + '.so')
+        extra_objects.append(res)
 
 mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
         'writer', 'pic']
@@ -138,7 +150,7 @@ with open(join('ffpyplayer', 'ffconfig.pxi'), 'wb') as f:
 
 
 ext_modules = [Extension('ffpyplayer.' + src_file,
-    sources=[join('ffpyplayer', src_file+mod_suffix), join('ffpyplayer', 'ffinfo.c')],
+    sources=[join('ffpyplayer', src_file + mod_suffix)],
     include_dirs=include_dirs, extra_objects=extra_objects,
     extra_compile_args=extra_compile_args) for src_file in mods]
 
