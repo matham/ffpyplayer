@@ -496,7 +496,7 @@ cdef:
         void print_all_libs_info(int, int)
         int opt_default(const char *, const char *, SwsContext *, AVDictionary **,
                         AVDictionary **, AVDictionary **)
-        int get_plane_sizes(int *, AVPixelFormat, int, const int *)
+        int get_plane_sizes(int *, int *, AVPixelFormat, int, const int *)
 
 cdef enum:
     AV_SYNC_AUDIO_MASTER, # default choice

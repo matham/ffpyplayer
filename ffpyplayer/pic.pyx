@@ -89,7 +89,7 @@ def get_image_size(pix_fmt, width, height):
     cdef AVPixelFormat fmt
     cdef int res, w = width, h = height
     cdef int size[4]
-    cdef int ls[4]
+    cdef int ls[4], req[4]
     cdef char msg[256]
 
     if not pix_fmt or not width or not height:
@@ -102,7 +102,7 @@ def get_image_size(pix_fmt, width, height):
     if res < 0:
         raise Exception('Failed to initialize linesizes: ' + emsg(res, msg, sizeof(msg)))
 
-    res = get_plane_sizes(size, fmt, h, ls)
+    res = get_plane_sizes(size, req, fmt, h, ls)
     if res < 0:
         raise Exception('Failed to get planesizes: ' + emsg(res, msg, sizeof(msg)))
     return (size[0], size[1], size[2], size[3])
@@ -354,7 +354,7 @@ cdef class Image(object):
         cdef char msg[256]
         cdef AVFrame *avframe
         cdef int buff_size[4]
-        cdef int ls[4]
+        cdef int ls[4], req[4]
 
         self.frame = NULL
         self.byte_planes = None
@@ -396,14 +396,19 @@ cdef class Image(object):
 
         if plane_buffers:
             self.byte_planes = []
-            res = get_plane_sizes(buff_size, self.pix_fmt, self.frame.height, self.frame.linesize)
+            res = get_plane_sizes(buff_size, req, self.pix_fmt, self.frame.height, self.frame.linesize)
             if res < 0:
                 raise Exception('Failed to get plane sizes: ' + emsg(res, msg, sizeof(msg)))
             for i in range(4):
+                if req[i] and buff_size[i] and (len(plane_buffers) <= i or not plane_buffers[i]):
+                    raise Exception('Required plane %d not provided for %s' % (i, pix_fmt))
+                if len(plane_buffers) > i and plane_buffers[i] and not buff_size[i]:
+                    raise Exception('Unused plane %d provided for %s' % (i, pix_fmt))
+            for i in range(4):
                 if len(plane_buffers) == i:
-                    if buff_size[i]:
-                        raise Exception('Not enough planes provided for %s' % pix_fmt)
                     break
+                if not plane_buffers[i]:
+                    continue
                 plane = plane_buffers[i]
                 if len(plane) < buff_size[i]:
                     raise Exception('Buffer for plane %d is too small, required buffer size is %d.'\
@@ -626,7 +631,7 @@ cdef class Image(object):
         '''
         cdef int res
         cdef int size[4]
-        cdef int ls[4]
+        cdef int ls[4], req[4]
         cdef char msg[256]
 
         if keep_align:
@@ -636,10 +641,25 @@ cdef class Image(object):
             if res < 0:
                 raise Exception('Failed to initialize linesizes: ' + emsg(res, msg, sizeof(msg)))
 
-        res = get_plane_sizes(size, <AVPixelFormat>self.frame.format, self.frame.height, ls)
+        res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
             raise Exception('Failed to get planesizes: ' + emsg(res, msg, sizeof(msg)))
         return (size[0], size[1], size[2], size[3])
+    
+    cpdef get_required_buffers(Image self):
+        '''Returns a 4 tuple indicating which of the 4 planes are required
+        (e.g. even if get_buffer_size is non-zero for that plane).
+        '''
+        cdef int res
+        cdef int size[4]
+        cdef int ls[4], req[4]
+        cdef char msg[256]
+
+        memcpy(ls, self.frame.linesize, sizeof(ls))
+        res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
+        if res < 0:
+            raise Exception('Failed to get planesizes: ' + emsg(res, msg, sizeof(msg)))
+        return (req[0], req[1], req[2], req[3])
 
     cpdef to_bytearray(Image self, keep_align=False):
         '''
@@ -699,7 +719,7 @@ cdef class Image(object):
         cdef int i, res
         cdef uint8_t *data[4]
         cdef int size[4]
-        cdef int ls[4]
+        cdef int ls[4], req[4]
         cdef char msg[256]
         memset(data, 0, sizeof(data))
 
@@ -710,7 +730,7 @@ cdef class Image(object):
             if res < 0:
                 raise Exception('Failed to initialize linesizes: ' + emsg(res, msg, sizeof(msg)))
 
-        res = get_plane_sizes(size, <AVPixelFormat>self.frame.format, self.frame.height, ls)
+        res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
             raise Exception('Failed to get plane sizes: ' + emsg(res, msg, sizeof(msg)))
         for i in range(4):
@@ -771,7 +791,7 @@ cdef class Image(object):
         cdef int i, res
         cdef int size[4]
         cdef char *data[4]
-        cdef int ls[4]
+        cdef int ls[4], req[4]
         cdef int *cls = self.frame.linesize
         cdef char msg[256]
         memset(data, 0, sizeof(data))
@@ -783,7 +803,7 @@ cdef class Image(object):
 
         if keep_align or (cls[0] == ls[0] and cls[1] == ls[1] and
                           cls[2] == ls[2] and cls[3] == ls[3]):
-            res = get_plane_sizes(size, <AVPixelFormat>self.frame.format,
+            res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format,
                                   self.frame.height, self.frame.linesize)
             if res < 0:
                 raise Exception('Failed to get plane sizes: ' + emsg(res, msg, sizeof(msg)))
@@ -796,7 +816,7 @@ cdef class Image(object):
                 cyarr.data = <char *>self.frame.data[i]
             return planes
 
-        res = get_plane_sizes(size, <AVPixelFormat>self.frame.format, self.frame.height, ls)
+        res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
             raise Exception('Failed to get plane sizes: ' + emsg(res, msg, sizeof(msg)))
         for i in range(4):
