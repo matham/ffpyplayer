@@ -396,7 +396,7 @@ cdef class MediaPlayer(object):
         #SDL_Quit()
         av_log(NULL, AV_LOG_QUIET, "%s", empty)
 
-    def get_frame(self, force_refresh=False, *args):
+    def get_frame(self, force_refresh=False, show=True, *args):
         '''
         Retrieves the next available frame if ready.
 
@@ -409,6 +409,8 @@ cdef class MediaPlayer(object):
         **Args**:
             *force_refresh* (bool): If True, a new instance of the last frame will
             be returned again. Defaults to False.
+            *show* (bool): If True a image is returned as normal, if False, no
+            image will be returned, event when one is available. Defaults to True.
 
         **Returns**:
             *(frame, val)*.
@@ -423,7 +425,8 @@ cdef class MediaPlayer(object):
 
                 *image*: The :class:`ffpyplayer.pic.Image` instance containing
                 the frame. The size of the image can change because the output
-                can be resized dynamically (see :meth:`set_size`).
+                can be resized dynamically (see :meth:`set_size`). If `show` was
+                False, it will be None.
 
                 *pts* is the presentation timestamp of this frame. This is the time
                 when the frame should be displayed to the user in video time (i.e.
@@ -507,8 +510,11 @@ cdef class MediaPlayer(object):
         '''
         cdef Image next_image = self.next_image
         cdef int res, f = force_refresh
+        cdef int s = show
         cdef double pts, remaining_time
 
+        if not s:
+            next_image = None
         with nogil:
             res = self.ivs.video_refresh(next_image, &pts, &remaining_time, f)
 
@@ -519,7 +525,8 @@ cdef class MediaPlayer(object):
         elif res == 3:
             return (None, remaining_time)
 
-        self.next_image = Image.__new__(Image, no_create=True)
+        if s:
+            self.next_image = Image.__new__(Image, no_create=True)
         return ((next_image, pts), remaining_time)
 
     def get_metadata(self):
@@ -753,7 +760,7 @@ cdef class MediaPlayer(object):
         elif action == 'close':
             self.ivs.stream_component_close(old_index)
 
-    def seek(self, pts, relative=True, seek_by_bytes=False):
+    def seek(self, pts, relative=True, seek_by_bytes=False, accurate=True):
         '''
         Seeks in the current streams.
 
@@ -770,17 +777,23 @@ cdef class MediaPlayer(object):
             or in time. In some instances seeking by bytes may be more accurate
             (don't ask me which).
 
+            *accurate*: (bool): Whether to do finer seeking if we didn't seek
+            directly to the requested frame. This is likely to be slower because
+            after the coarser seek, we have to walk through the frames until
+            the requested frame is reached. If paused or we reached eof this is
+            ignored.
+
         ::
 
             >>> print player.get_frame()[0][1]
             1016.392
 
-            >>> player.seek(200.)
+            >>> player.seek(200., accurate=False)
             >>> player.get_frame()
             >>> print player.get_frame()[0][1]
             1249.876
 
-            >>> player.seek(200, relative=False)
+            >>> player.seek(200, relative=False, accurate=False)
             >>> player.get_frame()
             >>> print player.get_frame()[0][1]
             198.49
@@ -788,12 +801,15 @@ cdef class MediaPlayer(object):
         Note that it may take a few calls to get new frames after seeking.
         '''
         cdef int c_relative = relative
+        cdef int c_accurate = accurate
         cdef int c_seek_by_bytes = seek_by_bytes
         cdef double c_pts = pts
         with nogil:
-            self._seek(c_pts, c_relative, c_seek_by_bytes)
+            self._seek(c_pts, c_relative, c_seek_by_bytes, c_accurate)
 
-    cdef void _seek(self, double pts, int relative, int seek_by_bytes) nogil:
+    cdef void _seek(self, double pts, int relative, int seek_by_bytes, int accurate) nogil:
+        '''Returns the actual pos where we wanted to seek to.
+        '''
         cdef double incr, pos
         cdef int64_t t_pos = 0, t_rel = 0
 
@@ -835,4 +851,4 @@ cdef class MediaPlayer(object):
                 t_pos = <int64_t>(pos * AV_TIME_BASE)
                 if self.ivs.ic.start_time != AV_NOPTS_VALUE and t_pos < self.ivs.ic.start_time:
                     t_pos = self.ivs.ic.start_time
-        self.ivs.stream_seek(t_pos, t_rel, seek_by_bytes, 1)
+        self.ivs.stream_seek(t_pos, t_rel, seek_by_bytes, c_accurate)

@@ -34,6 +34,9 @@ cdef class VideoState(object):
         int audio_finished
         int video_finished
         int reached_eof
+        double seek_req_pos
+        int audio_seeking
+        int video_seeking
 
         Clock audclk
         Clock vidclk

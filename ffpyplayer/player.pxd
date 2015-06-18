@@ -23,5 +23,5 @@ cdef class MediaPlayer(object):
         Image next_image
         int is_closed
 
-    cdef void _seek(self, double pts, int relative, int seek_by_bytes) nogil
+    cdef void _seek(self, double pts, int relative, int seek_by_bytes, int accurate) nogil
     cpdef close_player(self)

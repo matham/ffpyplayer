@@ -209,6 +209,8 @@ cdef class VideoState(object):
         self.metadata = {'src_vid_size':(0, 0), 'sink_vid_size':(0, 0),
                          'title':'', 'duration':0.0, 'frame_rate':(0, 0),
                          'src_pix_fmt': ''}
+        self.seek_req_pos = -1
+        self.video_seeking = self.audio_seeking = 0
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player, int paused) nogil except 1:
@@ -332,6 +334,9 @@ cdef class VideoState(object):
     # seek in the stream
     cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes, int flush) nogil except 1:
         if not self.seek_req:
+            if flush:
+                self.video_seeking = self.audio_seeking = 0
+                self.seek_req_pos = pos / <double>AV_TIME_BASE
             self.seek_pos = pos
             self.seek_rel = rel
             self.seek_flags &= ~AVSEEK_FLAG_BYTE
@@ -551,7 +556,8 @@ cdef class VideoState(object):
                                 frame = vp_temp.pict_ref
                             else:
                                 frame = vp_temp.pict
-                            next_image.cython_init(frame)
+                            if next_image is not None:
+                                next_image.cython_init(frame)
                             pts[0] = vp_temp.pts
                             result = 0
                     self.pictq_next_picture()
@@ -689,6 +695,7 @@ cdef class VideoState(object):
             return -1
         if pkt.data == get_flush_packet().data:
             avcodec_flush_buffers(self.video_st.codec)
+            self.video_seeking = self.seek_req_pos != -1
 
             self.pictq_cond.lock()
             ''' Make sure there are no long delay timers (ideally we should
@@ -716,6 +723,14 @@ cdef class VideoState(object):
                 dpts = av_q2d(self.video_st.time_base) * frame.pts
 
             frame.sample_aspect_ratio = av_guess_sample_aspect_ratio(self.ic, self.video_st, frame)
+
+            if self.video_seeking and self.seek_req_pos != -1:
+                if dpts == NAN or dpts >= self.seek_req_pos:
+                    if self.get_master_sync_type() == AV_SYNC_VIDEO_MASTER:
+                        self.seek_req_pos = -1
+                else:
+                    av_frame_unref(frame)
+                    return 0
 
             if self.player.framedrop > 0 or (self.player.framedrop and\
             self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER):
@@ -1367,7 +1382,13 @@ cdef class VideoState(object):
 #                            self.audio_clock - self.last_clock,
 #                            self.audio_clock, audio_clock0)
 #                     self.last_clock = is->audio_clock;
-                return resampled_data_size
+                if not self.audio_seeking or self.seek_req_pos == -1:
+                    return resampled_data_size
+                elif self.audio_clock == NAN or self.audio_clock >= self.seek_req_pos:
+                    if self.get_master_sync_type() == AV_SYNC_AUDIO_MASTER:
+                        self.seek_req_pos = -1
+                    return resampled_data_size
+
 
             # free the current packet
             if pkt.data != NULL:
@@ -1393,6 +1414,7 @@ cdef class VideoState(object):
                 if (self.ic.iformat.flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH |\
                 AVFMT_NO_BYTE_SEEK)) and self.ic.iformat.read_seek == NULL:
                     self.audio_frame_next_pts = self.audio_st.start_time
+                self.audio_seeking = self.seek_req_pos != -1
 
             pkt_temp[0] = pkt[0]
 
@@ -1880,6 +1902,7 @@ cdef class VideoState(object):
             if (not self.paused) and ((not self.audio_st) or\
             self.audio_finished == self.audioq.serial) and (self.video_st == NULL or\
             (self.video_finished == self.videoq.serial and self.pictq_size == 0)):
+                self.seek_req_pos = -1
                 if self.player.loop != 1:
                     if self.player.start_time != AV_NOPTS_VALUE:
                         temp64 = self.player.start_time
@@ -1899,6 +1922,7 @@ cdef class VideoState(object):
                         self.reached_eof = 1
                         self.vid_sink.request_thread(FF_EOF_EVENT)
             if eof:
+                self.seek_req_pos = -1
                 if self.video_stream >= 0:
                     self.videoq.packet_queue_put_nullpacket(self.video_stream)
                 if self.audio_stream >= 0:
