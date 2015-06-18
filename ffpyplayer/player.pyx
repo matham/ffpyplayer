@@ -851,4 +851,4 @@ cdef class MediaPlayer(object):
                 t_pos = <int64_t>(pos * AV_TIME_BASE)
                 if self.ivs.ic.start_time != AV_NOPTS_VALUE and t_pos < self.ivs.ic.start_time:
                     t_pos = self.ivs.ic.start_time
-        self.ivs.stream_seek(t_pos, t_rel, seek_by_bytes, c_accurate)
+        self.ivs.stream_seek(t_pos, t_rel, seek_by_bytes, accurate)
