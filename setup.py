@@ -54,6 +54,7 @@ if platform in ('win32', 'cygwin'):
 else:
     suffix = '.a'
 prefix = 'lib'
+libraries = []
 
 if "KIVYIOSROOT" in environ:
     # enable kivy-ios compilation
@@ -64,6 +65,19 @@ if "KIVYIOSROOT" in environ:
     ff_extra_objects = []
     extra_objects = []
     sdl = "SDL2"
+
+elif "NDKPLATFORM" in environ:
+    # enable python-for-android compilation
+    include_dirs = [
+        environ.get("SDL_INCLUDE_DIR"),
+        environ.get("FFMPEG_INCLUDE_DIR")]
+    ffmpeg_libdir = environ.get("FFMPEG_LIB_DIR")
+    sdl_extra_objects = []
+    extra_objects = []
+    sdl = "SDL"
+    libraries = ['avcodec', 'avdevice', 'avfilter', 'avformat',
+                 'avutil', 'swscale', 'swresample', 'postproc',
+                 'sdl']
 
 else:
 
@@ -151,6 +165,7 @@ with open(join('ffpyplayer', 'ffconfig.pxi'), 'wb') as f:
 
 ext_modules = [Extension('ffpyplayer.' + src_file,
     sources=[join('ffpyplayer', src_file + mod_suffix)],
+    libraries=libraries,
     include_dirs=include_dirs, extra_objects=extra_objects,
     extra_compile_args=extra_compile_args) for src_file in mods]
 
