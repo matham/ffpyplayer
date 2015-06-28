@@ -13,6 +13,13 @@ from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 import traceback
 
+# android platform detection
+from os import environ
+cdef int IS_ANDROID = 0
+if "ANDROID_ARGUMENT" in environ:
+    import jnius
+    IS_ANDROID = 1
+
 
 cdef extern from "limits.h" nogil:
     int INT_MAX
@@ -74,6 +81,10 @@ cdef int read_thread_enter(void *obj_id) except? 1 with gil:
             raise
         else:
             return 1
+    finally:
+        if IS_ANDROID:
+            jnius.detach()
+
 cdef int video_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
     cdef bytes msg
@@ -88,6 +99,9 @@ cdef int video_thread_enter(void *obj_id) except? 1 with gil:
             raise
         else:
             return 1
+    finally:
+        if IS_ANDROID:
+            jnius.detach()
 
 cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
@@ -103,6 +117,9 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
             raise
         else:
             return 1
+    finally:
+        if IS_ANDROID:
+            jnius.detach()
 
 cdef int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec) nogil:
     cdef int ret = avformat_match_stream_specifier(s, st, spec)
