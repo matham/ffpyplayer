@@ -126,6 +126,7 @@ cdef:
         int AV_LOG_INFO
         int AV_LOG_VERBOSE
         int AV_LOG_DEBUG
+        int AV_LOG_TRACE
         int AV_LOG_SKIP_REPEATED
         void av_log(void *, int, const char *, ...)
         void av_log_set_flags(int)

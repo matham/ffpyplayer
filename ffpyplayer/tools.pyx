@@ -51,7 +51,7 @@ set_ffmpeg_lockmagr()
 'see http://ffmpeg.org/ffmpeg.html for log levels'
 loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
              "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
-             "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG}
+             "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG, "trace":AV_LOG_TRACE}
 _loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
 codecs_enc = sorted(list_enc_codecs())
@@ -67,6 +67,8 @@ cdef MTMutex _log_mutex= MTMutex(Py_MT)
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
+    if level == AV_LOG_TRACE:
+        return
     global _print_prefix
     _log_mutex.lock()
     _print_prefix = 1
