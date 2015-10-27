@@ -380,7 +380,6 @@ cdef class MediaPlayer(object):
                 self.ivs.cquit()
         self.ivs = None
         self.vid_sink = None
-        av_lockmgr_register(NULL)
         IF CONFIG_SWSCALE:
             sws_freeContext(self.settings.sws_opts)
             self.settings.sws_opts = NULL
