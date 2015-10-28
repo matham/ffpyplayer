@@ -498,8 +498,12 @@ cdef class VideoState(object):
                         lastvp = &self.pictq[(self.pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE]
                         if vp.serial != self.videoq.serial:
                             self.pictq_next_picture()
+                            self.video_current_pos = -1
                             redisplay = 0
                             continue
+
+                        if lastvp.serial != vp.serial and not redisplay:
+                            self.frame_timer = av_gettime() / 1000000.0
 
                         if self.paused:
                             state = display
@@ -710,19 +714,12 @@ cdef class VideoState(object):
         cdef double dpts = NAN, diff
         if self.videoq.packet_queue_get(pkt, 1, serial) < 0:
             return -1
+
         if pkt.data == get_flush_packet().data:
             avcodec_flush_buffers(self.video_st.codec)
             self.video_seeking = self.seek_req_pos != -1
-
-            self.pictq_cond.lock()
-            ''' Make sure there are no long delay timers (ideally we should
-            just flush the queue but that's harder)'''
-            while self.pictq_size and not self.videoq.abort_request:
-                self.pictq_cond.cond_wait()
-            self.video_current_pos = -1
-            self.frame_timer = <double>av_gettime() / 1000000.0
-            self.pictq_cond.unlock()
             return 0
+
         if avcodec_decode_video2(self.video_st.codec, frame, &got_picture, pkt) < 0:
             return 0
 
@@ -1074,7 +1071,7 @@ cdef class VideoState(object):
 
             if ret < 0:
                 break
-        avcodec_flush_buffers(self.video_st.codec)
+
         IF CONFIG_AVFILTER:
             avfilter_graph_free(&graph)
         av_free_packet(&pkt)
