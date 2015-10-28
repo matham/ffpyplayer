@@ -27,7 +27,6 @@ def _initialize_ffmpeg():
     '''
     global ffmpeg_initialized
     if not ffmpeg_initialized:
-        avcodec_register_all() # register all codecs, demux and protocols
         IF CONFIG_AVDEVICE:
             avdevice_register_all()
         IF CONFIG_AVFILTER:
