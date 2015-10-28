@@ -2,7 +2,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 import os
 import sys
-from os.path import join, exists
+from os.path import join, exists, isdir
 from os import environ
 from ffpyplayer import version
 try:
@@ -34,36 +34,59 @@ c_options = {
 'config_avformat':True,
 'config_swresample':True
 }
+
 for key in list(c_options.keys()):
     ukey = key.upper()
     if ukey in environ:
         value = bool(int(environ[ukey]))
         print('Environ change {0} -> {1}'.format(key, value))
         c_options[key] = value
+
 if (not c_options['config_avfilter']) and not c_options['config_swscale']:
     raise Exception('At least one of config_avfilter and config_swscale must be enabled.')
+
 #if c_options['config_avfilter'] and ((not c_options['config_postproc']) or not c_options['config_swscale']):
 #    raise Exception('config_avfilter implicitly requires the postproc and swscale binaries.')
 c_options['config_avutil'] = c_options['config_avutil'] = True
 c_options['config_avformat'] = c_options['config_swresample'] = True
 
-# on windows we use .dll.a, not .a files
-platform = sys.platform
-if platform in ('win32', 'cygwin'):
-    suffix = '.dll.a'
-else:
-    suffix = '.a'
-prefix = 'lib'
+
+def getoutput(cmd):
+    import subprocess
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    p.wait()
+    if p.returncode:  # if not returncode == 0
+        print('WARNING: A problem occured while running {0} (code {1})\n'
+              .format(cmd, p.returncode))
+        stderr_content = p.stderr.read()
+        if stderr_content:
+            print('{0}\n'.format(stderr_content))
+        return ""
+    return p.stdout.read()
+
+
+def pkgconfig(*packages, **kw):
+    flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
+    cmd = 'pkg-config --libs --cflags {}'.format(' '.join(packages))
+    results = getoutput(cmd).split()
+    for token in results:
+        ext = token[:2].decode('utf-8')
+        flag = flag_map.get(ext)
+        if not flag:
+            continue
+        kw.setdefault(flag, []).append(token[2:].decode('utf-8'))
+    return kw
+
 libraries = []
+library_dirs = []
+include_dirs = []
 
 if "KIVYIOSROOT" in environ:
     # enable kivy-ios compilation
     include_dirs = [
         environ.get("SDL_INCLUDE_DIR"),
         environ.get("FFMPEG_INCLUDE_DIR")]
-    sdl_extra_objects = []
-    ff_extra_objects = []
-    extra_objects = []
     sdl = "SDL2"
 
 elif "NDKPLATFORM" in environ:
@@ -72,8 +95,6 @@ elif "NDKPLATFORM" in environ:
         environ.get("SDL_INCLUDE_DIR"),
         environ.get("FFMPEG_INCLUDE_DIR")]
     ffmpeg_libdir = environ.get("FFMPEG_LIB_DIR")
-    sdl_extra_objects = []
-    extra_objects = []
     sdl = "SDL"
     libraries = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                  'avutil', 'swscale', 'swresample', 'postproc',
@@ -83,40 +104,75 @@ else:
 
     # locate sdl and ffmpeg headers and binaries
     ffmpeg_root = environ.get('FFMPEG_ROOT')
-    sdl_root = environ.get('SDL_ROOT')
-    if (not ffmpeg_root) and os.path.exists('./ffmpeg'):
-        ffmpeg_root = os.path.realpath('./ffmpeg')
-    if (not sdl_root) and os.path.exists('./sdl'):
-        sdl_root = os.path.realpath('./sdl')
-    if not sdl_root:
-        raise Exception('Cannot locate sdl root.')
-    if not ffmpeg_root:
-        raise Exception('Cannot locate ffmpeg root.')
-    sdl = 'SDL2' if os.path.exists(join(sdl_root, 'include', 'SDL2')) else 'SDL'
-    print 'Selecting %s out of (SDL, SDL2)' % sdl
+    if ffmpeg_root is not None and not isdir(ffmpeg_root):
+        ffmpeg_root = None
 
-    include_dirs = [join(sdl_root, 'include', sdl), join(ffmpeg_root, 'include')]
-    ff_extra_objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
+    if ffmpeg_root is not None:
+        ffmpeg_include = environ.get('FFMPEG_INCLUDE_DIR', join(ffmpeg_root, 'include'))
+        ffmpeg_lib = environ.get('FFMPEG_LIB_DIR', join(ffmpeg_root, 'lib'))
+    else:
+        ffmpeg_include = environ.get('FFMPEG_INCLUDE_DIR')
+        ffmpeg_lib = environ.get('FFMPEG_LIB_DIR')
+    if ffmpeg_include is not None and not isdir(ffmpeg_include):
+        ffmpeg_include = None
+    if ffmpeg_lib is not None and not isdir(ffmpeg_lib):
+        ffmpeg_lib = None
+
+    objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                    'avutil', 'swscale', 'swresample', 'postproc']
-    for libname in ff_extra_objects[:]:
+    for libname in objects[:]:
         for key, val in c_options.iteritems():
             if key.endswith(libname) and not val:
-                ff_extra_objects.remove(libname)
+                objects.remove(libname)
                 break
-    sdl_extra_objects = [sdl]
 
-    # if .so files are available use them
-    extra_objects = []
-    for ff_obj in ff_extra_objects:
-        res = join(ffmpeg_root, 'lib', prefix + ff_obj + suffix)
-        if exists(join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')):
-            res = join(ffmpeg_root, 'lib', prefix + ff_obj + '.so')
-        extra_objects.append(res)
-    for sdl_obj in sdl_extra_objects:
-        res = join(sdl_root, 'lib', prefix + sdl_obj + suffix)
-        if exists(join(sdl_root, 'lib', prefix + sdl_obj + '.so')):
-            res = join(sdl_root, 'lib', prefix + sdl_obj + '.so')
-        extra_objects.append(res)
+    flags = {'include_dirs': [], 'library_dirs': [], 'libraries': []}
+    if ffmpeg_lib is None and ffmpeg_include is None:
+        flags = pkgconfig(*objects)
+
+    library_dirs = flags.get('library_dirs', []) if ffmpeg_lib is None \
+        else [ffmpeg_lib]
+    include_dirs = flags.get('include_dirs', []) if ffmpeg_include is None \
+        else [ffmpeg_include]
+    libraries = objects[:]
+
+    # sdl
+    sdl_root = environ.get('SDL_ROOT')
+    if sdl_root is not None and not isdir(sdl_root):
+        sdl_root = None
+
+    if sdl_root is not None:
+        sdl_include = environ.get('SDL_INCLUDE_DIR', join(sdl_root, 'include'))
+        sdl_lib = environ.get('SDL_LIB_DIR', join(sdl_root, 'lib'))
+    else:
+        sdl_include = environ.get('SDL_INCLUDE_DIR')
+        sdl_lib = environ.get('SDL_LIB_DIR')
+    if sdl_include is not None and not isdir(sdl_include):
+        sdl_include = None
+    if sdl_lib is not None and not isdir(sdl_lib):
+        sdl_lib = None
+
+    sdl = 'SDL2'
+    flags = {'include_dirs': [], 'library_dirs': [], 'libraries': []}
+    if sdl_lib is None and sdl_include is None:
+        flags = pkgconfig('sdl2')
+        if not flags:
+            flags = pkgconfig('sdl')
+            if flags:
+                sdl = 'SDL'
+    elif sdl_include is not None and not isdir(join(sdl_include, 'SDL2')):
+        sdl = 'SDL'
+    print('Selecting %s out of (SDL, SDL2)' % sdl)
+
+    sdl_lib = flags.get('library_dirs', []) if sdl_lib is None \
+        else [sdl_lib]
+    sdl_include = flags.get('include_dirs', []) if sdl_include is None \
+        else [join(sdl_include, sdl)]
+
+    library_dirs.extend(sdl_lib)
+    include_dirs.extend(sdl_include)
+    libraries.append(sdl)
+
 
 mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
         'writer', 'pic']
@@ -129,7 +185,7 @@ else:
     mod_suffix = '.c'
 
 
-print 'Generating ffconfig.h'
+print('Generating ffconfig.h')
 with open(join('ffpyplayer', 'ffconfig.h'), 'wb') as f:
     f.write('''
 #ifndef _FFCONFIG_H
@@ -157,17 +213,20 @@ with open(join('ffpyplayer', 'ffconfig.h'), 'wb') as f:
 #endif
 ''')
 
-print 'Generating ffconfig.pxi'
+print('Generating ffconfig.pxi')
 with open(join('ffpyplayer', 'ffconfig.pxi'), 'wb') as f:
     for k, v in c_options.iteritems():
         f.write('DEF %s = %d\n' % (k.upper(), int(v)))
 
 
-ext_modules = [Extension('ffpyplayer.' + src_file,
+ext_modules = [Extension(
+    'ffpyplayer.' + src_file,
     sources=[join('ffpyplayer', src_file + mod_suffix)],
     libraries=libraries,
-    include_dirs=include_dirs, extra_objects=extra_objects,
-    extra_compile_args=extra_compile_args) for src_file in mods]
+    include_dirs=include_dirs,
+    library_dirs=library_dirs,
+    extra_compile_args=extra_compile_args)
+               for src_file in mods]
 
 for e in ext_modules:
     e.cython_directives = {"embedsignature": True}
