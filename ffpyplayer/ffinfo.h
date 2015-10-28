@@ -3,7 +3,7 @@
 #define _FFINFO_H
 
 #include "ffconfig.h"
-#include "libavfilter/avcodec.h"
+#include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libavdevice/avdevice.h"
 #include "libswscale/swscale.h"

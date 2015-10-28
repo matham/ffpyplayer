@@ -980,7 +980,7 @@ cdef class VideoState(object):
             while self.paused and not self.videoq.abort_request:
                 self.mt_gen.delay(10)
 
-            avcodec_get_frame_defaults(frame)
+            av_frame_unref(frame)
             av_free_packet(&pkt)
             ret = self.get_video_frame(frame, &pkt, &serial)
             if ret < 0:
@@ -1028,7 +1028,6 @@ cdef class VideoState(object):
                 if ret < 0:
                     break
                 av_frame_unref(frame)
-                avcodec_get_frame_defaults(frame)
                 av_free_packet(&pkt)
                 while ret >= 0:
                     self.frame_last_returned_time = av_gettime() / 1000000.0
@@ -1233,7 +1232,6 @@ cdef class VideoState(object):
                         return AVERROR(ENOMEM)
                 else:
                     av_frame_unref(self.frame)
-                    avcodec_get_frame_defaults(self.frame)
 
                 if self.audioq.serial != self.audio_pkt_temp_serial:
                     break

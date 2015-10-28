@@ -315,7 +315,7 @@ cdef:
         int swr_set_compensation(SwrContext *, int, int)
         int swr_convert(SwrContext *, uint8_t **, int, const uint8_t ** , int)
 
-    extern from "libavfilter/avcodec.h" nogil:
+    extern from "libavcodec/avcodec.h" nogil:
         int CODEC_FLAG_EMU_EDGE
         int CODEC_FLAG2_FAST
         int CODEC_CAP_DR1
@@ -400,7 +400,6 @@ cdef:
         void av_codec_set_lowres(AVCodecContext *, int)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)
-        void avcodec_free_frame(AVFrame **)
         void avsubtitle_free(AVSubtitle *)
         void av_fast_malloc(void *, unsigned int *, size_t)
         void avcodec_register_all()
@@ -416,9 +415,7 @@ cdef:
             AV_LOCK_DESTROY,
         void av_picture_copy(AVPicture *, const AVPicture *,
                              AVPixelFormat, int, int)
-        AVFrame *avcodec_alloc_frame()
         AVFrame* av_frame_alloc()
-        void avcodec_get_frame_defaults(AVFrame *)
         int avcodec_decode_subtitle2(AVCodecContext *, AVSubtitle *,
                                      int *, AVPacket *)
         int avcodec_decode_audio4(AVCodecContext *, AVFrame *, int *, const AVPacket *)
