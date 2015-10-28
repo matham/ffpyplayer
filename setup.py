@@ -200,7 +200,7 @@ with open(join('ffpyplayer', 'ffconfig.h'), 'wb') as f:
 #define MAC_REALLOC 0
 #endif
 
-#if !defined(__MINGW32__) && !defined(__APPLE__)
+#if !defined(_WIN32) && !defined(__APPLE__)
 #define NOT_WIN_MAC 1
 #else
 #define NOT_WIN_MAC 0

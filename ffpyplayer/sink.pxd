@@ -43,7 +43,6 @@ cdef struct VideoSettings:
     int fast
     int genpts
     int lowres
-    int error_concealment
     int decoder_reorder_pts
     int autoexit
     int loop
@@ -55,6 +54,8 @@ cdef struct VideoSettings:
     char *vfilters
     char *afilters
     char *avfilters
+
+    int autorotate
 
     #/* current context */
     int64_t audio_callback_time

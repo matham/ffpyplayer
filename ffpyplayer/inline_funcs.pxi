@@ -74,3 +74,22 @@ cdef inline char * emsg(int code, char *msg, int buff_size) except NULL:
             code = -code
         return strerror(code)
     return msg
+
+
+cdef inline int insert_filt(
+        const char *name, const char *arg, AVFilterGraph *graph,
+        AVFilterContext **last_filter) nogil:
+    cdef int ret
+    cdef AVFilterContext *filt_ctx
+
+    ret = avfilter_graph_create_filter(
+        &filt_ctx, avfilter_get_by_name(name), name, arg, NULL, graph)
+    if ret < 0:
+        return ret
+
+    ret = avfilter_link(filt_ctx, 0, last_filter[0], 0)
+    if ret < 0:
+        return ret
+
+    last_filter[0] = filt_ctx
+    return 0

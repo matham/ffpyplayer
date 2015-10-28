@@ -19,7 +19,7 @@ DEF MAX_QUEUE_SIZE = (15 * 1024 * 1024)
 DEF MIN_FRAMES = 5
 
 'no AV sync correction is done if below the minimum AV sync threshold '
-DEF AV_SYNC_THRESHOLD_MIN = 0.01
+DEF AV_SYNC_THRESHOLD_MIN = 0.04
 'AV sync correction is done if above the maximum AV sync threshold '
 DEF AV_SYNC_THRESHOLD_MAX = 0.1
 'If a frame duration is longer than this, it will not be duplicated to compensate AV sync'

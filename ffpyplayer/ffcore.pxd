@@ -14,6 +14,8 @@ cdef struct AudioParams:
     int channels
     int64_t channel_layout
     AVSampleFormat fmt
+    int frame_size
+    int bytes_per_sec
 
 cdef class VideoState(object):
     cdef:
@@ -132,6 +134,7 @@ cdef class VideoState(object):
     cdef double get_master_clock(VideoState self) nogil except? 0.0
     cdef int check_external_clock_speed(VideoState self) nogil except 1
     cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes, int flush) nogil except 1
+    cdef int seek_chapter(VideoState self, int incr, int flush) nogil except 1
     cdef int toggle_pause(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
     cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0

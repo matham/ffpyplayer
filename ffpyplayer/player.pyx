@@ -116,8 +116,6 @@ cdef class MediaPlayer(object):
 
             *autoexit* (bool): If True, the player closes on eof. Defaults to False.
 
-            *ec* (int): similar to ffplay, defaults to 3.
-
             *lowres* (int): similar to ffplay, defaults to zero.
 
             *drp* (int): similar to ffplay.
@@ -162,6 +160,9 @@ cdef class MediaPlayer(object):
 
             *out_fmt* (str): The pixel format of the data returned by :meth:`get_frame`. Can be
             one of :attr:`ffpyplayer.tools.pix_fmts`. Defaults to rgb24.
+
+            *autorotate* (bool): Whether to automatically rotate the video according
+                to presentation metadata. Defaults to True.
 
     A simple player::
 
@@ -230,6 +231,7 @@ cdef class MediaPlayer(object):
         settings.wanted_stream[<int>AVMEDIA_TYPE_SUBTITLE] = ff_opts['sst'] if 'sst' in ff_opts else -1
         settings.start_time = ff_opts['ss'] * 1000000 if 'ss' in ff_opts else AV_NOPTS_VALUE
         settings.duration = ff_opts['t'] * 1000000 if 't' in ff_opts else AV_NOPTS_VALUE
+        settings.autorotate = bool(ff_opts.get('autorotate', 1))
         settings.seek_by_bytes = -1
         if 'bytes' in ff_opts:
             val = ff_opts['bytes']
@@ -254,7 +256,6 @@ cdef class MediaPlayer(object):
                 raise ValueError('Invalid drp option value.')
             settings.decoder_reorder_pts = val
         settings.lowres = ff_opts['lowres'] if 'lowres' in ff_opts else 0
-        settings.error_concealment = ff_opts['ec'] if 'ec' in ff_opts else 3
         settings.av_sync_type = AV_SYNC_AUDIO_MASTER
         settings.volume = SDL_MIX_MAXVOLUME
         if 'sync' in ff_opts:
@@ -805,6 +806,12 @@ cdef class MediaPlayer(object):
         cdef double c_pts = pts
         with nogil:
             self._seek(c_pts, c_relative, c_seek_by_bytes, c_accurate)
+
+    def seek_to_chapter(self, increment, accurate=True):
+        cdef int c_increment = increment
+        cdef int c_accurate = accurate
+        with nogil:
+            self.ivs.seek_chapter(c_increment, c_accurate)
 
     cdef void _seek(self, double pts, int relative, int seek_by_bytes, int accurate) nogil:
         '''Returns the actual pos where we wanted to seek to.

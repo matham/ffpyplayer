@@ -34,6 +34,8 @@ cdef:
             AVMEDIA_TYPE_NB,
         struct AVBufferRef:
             pass
+        int av_compare_ts(int64_t, AVRational, int64_t, AVRational)
+        const char* av_get_media_type_string(AVMediaType)
 
     extern from "libavformat/avio.h" nogil:
         int AVIO_FLAG_WRITE
@@ -98,8 +100,8 @@ cdef:
         int av_get_bytes_per_sample(AVSampleFormat)
 
     extern from "libavutil/time.h" nogil:
-        int64_t av_gettime()
         int av_usleep(unsigned)
+        int64_t av_gettime_relative()
 
     extern from * nogil:
         void av_free(void *)
@@ -179,6 +181,7 @@ cdef:
         inline void *av_x_if_null(const void *p, const void *x)
 
         int64_t AV_TIME_BASE
+        AVRational AV_TIME_BASE_Q
 
         struct AVClass:
             pass
@@ -196,6 +199,12 @@ cdef:
         int AVFMT_NOTIMESTAMPS
         int AVFMT_NOFILE
         int AVFMT_RAWPICTURE
+        struct AVChapter:
+            int id
+            AVRational time_base
+            int64_t start
+            int64_t end
+            AVDictionary *metadata
         struct AVInputFormat:
             int (*read_seek)(AVFormatContext *, int, int64_t, int)
             int flags
@@ -216,6 +225,8 @@ cdef:
             int64_t start_time
             int bit_rate
             int64_t duration
+            unsigned int nb_chapters
+            AVChapter **chapters
         struct AVStream:
             int index
             AVCodecContext *codec
@@ -230,6 +241,7 @@ cdef:
         struct AVProgram:
             unsigned int nb_stream_indexes
             unsigned int *stream_index
+        void av_format_inject_global_side_data(AVFormatContext *)
         void av_register_all()
         int avformat_network_init()
         int avformat_network_deinit()
@@ -458,6 +470,8 @@ cdef:
             AVRational frame_rate
         struct AVFilterGraph:
             char *scale_sws_opts
+            unsigned nb_filters
+            AVFilterContext **filters
         struct AVFilterInOut:
             char *name
             AVFilterContext *filter_ctx

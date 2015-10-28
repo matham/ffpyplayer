@@ -33,7 +33,7 @@ cdef class Clock(object):
         if self.paused:
             return self.pts
         else:
-            time = av_gettime() / 1000000.0
+            time = av_gettime_relative() / 1000000.0
             return self.pts_drift + time - (time - self.last_updated) * (1.0 - self.speed)
 
     cdef void set_clock_at(Clock self, double pts, int serial, double time) nogil:
@@ -43,7 +43,7 @@ cdef class Clock(object):
         self.serial = serial
 
     cdef void set_clock(Clock self, double pts, int serial) nogil:
-        cdef double time = av_gettime() / 1000000.0
+        cdef double time = av_gettime_relative() / 1000000.0
         self.set_clock_at(pts, serial, time)
 
     cdef void set_clock_speed(Clock self, double speed) nogil:
