@@ -10,10 +10,11 @@ cdef extern from "ffconfig.h":
 
 
 
-''' SDL audio buffer size, in samples. Should be small to have precise
-A/V sync as SDL does not have hardware buffer fullness info. '''
-DEF SDL_AUDIO_BUFFER_SIZE = 1024
-DEF AUDIO_BUFFER_SIZE = SDL_AUDIO_BUFFER_SIZE
+''' Minimum SDL audio buffer size, in samples.. '''
+DEF SDL_AUDIO_MIN_BUFFER_SIZE = 512
+DEF AUDIO_MIN_BUFFER_SIZE = SDL_AUDIO_MIN_BUFFER_SIZE
+' Calculate actual buffer size keeping in mind not cause too frequent audio callbacks. '
+DEF AUDIO_MAX_CALLBACKS_PER_SEC = 30
 
 DEF MAX_QUEUE_SIZE = (15 * 1024 * 1024)
 DEF MIN_FRAMES = 5
@@ -46,4 +47,4 @@ TODO: We assume that a decoded and resampled frame fits into this buffer'''
 DEF SAMPLE_ARRAY_SIZE = (8 * 65536)
 
 DEF VIDEO_PICTURE_QUEUE_SIZE = 3
-DEF SUBPICTURE_QUEUE_SIZE = 4
+DEF SUBPICTURE_QUEUE_SIZE = 16

@@ -57,7 +57,7 @@ cdef class VideoState(object):
         AVStream *audio_st
         FFPacketQueue audioq
         int audio_hw_buf_size
-        uint8_t silence_buf[AUDIO_BUFFER_SIZE]
+        uint8_t silence_buf[AUDIO_MIN_BUFFER_SIZE]
         uint8_t *audio_buf
         uint8_t *audio_buf1
         unsigned int audio_buf_size # in bytes
@@ -99,7 +99,7 @@ cdef class VideoState(object):
         int64_t video_current_pos      # current displayed file pos
         double max_frame_duration      # maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
         VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE]
-        int pictq_size, pictq_rindex, pictq_windex
+        int pictq_size, pictq_rindex, pictq_windex, pictq_rindex_shown
         MTCond pictq_cond
 
         IF CONFIG_AVFILTER:
@@ -138,8 +138,9 @@ cdef class VideoState(object):
     cdef int toggle_pause(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
     cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0
+    cdef int pictq_nb_remaining(VideoState self) nogil
+    cdef int pictq_prev_picture(VideoState self) nogil
     cdef int pictq_next_picture(VideoState self) nogil except 1
-    cdef int pictq_prev_picture(VideoState self) nogil except -1
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
     cdef int video_refresh(VideoState self, Image next_image, double *pts, double *remaining_time,
                            int force_refresh) nogil except -1

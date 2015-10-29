@@ -442,7 +442,20 @@ cdef class VideoState(object):
         else:
             return 0.0
 
+    cdef int pictq_nb_remaining(VideoState self) nogil:
+        # return the number of undisplayed pictures in the queue
+        return self.pictq_size - self.pictq_rindex_shown
+
+    cdef int pictq_prev_picture(VideoState self) nogil:
+        # jump back to the previous picture if available by resetting rindex_shown
+        cdef int ret = self.pictq_rindex_shown
+        self.pictq_rindex_shown = 0
+        return ret
+
     cdef int pictq_next_picture(VideoState self) nogil except 1:
+        if not self.pictq_rindex_shown:
+            self.pictq_rindex_shown = 1
+            return 0
         # update queue size and signal for next picture
         self.pictq_rindex += 1
         if self.pictq_rindex == VIDEO_PICTURE_QUEUE_SIZE:
@@ -453,23 +466,6 @@ cdef class VideoState(object):
         self.pictq_cond.cond_signal()
         self.pictq_cond.unlock()
         return 0
-
-    cdef int pictq_prev_picture(VideoState self) nogil except -1:
-        cdef VideoPicture *prevvp
-        cdef int ret = 0
-        # update queue size and signal for the previous picture
-        prevvp = &self.pictq[(self.pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE]
-        if prevvp.allocated and prevvp.serial == self.videoq.serial:
-            self.pictq_cond.lock()
-            if self.pictq_size < VIDEO_PICTURE_QUEUE_SIZE:
-                self.pictq_rindex -= 1
-                if self.pictq_rindex == -1:
-                    self.pictq_rindex = VIDEO_PICTURE_QUEUE_SIZE - 1
-                self.pictq_size += 1
-                ret = 1
-            self.pictq_cond.cond_signal()
-            self.pictq_cond.unlock()
-        return ret
 
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil:
         # update current video pts
@@ -514,14 +510,14 @@ cdef class VideoState(object):
                 redisplay = self.pictq_prev_picture()
             while True:
                 if state == retry:
-                    if self.pictq_size == 0:
+                    if self.pictq_nb_remaining() == 0:
                         if self.reached_eof:
                             return 2  # eof
                         # nothing to do, no picture to display in the queue
                     else:
                         # dequeue the picture
-                        vp = &self.pictq[self.pictq_rindex]
-                        lastvp = &self.pictq[(self.pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE]
+                        lastvp = &self.pictq[self.pictq_rindex]
+                        vp = &self.pictq[(self.pictq_rindex + self.pictq_rindex_shown) % VIDEO_PICTURE_QUEUE_SIZE]
                         if vp.serial != self.videoq.serial:
                             self.pictq_next_picture()
                             self.video_current_pos = -1
@@ -555,8 +551,8 @@ cdef class VideoState(object):
                             self.update_video_pts(vp.pts, vp.pos, vp.serial)
                         self.pictq_cond.unlock()
 
-                        if self.pictq_size > 1:
-                            nextvp = &self.pictq[(self.pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE]
+                        if self.pictq_nb_remaining() > 1:
+                            nextvp = &self.pictq[(self.pictq_rindex + self.pictq_rindex_shown + 1) % VIDEO_PICTURE_QUEUE_SIZE]
                             duration = self.vp_duration(vp, nextvp)
                             if (redisplay or self.player.framedrop > 0 or\
                             (self.player.framedrop and self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER))\
@@ -679,7 +675,7 @@ cdef class VideoState(object):
         # wait until we have space to put a new picture
         self.pictq_cond.lock()
         # keep the last already displayed picture in the queue
-        while (self.pictq_size >= VIDEO_PICTURE_QUEUE_SIZE - 1 and
+        while (self.pictq_size >= VIDEO_PICTURE_QUEUE_SIZE and
                not self.videoq.abort_request):
             self.pictq_cond.cond_wait()
         self.pictq_cond.unlock()
@@ -1542,7 +1538,7 @@ cdef class VideoState(object):
 
         wanted_spec.format = AUDIO_S16SYS
         wanted_spec.silence = 0
-        wanted_spec.samples = SDL_AUDIO_BUFFER_SIZE
+        wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC))
         wanted_spec.callback = <void (*)(void *, uint8_t *, int)>self.sdl_audio_callback
         wanted_spec.userdata = self.self_id
         while SDL_OpenAudio(&wanted_spec, &spec) < 0:
@@ -1648,7 +1644,7 @@ cdef class VideoState(object):
         if av_dict_get(opts, "threads", NULL, 0) == NULL:
             av_dict_set(&opts, "threads", "auto", 0)
         if stream_lowres:
-            av_dict_set(&opts, "lowres", av_asprintf("%d", stream_lowres), AV_DICT_DONT_STRDUP_VAL)
+            av_dict_set_int(&opts, "lowres", stream_lowres, 0)
         if avctx.codec_type == AVMEDIA_TYPE_VIDEO or avctx.codec_type == AVMEDIA_TYPE_AUDIO:
             av_dict_set(&opts, "refcounted_frames", "1", 0)
         if avcodec_open2(avctx, codec, &opts) < 0:
@@ -1690,7 +1686,7 @@ cdef class VideoState(object):
             self.audio_diff_avg_count = 0
             ''' since we do not have a precise anough audio fifo fullness,
             we correct audio sync only if larger than this threshold '''
-            self.audio_diff_threshold = 2.0 * self.audio_hw_buf_size / self.audio_tgt.bytes_per_sec
+            self.audio_diff_threshold = (<double>self.audio_hw_buf_size) / self.audio_tgt.bytes_per_sec
 
             memset(&self.audio_pkt, 0, sizeof(self.audio_pkt))
             memset(&self.audio_pkt_temp, 0, sizeof(self.audio_pkt_temp))
@@ -1832,7 +1828,7 @@ cdef class VideoState(object):
         av_freep(&opts)
 
         if ic.pb != NULL:
-            ic.pb.eof_reached = 0 # FIXME hack, ffplay maybe should not use url_feof() to test for the end
+            ic.pb.eof_reached = 0 # FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
         if self.player.seek_by_bytes < 0:
             self.player.seek_by_bytes = (not not ((ic.iformat.flags & AVFMT_TS_DISCONT) != 0))\
@@ -1981,7 +1977,7 @@ cdef class VideoState(object):
                 continue
             if (not self.paused) and ((not self.audio_st) or\
             self.audio_finished == self.audioq.serial) and (self.video_st == NULL or\
-            (self.video_finished == self.videoq.serial and self.pictq_size == 0)):
+            (self.video_finished == self.videoq.serial and self.pictq_nb_remaining() == 0)):
                 self.seek_req_pos = -1
                 if self.player.loop != 1:
                     if self.player.start_time != AV_NOPTS_VALUE:
@@ -2014,7 +2010,7 @@ cdef class VideoState(object):
                 continue
             ret = av_read_frame(ic, pkt)
             if ret < 0:
-                if ret == AVERROR_EOF or url_feof(ic.pb):
+                if ret == AVERROR_EOF or avio_feof(ic.pb):
                     eof = 1
                 if ic.pb != NULL and ic.pb.error:
                     break

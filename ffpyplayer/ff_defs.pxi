@@ -36,6 +36,7 @@ cdef:
             pass
         int av_compare_ts(int64_t, AVRational, int64_t, AVRational)
         const char* av_get_media_type_string(AVMediaType)
+        inline const int av_log2(unsigned int)
 
     extern from "libavformat/avio.h" nogil:
         int AVIO_FLAG_WRITE
@@ -49,7 +50,7 @@ cdef:
         struct AVIOInterruptCB:
             int (*callback)(void*)
             void *opaque
-        int url_feof(AVIOContext *)
+        int avio_feof(AVIOContext *)
         inline int64_t avio_tell(AVIOContext *)
 
     extern from "libavutil/avstring.h" nogil:
@@ -147,6 +148,7 @@ cdef:
         struct AVDictionary:
             pass
         int av_dict_set(AVDictionary **, const char *, const char *, int)
+        int av_dict_set_int(AVDictionary **, const char *, int64_t, int)
 
         void av_max_alloc(size_t)
 
