@@ -228,6 +228,8 @@ cdef class VideoState(object):
                          'src_pix_fmt': ''}
         self.seek_req_pos = -1
         self.video_seeking = self.audio_seeking = 0
+        IF CONFIG_AVFILTER:
+            self.audio_volume_filter = NULL
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player, int paused) nogil except 1:
@@ -764,7 +766,7 @@ cdef class VideoState(object):
 
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
-                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1:
+                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx, int final) nogil except? 1:
             cdef int ret = 0
             cdef AVFilterInOut *outputs = NULL
             cdef AVFilterInOut *inputs = NULL
@@ -794,7 +796,7 @@ cdef class VideoState(object):
                 ret = avfilter_link(source_ctx, 0, sink_ctx, 0)
                 if ret > 0:
                     ret = 0
-            if not ret:
+            if not ret and final:
                 ret = avfilter_graph_config(graph, NULL)
             avfilter_inout_free(&outputs)
             avfilter_inout_free(&inputs)
@@ -871,11 +873,11 @@ cdef class VideoState(object):
                 if ret < 0:
                     return ret
                 # this needs to be here in case user provided filter at the input
-                ret = self.configure_filtergraph(graph, vfilters, filt_src, filt_scale)
+                ret = self.configure_filtergraph(graph, vfilters, filt_src, filt_scale, 1)
                 if ret < 0:
                     return ret
             else:
-                ret = self.configure_filtergraph(graph, vfilters, filt_src, filt_crop)
+                ret = self.configure_filtergraph(graph, vfilters, filt_src, filt_crop, 1)
                 if ret < 0:
                     return ret
 
@@ -889,6 +891,7 @@ cdef class VideoState(object):
             cdef int *channels = [0, -1]
             cdef AVFilterContext *filt_asrc = NULL
             cdef AVFilterContext *filt_asink = NULL
+            cdef AVFilterContext *filt_avolume = NULL
             cdef char aresample_swr_opts[512]
             cdef AVDictionaryEntry *e = NULL
             cdef char asrc_args[256]
@@ -924,6 +927,9 @@ cdef class VideoState(object):
             if ret >= 0:
                 ret = avfilter_graph_create_filter(&filt_asink, avfilter_get_by_name("abuffersink"),
                                                    "ffpyplayer_abuffersink", NULL, NULL, self.agraph)
+            # it's not a problem if there is no volume filter
+            ret = avfilter_graph_create_filter(&self.audio_volume_filter, avfilter_get_by_name("volume"),
+                                               "ffpyplayer_volume", "1.0", NULL, self.agraph)
             if ret >= 0:
                 ret = av_opt_set_int_list(filt_asink, "sample_fmts", sample_fmts, sizeof(sample_fmts[0]),
                                           AV_SAMPLE_FMT_NONE, AV_OPT_SEARCH_CHILDREN)
@@ -943,8 +949,12 @@ cdef class VideoState(object):
                 if ret >= 0:
                     ret = av_opt_set_int_list(filt_asink, "sample_rates", sample_rates, sizeof(sample_rates[0]),
                                               -1, AV_OPT_SEARCH_CHILDREN)
-            if ret >= 0:
-                ret = self.configure_filtergraph(self.agraph, afilters, filt_asrc, filt_asink)
+            if self.audio_volume_filter == NULL:
+                ret = self.configure_filtergraph(self.agraph, afilters, filt_asrc, filt_asink, 1)
+            else:
+                ret = self.configure_filtergraph(self.agraph, afilters, self.audio_volume_filter, filt_asink, 0)
+                if ret >= 0:
+                    ret = self.configure_filtergraph(self.agraph, afilters, filt_asrc, self.audio_volume_filter, 1)
             if ret >= 0:
                 self.in_audio_filter  = filt_asrc
                 self.out_audio_filter = filt_asink
@@ -2079,4 +2089,13 @@ cdef class VideoState(object):
             if self.ic.start_time != AV_NOPTS_VALUE and pos < self.ic.start_time / <double>AV_TIME_BASE:
                 pos = self.ic.start_time / <double>AV_TIME_BASE
             self.stream_seek(<int64_t>(pos * AV_TIME_BASE), 0, 0, 1)
+        return 0
+
+    cdef int set_volume(VideoState self, float volume) nogil:
+        cdef char str_args[64]
+        IF CONFIG_AVFILTER:
+            if self.audio_volume_filter == NULL:
+                return 0
+            snprintf(str_args, sizeof(str_args), "%f", volume)
+            return avfilter_graph_send_command(self.agraph, "ffpyplayer_volume", "volume", str_args, NULL, 0, 0)
         return 0

@@ -483,6 +483,9 @@ cdef:
         AVFilter *avfilter_get_by_name(const char *)
         void avfilter_graph_free(AVFilterGraph **)
         AVFilterGraph *avfilter_graph_alloc()
+        int avfilter_graph_send_command(AVFilterGraph *, const char *,
+                                        const char *, const char *, char *,
+                                        int, int)
 
     extern from "libavfilter/buffersink.h" nogil:
         int av_buffersink_get_frame_flags(AVFilterContext *, AVFrame *, int)
