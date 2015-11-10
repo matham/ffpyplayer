@@ -106,6 +106,7 @@ cdef class VideoState(object):
             AVFilterContext *in_audio_filter   # the first filter in the audio chain
             AVFilterContext *out_audio_filter  # the last filter in the audio chain
             AVFilterContext *split_audio_filter  # the last filter in the audio chain
+            AVFilterContext *audio_volume_filter
             AVFilterGraph *agraph              # audio filter graph
 
         int last_video_stream, last_audio_stream, last_subtitle_stream
@@ -147,7 +148,7 @@ cdef class VideoState(object):
     cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
-                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1
+                                       AVFilterContext *source_ctx, AVFilterContext *sink_ctx, int final) nogil except? 1
         cdef int configure_video_filters(VideoState self, AVFilterGraph *graph,
                                          const char *vfilters, AVFrame *frame,
                                          AVPixelFormat pix_fmt) nogil except? 1
@@ -167,3 +168,4 @@ cdef class VideoState(object):
     cdef inline int failed(VideoState self, int ret) nogil except 1
     cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1
     cdef int decode_interrupt_cb(VideoState self) nogil
+    cdef int set_volume(VideoState self, float volume) nogil

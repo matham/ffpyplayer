@@ -576,6 +576,7 @@ cdef class MediaPlayer(object):
             *volume* (float): A value between 0.0 - 1.0.
         '''
         self.settings.volume = min(max(volume, 0.), 1.) * SDL_MIX_MAXVOLUME
+        self.ivs.set_volume(volume)
 
     def get_volume(self):
         '''
