@@ -4,21 +4,13 @@ include "ff_defs.pxi"
 from ffpyplayer.ffthreading cimport MTMutex
 
 cdef class VideoSink(object):
-    cdef MTMutex alloc_mutex
     cdef object callback
-    cdef int requested_alloc
     cdef AVPixelFormat pix_fmt
 
     cdef AVPixelFormat _get_out_pix_fmt(VideoSink self) nogil
     cdef object get_out_pix_fmt(VideoSink self)
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt)
     cdef int request_thread(VideoSink self, uint8_t type) nogil except 1
-    cdef int request_thread_py(VideoSink self, uint8_t request) nogil except 1
-    cdef int peep_alloc(VideoSink self) nogil except 1
-    cdef int alloc_picture(VideoSink self, VideoPicture *vp) nogil except 1
-    cdef void free_alloc(VideoSink self, VideoPicture *vp) nogil
-    cdef int copy_picture(VideoSink self, VideoPicture *vp, AVFrame *src_frame,
-                           VideoSettings *player) nogil except 1
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1
 
 
@@ -65,22 +57,3 @@ cdef struct VideoSettings:
     AVDictionary *format_opts
     AVDictionary *codec_opts
     AVDictionary *swr_opts
-
-
-cdef struct VideoPicture:
-    double pts             # presentation timestamp for this picture
-    double duration        # estimated duration based on frame rate
-    int64_t pos            # byte position in file
-    AVFrame *pict
-    int width, height  # source height & width
-    int allocated
-    int reallocate
-    int serial
-    AVRational sar
-    AVFrame *pict_ref
-    AVPixelFormat pix_fmt
-
-cdef struct SubPicture:
-    double pts # presentation time stamp for this picture
-    AVSubtitle sub
-    int serial

@@ -2,9 +2,10 @@
 include 'ff_defs.pxi'
 
 from ffpyplayer.ffqueue cimport FFPacketQueue
+from ffpyplayer.frame_queue cimport FrameQueue, Frame
 from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
 from ffpyplayer.ffclock cimport Clock
-from ffpyplayer.sink cimport VideoSettings, VideoSink, VideoPicture, SubPicture
+from ffpyplayer.sink cimport VideoSettings, VideoSink
 from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 
@@ -43,6 +44,9 @@ cdef class VideoState(object):
         Clock audclk
         Clock vidclk
         Clock extclk
+
+        FrameQueue pictq
+        FrameQueue subpq
 
         int audio_stream
 
@@ -86,9 +90,6 @@ cdef class VideoState(object):
         int subtitle_stream
         AVStream *subtitle_st
         FFPacketQueue subtitleq
-        SubPicture subpq[SUBPICTURE_QUEUE_SIZE]
-        int subpq_size, subpq_rindex, subpq_windex
-        MTCond subpq_cond
 
         double frame_timer
         double frame_last_returned_time
@@ -96,11 +97,7 @@ cdef class VideoState(object):
         int video_stream
         AVStream *video_st
         FFPacketQueue videoq
-        int64_t video_current_pos      # current displayed file pos
         double max_frame_duration      # maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
-        VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE]
-        int pictq_size, pictq_rindex, pictq_windex, pictq_rindex_shown
-        MTCond pictq_cond
 
         IF CONFIG_AVFILTER:
             AVFilterContext *in_video_filter   # the first filter in the video chain
@@ -137,17 +134,10 @@ cdef class VideoState(object):
     cdef int seek_chapter(VideoState self, int incr, int flush) nogil except 1
     cdef int toggle_pause(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
-    cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0
-    cdef int pictq_nb_remaining(VideoState self) nogil
-    cdef int pictq_prev_picture(VideoState self) nogil
-    cdef int pictq_next_picture(VideoState self) nogil except 1
+    cdef double vp_duration(VideoState self, Frame *vp, Frame *nextvp) nogil except? 0.0
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
     cdef int video_refresh(VideoState self, Image next_image, double *pts, double *remaining_time,
                            int force_refresh) nogil except -1
-    cdef int alloc_picture(VideoState self) nogil except 1
-    cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           double duration, int64_t pos, int serial,
-                           AVPixelFormat out_fmt) nogil except 1
     cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,

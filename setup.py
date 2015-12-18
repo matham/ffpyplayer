@@ -175,7 +175,7 @@ else:
 
 
 mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
-        'writer', 'pic']
+        'writer', 'pic', 'frame_queue']
 extra_compile_args = ["-O3", '-fno-strict-aliasing']
 c_options['has_sdl2'] = sdl == 'SDL2'
 

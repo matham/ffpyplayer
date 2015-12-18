@@ -328,7 +328,7 @@ cdef class MediaPlayer(object):
         if audio_sink != 'SDL':
             raise Exception('Currently, only SDL is supported as a audio sink.')
         if callable(callback):
-            self.vid_sink = VideoSink(MTMutex(self.mt_gen.mt_src), callback)
+            self.vid_sink = VideoSink(callback)
             if 'out_fmt' in ff_opts:
                 out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
             else:
@@ -822,11 +822,12 @@ cdef class MediaPlayer(object):
         if relative:
             incr = pts
             if seek_by_bytes:
-                if self.ivs.video_stream >= 0 and self.ivs.video_current_pos >= 0:
-                    pos = self.ivs.video_current_pos
-                elif self.ivs.audio_stream >= 0 and self.ivs.audio_pkt.pos >= 0:
+                pos = -1
+                if self.ivs.video_stream >= 0:
+                    pos = self.ivs.pictq.frame_queue_last_pos()
+                if pos < 0 and self.ivs.audio_stream >= 0:
                     pos = self.ivs.audio_pkt.pos
-                else:
+                if pos < 0:
                     pos = avio_tell(self.ivs.ic.pb)
                 if self.ivs.ic.bit_rate:
                     incr *= self.ivs.ic.bit_rate / 8.0
