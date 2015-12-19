@@ -82,6 +82,8 @@ cdef:
                                  AVPixelFormat, int, int, int)
 
     extern from "libavutil/dict.h" nogil:
+        int AV_DICT_MATCH_CASE
+        int AV_DICT_DONT_OVERWRITE
         int AV_DICT_IGNORE_SUFFIX
         int AV_DICT_DONT_STRDUP_VAL
         struct AVDictionaryEntry:
@@ -367,6 +369,7 @@ cdef:
             AVPixelFormat pix_fmt
             AVFrame *coded_frame
             int me_threshold
+            AVRational pkt_timebase
         struct AVSubtitle:
             uint16_t format
             uint32_t start_display_time # relative to packet pts, in ms
@@ -409,6 +412,7 @@ cdef:
             SUBTITLE_BITMAP
             SUBTITLE_TEXT
             SUBTITLE_ASS
+        AVRational av_codec_get_pkt_timebase(const AVCodecContext *)
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
         int av_codec_get_max_lowres(const AVCodec *)
         void av_codec_set_lowres(AVCodecContext *, int)

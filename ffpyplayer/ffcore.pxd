@@ -3,6 +3,7 @@ include 'ff_defs.pxi'
 
 from ffpyplayer.ffqueue cimport FFPacketQueue
 from ffpyplayer.frame_queue cimport FrameQueue, Frame
+from ffpyplayer.decoder cimport Decoder
 from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
 from ffpyplayer.ffclock cimport Clock
 from ffpyplayer.sink cimport VideoSettings, VideoSink
@@ -22,6 +23,7 @@ cdef class VideoState(object):
     cdef:
         MTThread read_tid
         MTThread video_tid
+        MTThread audio_tid
         AVInputFormat *iformat
         int abort_request
         int paused
@@ -34,8 +36,6 @@ cdef class VideoState(object):
         int read_pause_return
         AVFormatContext *ic
         int realtime
-        int audio_finished
-        int video_finished
         int reached_eof
         double seek_req_pos
         int audio_seeking
@@ -47,6 +47,11 @@ cdef class VideoState(object):
 
         FrameQueue pictq
         FrameQueue subpq
+        FrameQueue sampq
+
+        Decoder auddec
+        Decoder viddec
+        Decoder subdec
 
         int audio_stream
 
@@ -68,11 +73,6 @@ cdef class VideoState(object):
         unsigned int audio_buf1_size
         int audio_buf_index # in bytes
         int audio_write_buf_size
-        int audio_buf_frames_pending
-        AVPacket audio_pkt_temp
-        AVPacket audio_pkt
-        int audio_pkt_temp_serial
-        int audio_last_serial
         AudioParams audio_src
         IF CONFIG_AVFILTER:
             AudioParams audio_filter_src
@@ -80,8 +80,6 @@ cdef class VideoState(object):
         SwrContext *swr_ctx
         int frame_drops_early
         int frame_drops_late
-        AVFrame *frame
-        int64_t audio_frame_next_pts
 
         int16_t sample_array[SAMPLE_ARRAY_SIZE]
         int sample_array_index
@@ -138,7 +136,7 @@ cdef class VideoState(object):
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
     cdef int video_refresh(VideoState self, Image next_image, double *pts, double *remaining_time,
                            int force_refresh) nogil except -1
-    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
+    cdef int get_video_frame(VideoState self, AVFrame *frame) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
                                        AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1
@@ -147,6 +145,7 @@ cdef class VideoState(object):
                                          AVPixelFormat pix_fmt) nogil except? 1
         cdef int configure_audio_filters(VideoState self, const char *afilters,
                                          int force_output_format) nogil except? 1
+    cdef int audio_thread(self) nogil except? 1
     cdef int video_thread(VideoState self) nogil except 1
     cdef int subtitle_thread(VideoState self) nogil except 1
     cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1

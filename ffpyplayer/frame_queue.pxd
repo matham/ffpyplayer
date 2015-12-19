@@ -33,7 +33,6 @@ cdef class FrameQueue(object):
         int max_size
         int keep_last
         int rindex_shown
-        FFPacketQueue pktq
 
         MTMutex alloc_mutex
         int requested_alloc
@@ -44,6 +43,7 @@ cdef class FrameQueue(object):
     cdef Frame *frame_queue_peek_next(self) nogil
     cdef Frame *frame_queue_peek_last(self) nogil
     cdef Frame *frame_queue_peek_writable(self) nogil
+    cdef Frame *frame_queue_peek_readable(self) nogil
     cdef int frame_queue_push(self) nogil except 1
     cdef int frame_queue_next(self) nogil except 1
     cdef int frame_queue_prev(self) nogil

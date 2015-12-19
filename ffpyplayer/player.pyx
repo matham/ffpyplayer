@@ -246,7 +246,6 @@ cdef class MediaPlayer(object):
         if 'pixel_format' in ff_opts:
             av_dict_set(<AVDictionary **>&settings.format_opts, "pixel_format", ff_opts['pixel_format'], 0)
         settings.show_status = bool(ff_opts['stats']) if 'stats' in ff_opts else 0
-        settings.workaround_bugs = bool(ff_opts['bug']) if 'bug' in ff_opts else 1
         settings.fast = bool(ff_opts['fast']) if 'fast' in ff_opts else 0
         settings.genpts = bool(ff_opts['genpts']) if 'genpts' in ff_opts else 0
         settings.decoder_reorder_pts = -1
@@ -826,7 +825,7 @@ cdef class MediaPlayer(object):
                 if self.ivs.video_stream >= 0:
                     pos = self.ivs.pictq.frame_queue_last_pos()
                 if pos < 0 and self.ivs.audio_stream >= 0:
-                    pos = self.ivs.audio_pkt.pos
+                    pos = self.ivs.sampq.frame_queue_last_pos()
                 if pos < 0:
                     pos = avio_tell(self.ivs.ic.pb)
                 if self.ivs.ic.bit_rate:

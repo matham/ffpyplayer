@@ -1,5 +1,5 @@
 
-__all__ = ('FFPacketQueue', )
+__all__ = ('FrameQueue', )
 
 include 'ff_defs_comp.pxi'
 include "inline_funcs.pxi"
@@ -18,12 +18,12 @@ cdef class FrameQueue(object):
         self.cond = MTCond.__new__(MTCond, mt_gen.mt_src)
         self.alloc_mutex = MTMutex.__new__(MTMutex, mt_gen.mt_src)
         self.max_size = FFMIN(max_size, FRAME_QUEUE_SIZE)
+        self.pktq = pktq
         cdef int i
 
         with nogil:
             self.requested_alloc = 0
             memset(self.queue, 0, sizeof(self.queue))
-            self.pktq = pktq
             self.keep_last = not not keep_last
 
             for i in range(self.max_size):
@@ -80,6 +80,18 @@ cdef class FrameQueue(object):
 
         return &self.queue[self.windex]
 
+    cdef Frame *frame_queue_peek_readable(self) nogil:
+        # wait until we have a readable a new frame
+        self.cond.lock()
+        while self.size - self.rindex_shown <= 0 and not self.pktq.abort_request:
+            self.cond.cond_wait()
+        self.cond.unlock()
+
+        if self.pktq.abort_request:
+            return NULL
+
+        return &self.queue[(self.rindex + self.rindex_shown) % self.max_size]
+
     cdef int frame_queue_push(self) nogil except 1:
         self.windex += 1
         if self.windex == self.max_size:
@@ -87,6 +99,7 @@ cdef class FrameQueue(object):
 
         self.cond.lock()
         self.size += 1
+        self.cond.cond_signal()
         self.cond.unlock()
         return 0
 
@@ -118,7 +131,7 @@ cdef class FrameQueue(object):
 
     cdef int64_t frame_queue_last_pos(self) nogil:
         cdef Frame *fp = &self.queue[self.rindex]
-        if self.rindex_shown and fp.serial == self.pktq.serial):
+        if self.rindex_shown and fp.serial == self.pktq.serial:
             return fp.pos
         else:
             return -1

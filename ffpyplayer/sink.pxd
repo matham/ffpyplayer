@@ -31,7 +31,6 @@ cdef struct VideoSettings:
     int av_sync_type
     int64_t start_time
     int64_t duration
-    int workaround_bugs
     int fast
     int genpts
     int lowres

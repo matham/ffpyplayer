@@ -105,6 +105,24 @@ cdef int video_thread_enter(void *obj_id) except? 1 with gil:
         if IS_ANDROID:
             jnius.detach()
 
+cdef int audio_thread_enter(void *obj_id) except? 1 with gil:
+    cdef VideoState vs = <VideoState>obj_id
+    cdef bytes msg
+    try:
+        with nogil:
+            return vs.audio_thread()
+    except:
+        msg = traceback.format_exc()
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.vid_sink.request_thread(FF_QUIT_EVENT)
+        if vs.mt_gen.mt_src == Py_MT:
+            raise
+        else:
+            return 1
+    finally:
+        if IS_ANDROID:
+            jnius.detach()
+
 cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
     cdef bytes msg
@@ -243,6 +261,7 @@ cdef class VideoState(object):
             self.subtitle_tid = None
             self.read_tid = None
             self.video_tid = None
+            self.audio_tid = None
             self.mt_gen = mt_gen
             self.vid_sink = vid_sink
             self.audioq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
@@ -256,6 +275,9 @@ cdef class VideoState(object):
             self.subpq = FrameQueue.__new__(
                 FrameQueue, mt_gen.mt_src, self.subtitleq,
                 SUBPICTURE_QUEUE_SIZE, 0)
+            self.sampq = FrameQueue.__new__(
+                FrameQueue, mt_gen.mt_src, self.audioq,
+                SAMPLE_QUEUE_SIZE, 1)
             self.continue_read_thread = MTCond.__new__(MTCond, mt_gen.mt_src)
             self.pause_cond = MTCond.__new__(MTCond, mt_gen.mt_src)
 
@@ -268,7 +290,6 @@ cdef class VideoState(object):
         self.extclk.cInit(NULL)
 
         self.audio_clock_serial = -1
-        self.audio_last_serial = -1
         self.av_sync_type = player.av_sync_type
         self.reached_eof = 0
         if paused:
@@ -605,31 +626,16 @@ cdef class VideoState(object):
                 self.last_time = cur_time
         return result
 
-    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2:
-        cdef int got_picture
-        cdef int ret = 1
+    cdef int get_video_frame(VideoState self, AVFrame *frame) nogil except 2:
+        cdef int got_picture = self.viddec.decoder_decode_frame(frame, NULL, self.player.decoder_reorder_pts)
         cdef double dpts = NAN, diff
-        if self.videoq.packet_queue_get(pkt, 1, serial) < 0:
+
+        if self.viddec.flushed:
+            self.video_seeking = self.seek_req_pos != -1
+        if got_picture < 0:
             return -1
 
-        if pkt.data == get_flush_packet().data:
-            avcodec_flush_buffers(self.video_st.codec)
-            self.video_seeking = self.seek_req_pos != -1
-            return 0
-
-        if avcodec_decode_video2(self.video_st.codec, frame, &got_picture, pkt) < 0:
-            return 0
-
-        if (not got_picture) and not pkt.data:
-            self.video_finished = serial[0]
         if got_picture:
-            if self.player.decoder_reorder_pts == -1:
-                frame.pts = av_frame_get_best_effort_timestamp(frame)
-            elif self.player.decoder_reorder_pts:
-                frame.pts = frame.pkt_pts
-            else:
-                frame.pts = frame.pkt_dts
-
             if frame.pts != AV_NOPTS_VALUE:
                 dpts = av_q2d(self.video_st.time_base) * frame.pts
 
@@ -647,14 +653,15 @@ cdef class VideoState(object):
             self.get_master_sync_type() != AV_SYNC_VIDEO_MASTER):
                 if frame.pts != AV_NOPTS_VALUE:
                     diff = dpts - self.get_master_clock()
-                    if (not isnan(diff)) and fabs(diff) < AV_NOSYNC_THRESHOLD and\
-                    diff - self.frame_last_filter_delay < 0 and serial[0] == self.vidclk.serial and\
+                    if (not isnan(diff)) and\
+                    fabs(diff) < AV_NOSYNC_THRESHOLD and\
+                    diff - self.frame_last_filter_delay < 0 and\
+                    self.viddec.pkt_serial == self.vidclk.serial and\
                     self.videoq.nb_packets:
                         self.frame_drops_early += 1
                         av_frame_unref(frame)
-                        ret = 0
-            return ret
-        return 0
+                        got_picture = 0
+        return got_picture
 
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
@@ -868,12 +875,119 @@ cdef class VideoState(object):
                 avfilter_graph_free(&self.agraph)
             return ret
 
+    cdef int audio_thread(self) nogil except? 1:
+        cdef AVFrame *frame = av_frame_alloc()
+        cdef Frame *af
+        cdef int got_frame = 0
+        cdef AVRational tb
+        cdef int ret = 0
+
+        IF CONFIG_AVFILTER:
+            cdef int last_serial = -1
+            cdef int64_t dec_channel_layout
+            cdef int reconfigure
+            cdef char buf1[1024]
+            cdef char buf2[1024]
+
+        if frame == NULL:
+            return AVERROR(ENOMEM)
+
+        while True:
+            got_frame = self.auddec.decoder_decode_frame(frame, NULL, self.player.decoder_reorder_pts)
+            if self.auddec.flushed:
+                self.audio_seeking = self.seek_req_pos != -1
+            if got_frame < 0:
+                break
+
+            if got_frame:
+                tb.num = 1
+                tb.den = frame.sample_rate
+
+                IF CONFIG_AVFILTER:
+                    dec_channel_layout = get_valid_channel_layout(frame.channel_layout, av_frame_get_channels(frame))
+                    reconfigure = (
+                        cmp_audio_fmts(self.audio_filter_src.fmt, self.audio_filter_src.channels,
+                                       <AVSampleFormat>frame.format, av_frame_get_channels(frame)) or
+                        self.audio_filter_src.channel_layout != dec_channel_layout or
+                        self.audio_filter_src.freq != frame.sample_rate or
+                        self.auddec.pkt_serial != last_serial)
+
+                    if reconfigure:
+                        av_get_channel_layout_string(buf1, sizeof(buf1), -1, self.audio_filter_src.channel_layout)
+                        av_get_channel_layout_string(buf2, sizeof(buf2), -1, dec_channel_layout)
+                        av_log(NULL, AV_LOG_DEBUG,
+                               "Audio frame changed from rate:%d ch:%d fmt:%s layout:%s serial:%d to rate:%d ch:%d fmt:%s layout:%s serial:%d\n",
+                               self.audio_filter_src.freq, self.audio_filter_src.channels,
+                               av_get_sample_fmt_name(self.audio_filter_src.fmt), buf1, last_serial,
+                               frame.sample_rate, av_frame_get_channels(frame),
+                               av_get_sample_fmt_name(<AVSampleFormat>frame.format), buf2, self.auddec.pkt_serial)
+
+                        self.audio_filter_src.fmt = <AVSampleFormat>frame.format
+                        self.audio_filter_src.channels = av_frame_get_channels(frame)
+                        self.audio_filter_src.channel_layout = dec_channel_layout
+                        self.audio_filter_src.freq = frame.sample_rate
+                        last_serial = self.auddec.pkt_serial
+
+                        ret = self.configure_audio_filters(self.player.afilters, 1)
+                        if ret < 0:
+                            break
+
+                    ret = av_buffersrc_add_frame(self.in_audio_filter, frame)
+                    if ret < 0:
+                        break
+
+                    ret = av_buffersink_get_frame_flags(self.out_audio_filter, frame, 0)
+                    while ret >= 0:
+                        tb = self.out_audio_filter.inputs[0].time_base
+                        af = self.sampq.frame_queue_peek_writable()
+                        if af == NULL:
+                            avfilter_graph_free(&self.agraph)
+                            av_frame_free(&frame)
+                            return ret
+
+                        af.pts = NAN if frame.pts == AV_NOPTS_VALUE else frame.pts * av_q2d(tb)
+                        af.pos = av_frame_get_pkt_pos(frame)
+                        af.serial = self.auddec.pkt_serial
+                        tb.num = frame.nb_samples
+                        tb.den = frame.sample_rate
+                        af.duration = av_q2d(tb)
+
+                        av_frame_move_ref(af.frame, frame)
+                        self.sampq.frame_queue_push()
+
+                        if self.audioq.serial != self.auddec.pkt_serial:
+                            break
+                        ret = av_buffersink_get_frame_flags(self.out_audio_filter, frame, 0)
+
+                    if ret == AVERROR_EOF:
+                        self.auddec.finished = self.auddec.pkt_serial
+                ELSE:
+                    af = self.sampq.frame_queue_peek_writable()
+                    if af == NULL:
+                       break
+
+                    af.pts = NAN if frame.pts == AV_NOPTS_VALUE else frame.pts * av_q2d(tb)
+                    af.pos = av_frame_get_pkt_pos(frame)
+                    af.serial = self.auddec.pkt_serial
+                    tb.num = frame.nb_samples
+                    tb.den = frame.sample_rate
+                    af.duration = av_q2d(tb)
+
+                    av_frame_move_ref(af.frame, frame)
+                    self.sampq.frame_queue_push()
+
+            if ret < 0 and ret != AVERROR(EAGAIN) and ret != AVERROR_EOF:
+                break
+
+        IF CONFIG_AVFILTER:
+            avfilter_graph_free(&self.agraph)
+        av_frame_free(&frame)
+        return ret
+
     cdef int video_thread(VideoState self) nogil except 1:
-        cdef AVPacket pkt
         cdef AVFrame *frame = av_frame_alloc()
         cdef double pts, duration
         cdef int ret
-        cdef int serial = 0
         cdef AVRational tb = self.video_st.time_base
         cdef AVRational tb_temp
         cdef AVRational frame_rate = av_guess_frame_rate(self.ic, self.video_st, NULL)
@@ -890,15 +1004,10 @@ cdef class VideoState(object):
             cdef AVPixelFormat last_format = <AVPixelFormat>-2
             cdef AVPixelFormat last_out_fmt_temp
             cdef int last_serial = -1
-        memset(&pkt, 0, sizeof(pkt))
 
         while 1:
-            while self.paused and not self.videoq.abort_request:
-                self.mt_gen.delay(10)
-
             av_frame_unref(frame)
-            av_free_packet(&pkt)
-            ret = self.get_video_frame(frame, &pkt, &serial)
+            ret = self.get_video_frame(frame)
             if ret < 0:
                 break
             if not ret:
@@ -909,14 +1018,15 @@ cdef class VideoState(object):
                 if (last_w != frame.width or last_h != frame.height
                     or last_scr_h != self.player.screen_height
                     or last_scr_w != self.player.screen_width
-                    or last_format != frame.format or last_serial != serial
+                    or last_format != frame.format or last_serial != self.viddec.pkt_serial
                     or last_out_fmt != last_out_fmt_temp):
                     av_log(NULL, AV_LOG_DEBUG,
                            "Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
                            last_w, last_h,
                            <const char *>av_x_if_null(av_get_pix_fmt_name(last_format), "none"), last_serial,
                            frame.width, frame.height,
-                           <const char *>av_x_if_null(av_get_pix_fmt_name(<AVPixelFormat>frame.format), "none"), serial)
+                           <const char *>av_x_if_null(av_get_pix_fmt_name(<AVPixelFormat>frame.format), "none"),
+                           self.viddec.pkt_serial)
                     avfilter_graph_free(&graph)
                     graph = avfilter_graph_alloc()
                     ret = self.configure_video_filters(graph, self.player.vfilters, frame, last_out_fmt_temp)
@@ -934,7 +1044,7 @@ cdef class VideoState(object):
                     last_scr_w = self.player.screen_width
                     last_format = <AVPixelFormat>frame.format
                     last_out_fmt = last_out_fmt_temp
-                    last_serial = serial
+                    last_serial = self.viddec.pkt_serial
                     frame_rate = filt_out.inputs[0].frame_rate
                     with gil:
                         self.metadata['src_vid_size'] = (last_w, last_h)
@@ -949,7 +1059,7 @@ cdef class VideoState(object):
                     ret = av_buffersink_get_frame_flags(filt_out, frame, 0)
                     if ret < 0:
                         if ret == AVERROR_EOF:
-                            self.video_finished = serial
+                            self.viddec.finished = self.viddec.pkt_serial
                         ret = 0
                         break
 
@@ -968,7 +1078,7 @@ cdef class VideoState(object):
                     else:
                         pts = frame.pts * av_q2d(tb)
                     ret = self.pictq.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame),
-                                             serial, last_out_fmt, &self.abort_request, self.player)
+                                             self.viddec.pkt_serial, last_out_fmt, &self.abort_request, self.player)
                     #av_frame_unref(frame)
             ELSE:
                 duration = 0
@@ -984,7 +1094,8 @@ cdef class VideoState(object):
                     self.metadata['src_vid_size'] = (frame.width, frame.height)
                     self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
                 ret = self.pictq.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame),
-                                         serial, last_out_fmt, &self.abort_request, self.player)
+                                         self.viddec.pkt_serial, last_out_fmt, &self.abort_request,
+                                         self.player)
                 #av_frame_unref(frame)
 
             if ret < 0:
@@ -992,47 +1103,32 @@ cdef class VideoState(object):
 
         IF CONFIG_AVFILTER:
             avfilter_graph_free(&graph)
-        av_free_packet(&pkt)
         av_frame_free(&frame)
         return 0
 
 
     cdef int subtitle_thread(VideoState self) nogil except 1:
         cdef Frame *sp
-        cdef AVPacket pkt1
-        cdef AVPacket *pkt = &pkt1
         cdef int got_subtitle
-        cdef int serial
         cdef double pts
         cdef int i, j
         cdef int r, g, b, y, u, v, a
 
         while 1:
-            while self.paused and not self.subtitleq.abort_request:
-                self.mt_gen.delay(10)
-            if self.subtitleq.packet_queue_get(pkt, 1, &serial) < 0:
-                break
-
-            if pkt.data == get_flush_packet().data:
-                avcodec_flush_buffers(self.subtitle_st.codec)
-                continue
-
             sp = self.subpq.frame_queue_peek_writable()
             if sp == NULL:
                 return 0
 
-            ''' NOTE: ipts is the PTS of the _first_ picture beginning in
-            this packet, if any '''
+            got_subtitle = self.subdec.decoder_decode_frame(NULL, &sp.sub, self.player.decoder_reorder_pts)
+            if got_subtitle < 0:
+                break
             pts = 0
-            if pkt.pts != AV_NOPTS_VALUE:
-                pts = av_q2d(self.subtitle_st.time_base) * pkt.pts
 
-            avcodec_decode_subtitle2(self.subtitle_st.codec, &sp.sub, &got_subtitle, pkt)
 #             if got_subtitle and sp.sub.format == 0:
 #                 if sp.sub.pts != AV_NOPTS_VALUE:
 #                     pts = sp.sub.pts / <double>AV_TIME_BASE
 #                 sp.pts = pts
-#                 sp.serial = serial
+#                 sp.serial = self.subdec.pkt_serial
 #
 # #                 for i in range(sp.sub.num_rects):
 # #                     for j in range(sp.sub.rects[i].nb_colors):
@@ -1043,7 +1139,6 @@ cdef class VideoState(object):
                 if sp.sub.format != 0:
                     self.vid_sink.subtitle_display(&sp.sub)
                 avsubtitle_free(&sp.sub)
-            av_free_packet(pkt)
         return 0
 
 
@@ -1107,235 +1202,112 @@ cdef class VideoState(object):
        value.
     '''
     cdef int audio_decode_frame(VideoState self) nogil except? 1:
-        cdef AVPacket *pkt_temp = &self.audio_pkt_temp
-        cdef AVPacket *pkt = &self.audio_pkt
-        cdef AVCodecContext *dec = self.audio_st.codec
-        cdef int len1, data_size, resampled_data_size
+        cdef int data_size, resampled_data_size
         cdef int64_t dec_channel_layout
-        cdef int got_frame
         cdef double audio_clock0
         cdef int wanted_nb_samples
-        cdef AVRational tb, tb2
-        cdef int ret
-        cdef int reconfigure
-        cdef char buf1[1024]
-        cdef char buf2[1024]
 
         cdef const uint8_t **input
         cdef uint8_t **out
         cdef int out_count
         cdef int out_size
         cdef int len2
+        cdef Frame *af
 
-        while 1:
-            # NOTE: the audio packet can contain several frames
-            while pkt_temp.stream_index != -1 or self.audio_buf_frames_pending:
-                if self.frame == NULL:
-                    self.frame = av_frame_alloc()
-                    if self.frame == NULL:
-                        return AVERROR(ENOMEM)
-                else:
-                    av_frame_unref(self.frame)
+        if self.paused:
+            return -1
 
-                if self.audioq.serial != self.audio_pkt_temp_serial:
-                    break
+        while True:
+            af = self.sampq.frame_queue_peek_readable()
+            if af == NULL:
+                return -1
 
-                if self.paused:
+            self.sampq.frame_queue_next()
+            if af.serial == self.audioq.serial:
+                break
+
+        data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af.frame),
+                                               af.frame.nb_samples, <AVSampleFormat>af.frame.format, 1)
+
+        if af.frame.channel_layout and av_frame_get_channels(af.frame) ==\
+        av_get_channel_layout_nb_channels(af.frame.channel_layout):
+            dec_channel_layout = af.frame.channel_layout
+        else:
+            dec_channel_layout = av_get_default_channel_layout(av_frame_get_channels(af.frame))
+        wanted_nb_samples = self.synchronize_audio(af.frame.nb_samples)
+
+        if (af.frame.format != self.audio_src.fmt or
+            dec_channel_layout != self.audio_src.channel_layout or
+            af.frame.sample_rate != self.audio_src.freq or
+            (wanted_nb_samples != af.frame.nb_samples and self.swr_ctx == NULL)):
+            swr_free(&self.swr_ctx)
+            self.swr_ctx = swr_alloc_set_opts(NULL, self.audio_tgt.channel_layout,
+                                              self.audio_tgt.fmt, self.audio_tgt.freq,
+                                              dec_channel_layout, <AVSampleFormat>af.frame.format,
+                                              af.frame.sample_rate, 0, NULL)
+            if self.swr_ctx == NULL or swr_init(self.swr_ctx) < 0:
+                av_log(NULL, AV_LOG_ERROR, "Cannot create sample rate converter for \
+                conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",\
+                af.frame.sample_rate, av_get_sample_fmt_name(<AVSampleFormat>af.frame.format),\
+                av_frame_get_channels(af.frame), self.audio_tgt.freq,\
+                av_get_sample_fmt_name(self.audio_tgt.fmt), self.audio_tgt.channels)
+                return -1
+            self.audio_src.channel_layout = dec_channel_layout
+            self.audio_src.channels = av_frame_get_channels(af.frame)
+            self.audio_src.freq = af.frame.sample_rate
+            self.audio_src.fmt = <AVSampleFormat>af.frame.format
+
+        if self.swr_ctx != NULL:
+            input = <const uint8_t **>af.frame.extended_data
+            out = &self.audio_buf1
+            out_count = <int64_t>wanted_nb_samples * self.audio_tgt.freq / af.frame.sample_rate + 256
+            out_size  = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, out_count, self.audio_tgt.fmt, 0)
+            if out_size < 0:
+                av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n")
+                return -1
+
+            if wanted_nb_samples != af.frame.nb_samples:
+                if swr_set_compensation(self.swr_ctx, (wanted_nb_samples - af.frame.nb_samples)\
+                * self.audio_tgt.freq / af.frame.sample_rate, wanted_nb_samples *\
+                self.audio_tgt.freq / af.frame.sample_rate) < 0:
+                    av_log(NULL, AV_LOG_ERROR, "swr_set_compensation() failed\n")
                     return -1
 
-                if not self.audio_buf_frames_pending:
-                    len1 = avcodec_decode_audio4(dec, self.frame, &got_frame, pkt_temp)
-                    if len1 < 0:
-                        # if error, we skip the frame
-                        pkt_temp.size = 0
-                        break
+            av_fast_malloc(&self.audio_buf1, &self.audio_buf1_size, out_size)
+            if self.audio_buf1 == NULL:
+                return AVERROR(ENOMEM)
+            len2 = swr_convert(self.swr_ctx, out, out_count, input, af.frame.nb_samples)
+            if len2 < 0:
+                av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n")
+                return -1
 
-                    pkt_temp.dts = pkt_temp.pts = AV_NOPTS_VALUE
-                    pkt_temp.data += len1
-                    pkt_temp.size -= len1
-                    if pkt_temp.data != NULL and pkt_temp.size <= 0 or\
-                    pkt_temp.data == NULL and not got_frame:
-                        pkt_temp.stream_index = -1
-                    if pkt_temp.data == NULL and not got_frame:
-                        self.audio_finished = self.audio_pkt_temp_serial
-                    if not got_frame:
-                        continue
-
-                    tb.num = 1
-                    tb.den = self.frame.sample_rate
-                    if self.frame.pts != AV_NOPTS_VALUE:
-                        self.frame.pts = av_rescale_q(self.frame.pts, dec.time_base, tb)
-                    elif self.frame.pkt_pts != AV_NOPTS_VALUE:
-                        self.frame.pts = av_rescale_q(self.frame.pkt_pts, self.audio_st.time_base, tb)
-                    elif self.audio_frame_next_pts != AV_NOPTS_VALUE:
-                        tb2.num = 1
-                        IF CONFIG_AVFILTER:
-                            tb2.den = self.audio_filter_src.freq
-                            self.frame.pts = av_rescale_q(self.audio_frame_next_pts, tb2, tb)
-                        ELSE:
-                            tb2.den = self.audio_src.freq
-                            self.frame.pts = av_rescale_q(self.audio_frame_next_pts, tb2, tb)
-
-                    if self.frame.pts != AV_NOPTS_VALUE:
-                        self.audio_frame_next_pts = self.frame.pts + self.frame.nb_samples
-
-                    IF CONFIG_AVFILTER:
-                        dec_channel_layout = get_valid_channel_layout(self.frame.channel_layout,
-                                                                      av_frame_get_channels(self.frame))
-                        reconfigure = cmp_audio_fmts(self.audio_filter_src.fmt, self.audio_filter_src.channels,\
-                        <AVSampleFormat>self.frame.format, av_frame_get_channels(self.frame)) != 0 or\
-                        self.audio_filter_src.channel_layout != dec_channel_layout or\
-                        self.audio_filter_src.freq           != self.frame.sample_rate or\
-                        self.audio_pkt_temp_serial           != self.audio_last_serial
-
-                        if reconfigure:
-                            av_get_channel_layout_string(buf1, sizeof(buf1), -1, self.audio_filter_src.channel_layout)
-                            av_get_channel_layout_string(buf2, sizeof(buf2), -1, dec_channel_layout)
-                            av_log(NULL, AV_LOG_DEBUG,
-                                   "Audio frame changed from rate:%d ch:%d fmt:%s layout:%s serial:%d to \
-                                   rate:%d ch:%d fmt:%s layout:%s serial:%d\n",
-                                   self.audio_filter_src.freq, self.audio_filter_src.channels,
-                                   av_get_sample_fmt_name(self.audio_filter_src.fmt), buf1,
-                                   self.audio_last_serial, self.frame.sample_rate,
-                                   av_frame_get_channels(self.frame),
-                                   av_get_sample_fmt_name(<AVSampleFormat>self.frame.format), buf2,
-                                   self.audio_pkt_temp_serial)
-
-                            self.audio_filter_src.fmt            = <AVSampleFormat>self.frame.format
-                            self.audio_filter_src.channels       = av_frame_get_channels(self.frame)
-                            self.audio_filter_src.channel_layout = dec_channel_layout
-                            self.audio_filter_src.freq           = self.frame.sample_rate
-                            self.audio_last_serial               = self.audio_pkt_temp_serial
-
-                            ret = self.configure_audio_filters(self.player.afilters, 1)
-                            if ret < 0:
-                                return ret
-
-                        ret = av_buffersrc_add_frame(self.in_audio_filter, self.frame)
-                        if ret < 0:
-                            return ret
-
-                IF CONFIG_AVFILTER:
-                    ret = av_buffersink_get_frame_flags(self.out_audio_filter, self.frame, 0)
-                    if ret < 0:
-                        if ret == AVERROR(EAGAIN):
-                            self.audio_buf_frames_pending = 0
-                            continue
-                        if ret == AVERROR_EOF:
-                            self.audio_finished = self.audio_pkt_temp_serial
-                        return ret
-                    self.audio_buf_frames_pending = 1
-                    tb = self.out_audio_filter.inputs[0].time_base
-
-                data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(self.frame),
-                                                       self.frame.nb_samples, <AVSampleFormat>self.frame.format, 1)
-
-                if self.frame.channel_layout and av_frame_get_channels(self.frame) ==\
-                av_get_channel_layout_nb_channels(self.frame.channel_layout):
-                    dec_channel_layout = self.frame.channel_layout
-                else:
-                    dec_channel_layout = av_get_default_channel_layout(av_frame_get_channels(self.frame))
-                wanted_nb_samples = self.synchronize_audio(self.frame.nb_samples)
-
-                if (self.frame.format != self.audio_src.fmt or
-                    dec_channel_layout != self.audio_src.channel_layout or
-                    self.frame.sample_rate != self.audio_src.freq or
-                    (wanted_nb_samples != self.frame.nb_samples and self.swr_ctx == NULL)):
+            if len2 == out_count:
+                av_log(NULL, AV_LOG_WARNING, "audio buffer is probably too small\n")
+                if swr_init(self.swr_ctx) < 0:
                     swr_free(&self.swr_ctx)
-                    self.swr_ctx = swr_alloc_set_opts(NULL, self.audio_tgt.channel_layout,
-                                                      self.audio_tgt.fmt, self.audio_tgt.freq,
-                                                      dec_channel_layout, <AVSampleFormat>self.frame.format,
-                                                      self.frame.sample_rate, 0, NULL)
-                    if self.swr_ctx == NULL or swr_init(self.swr_ctx) < 0:
-                        av_log(NULL, AV_LOG_ERROR, "Cannot create sample rate converter for \
-                        conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",\
-                        self.frame.sample_rate, av_get_sample_fmt_name(<AVSampleFormat>self.frame.format),\
-                        av_frame_get_channels(self.frame), self.audio_tgt.freq,\
-                        av_get_sample_fmt_name(self.audio_tgt.fmt), self.audio_tgt.channels)
-                        break
-                    self.audio_src.channel_layout = dec_channel_layout
-                    self.audio_src.channels = av_frame_get_channels(self.frame)
-                    self.audio_src.freq = self.frame.sample_rate
-                    self.audio_src.fmt = <AVSampleFormat>self.frame.format
+            self.audio_buf = self.audio_buf1
+            resampled_data_size = len2 * self.audio_tgt.channels * av_get_bytes_per_sample(self.audio_tgt.fmt)
+        else:
+            self.audio_buf = af.frame.data[0]
+            resampled_data_size = data_size
 
-                if self.swr_ctx != NULL:
-                    input = <const uint8_t **>self.frame.extended_data
-                    out = &self.audio_buf1
-                    out_count = <int64_t>wanted_nb_samples * self.audio_tgt.freq / self.frame.sample_rate + 256
-                    out_size  = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, out_count, self.audio_tgt.fmt, 0)
-                    if out_size < 0:
-                        av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n")
-                        break
-                    if wanted_nb_samples != self.frame.nb_samples:
-                        if swr_set_compensation(self.swr_ctx, (wanted_nb_samples - self.frame.nb_samples)\
-                        * self.audio_tgt.freq / self.frame.sample_rate, wanted_nb_samples *\
-                        self.audio_tgt.freq / self.frame.sample_rate) < 0:
-                            av_log(NULL, AV_LOG_ERROR, "swr_set_compensation() failed\n")
-                            break
-                    av_fast_malloc(&self.audio_buf1, &self.audio_buf1_size, out_size)
-                    if self.audio_buf1 == NULL:
-                        return AVERROR(ENOMEM)
-                    len2 = swr_convert(self.swr_ctx, out, out_count, input, self.frame.nb_samples)
-                    if len2 < 0:
-                        av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n")
-                        break
-                    if len2 == out_count:
-                        av_log(NULL, AV_LOG_WARNING, "audio buffer is probably too small\n")
-                        swr_init(self.swr_ctx)
-                    self.audio_buf = self.audio_buf1
-                    resampled_data_size = len2 * self.audio_tgt.channels * av_get_bytes_per_sample(self.audio_tgt.fmt)
-                else:
-                    self.audio_buf = self.frame.data[0]
-                    resampled_data_size = data_size
-
-                audio_clock0 = self.audio_clock
-                # update the audio clock with the pts
-                if self.frame.pts != AV_NOPTS_VALUE:
-                    self.audio_clock = self.frame.pts * av_q2d(tb) + <double>self.frame.nb_samples\
-                    / <double>self.frame.sample_rate
-                else:
-                    self.audio_clock = NAN
-                self.audio_clock_serial = self.audio_pkt_temp_serial
-#                 IF DEBUG:
-#                     printf("audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
-#                            self.audio_clock - self.last_clock,
-#                            self.audio_clock, audio_clock0)
-#                     self.last_clock = is->audio_clock;
-                if not self.audio_seeking or self.seek_req_pos == -1:
-                    return resampled_data_size
-                elif self.audio_clock == NAN or self.audio_clock >= self.seek_req_pos:
-                    if self.get_master_sync_type() == AV_SYNC_AUDIO_MASTER:
-                        self.seek_req_pos = -1
-                    return resampled_data_size
-
-
-            # free the current packet
-            if pkt.data != NULL:
-                av_free_packet(pkt)
-            memset(pkt_temp, 0, sizeof(pkt_temp[0]))
-            pkt_temp.stream_index = -1
-            if self.audioq.abort_request:
-                return -1
-
-            if self.audioq.nb_packets == 0:
-                self.continue_read_thread.lock()
-                self.continue_read_thread.cond_signal()
-                self.continue_read_thread.unlock()
-
-            # read next packet
-            if self.audioq.packet_queue_get(pkt, 0, &self.audio_pkt_temp_serial) < 0:
-                return -1
-
-            if pkt.data == get_flush_packet().data:
-                avcodec_flush_buffers(dec)
-                self.audio_buf_frames_pending = 0
-                self.audio_frame_next_pts = AV_NOPTS_VALUE
-                if (self.ic.iformat.flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH |\
-                AVFMT_NO_BYTE_SEEK)) and self.ic.iformat.read_seek == NULL:
-                    self.audio_frame_next_pts = self.audio_st.start_time
-                self.audio_seeking = self.seek_req_pos != -1
-
-            pkt_temp[0] = pkt[0]
+        audio_clock0 = self.audio_clock
+        # update the audio clock with the pts
+        if not isnan(af.pts):
+            self.audio_clock = af.pts + <double>af.frame.nb_samples / af.frame.sample_rate
+        else:
+            self.audio_clock = NAN
+        self.audio_clock_serial = af.serial
+#         IF DEBUG:
+#             printf("audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
+#                    self.audio_clock - self.last_clock,
+#                    self.audio_clock, audio_clock0)
+#             self.last_clock = is->audio_clock;
+        if (self.audio_seeking and self.seek_req_pos != -1 and
+            (self.audio_clock == NAN or self.audio_clock >= self.seek_req_pos) and
+            self.get_master_sync_type() == AV_SYNC_AUDIO_MASTER):
+                self.seek_req_pos = -1
+        return resampled_data_size
 
     # prepare a new audio buffer
     cdef int sdl_audio_callback(VideoState self, uint8_t *stream, int len) nogil except 1:
@@ -1462,7 +1434,7 @@ cdef class VideoState(object):
         cdef AVDictionaryEntry *t = NULL
         cdef int sample_rate, nb_channels
         cdef int64_t channel_layout
-        cdef int ret
+        cdef int ret = 0
         cdef int stream_lowres = self.player.lowres
         cdef AVFilterLink *link
         if stream_index < 0 or stream_index >= ic.nb_streams:
@@ -1489,7 +1461,6 @@ cdef class VideoState(object):
                 av_log(NULL, AV_LOG_WARNING, "No codec could be found with id %d\n", avctx.codec_id)
             return -1
         avctx.codec_id = codec.id
-        avctx.workaround_bugs = self.player.workaround_bugs
         if stream_lowres > av_codec_get_max_lowres(codec):
             av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",
                     av_codec_get_max_lowres(codec))
@@ -1512,10 +1483,12 @@ cdef class VideoState(object):
         if avctx.codec_type == AVMEDIA_TYPE_VIDEO or avctx.codec_type == AVMEDIA_TYPE_AUDIO:
             av_dict_set(&opts, "refcounted_frames", "1", 0)
         if avcodec_open2(avctx, codec, &opts) < 0:
+            av_dict_free(&opts)
             return -1
         t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
             av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t.key)
+            av_dict_free(&opts)
             return AVERROR_OPTION_NOT_FOUND
         ic.streams[stream_index].discard = AVDISCARD_DEFAULT
         if avctx.codec_type == AVMEDIA_TYPE_AUDIO:
@@ -1526,6 +1499,7 @@ cdef class VideoState(object):
                 self.audio_filter_src.fmt            = avctx.sample_fmt
                 ret = self.configure_audio_filters(self.player.afilters, 0)
                 if ret < 0:
+                    av_dict_free(&opts)
                     return ret
                 link = self.out_audio_filter.inputs[0]
                 sample_rate    = link.sample_rate
@@ -1539,6 +1513,7 @@ cdef class VideoState(object):
             # prepare audio output
             ret = self.audio_open(channel_layout, nb_channels, sample_rate, &self.audio_tgt)
             if ret < 0:
+                av_dict_free(&opts)
                 return ret
             self.audio_hw_buf_size = ret
             self.audio_src = self.audio_tgt
@@ -1552,14 +1527,18 @@ cdef class VideoState(object):
             we correct audio sync only if larger than this threshold '''
             self.audio_diff_threshold = (<double>self.audio_hw_buf_size) / self.audio_tgt.bytes_per_sec
 
-            memset(&self.audio_pkt, 0, sizeof(self.audio_pkt))
-            memset(&self.audio_pkt_temp, 0, sizeof(self.audio_pkt_temp))
-            self.audio_pkt_temp.stream_index = -1
-
             self.audio_stream = stream_index
             self.audio_st = ic.streams[stream_index]
 
             self.audioq.packet_queue_start()
+            self.auddec.decoder_init(avctx, self.audioq, self.continue_read_thread)
+            if ((self.ic.iformat.flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) and
+                not self.ic.iformat.read_seek):
+                self.auddec.start_pts = self.audio_st.start_time
+                self.auddec.start_pts_tb = self.audio_st.time_base
+            with gil:
+                self.audio_tid = MTThread(self.mt_gen.mt_src)
+                self.audio_tid.create_thread(audio_thread_enter, self.self_id)
             SDL_PauseAudio(0)
         elif avctx.codec_type ==  AVMEDIA_TYPE_VIDEO:
             with gil:
@@ -1567,6 +1546,7 @@ cdef class VideoState(object):
             self.video_stream = stream_index
             self.video_st = ic.streams[stream_index]
             self.videoq.packet_queue_start()
+            self.viddec.decoder_init(avctx, self.videoq, self.continue_read_thread)
             with gil:
                 self.video_tid = MTThread(self.mt_gen.mt_src)
                 self.video_tid.create_thread(video_thread_enter, self.self_id)
@@ -1575,9 +1555,11 @@ cdef class VideoState(object):
             self.subtitle_stream = stream_index
             self.subtitle_st = ic.streams[stream_index]
             self.subtitleq.packet_queue_start()
+            self.subdec.decoder_init(avctx, self.subtitleq, self.continue_read_thread)
             with gil:
                 self.subtitle_tid = MTThread(self.mt_gen.mt_src)
                 self.subtitle_tid.create_thread(subtitle_thread_enter, self.self_id)
+        av_dict_free(&opts)
         return 0
 
 
@@ -1591,24 +1573,23 @@ cdef class VideoState(object):
         if avctx.codec_type == AVMEDIA_TYPE_AUDIO:
             self.audioq.packet_queue_abort()
 
+            self.sampq.frame_queue_signal()
             SDL_CloseAudio()
+            self.audio_tid.wait_thread(NULL)
 
+            self.auddec.decoder_destroy()
             self.audioq.packet_queue_flush()
-            av_free_packet(&self.audio_pkt)
             swr_free(&self.swr_ctx)
             av_freep(&self.audio_buf1)
             self.audio_buf1_size = 0
             self.audio_buf = NULL
-            av_frame_free(&self.frame)
-
-            IF CONFIG_AVFILTER:
-                avfilter_graph_free(&self.agraph)
         elif avctx.codec_type == AVMEDIA_TYPE_VIDEO:
             self.videoq.packet_queue_abort()
             ''' note: we also signal this mutex to make sure we deblock the
             video thread in all cases '''
             self.pictq.frame_queue_signal()
             self.video_tid.wait_thread(NULL)
+            self.viddec.decoder_destroy()
             self.videoq.packet_queue_flush()
         elif avctx.codec_type == AVMEDIA_TYPE_SUBTITLE:
             self.subtitleq.packet_queue_abort()
@@ -1618,6 +1599,7 @@ cdef class VideoState(object):
             self.subpq.frame_queue_signal()
 
             self.subtitle_tid.wait_thread(NULL)
+            self.subdec.decoder_destroy()
             self.subtitleq.packet_queue_flush()
 
         ic.streams[stream_index].discard = AVDISCARD_ALL
@@ -1646,6 +1628,7 @@ cdef class VideoState(object):
         cdef AVDictionaryEntry *t
         cdef AVDictionary **opts
         cdef int orig_nb_streams
+        cdef int scan_all_pmts_set = 0
         cdef char errbuf[128]
         cdef const char *errbuf_ptr = errbuf
         cdef int64_t timestamp
@@ -1658,34 +1641,43 @@ cdef class VideoState(object):
         self.last_subtitle_stream = self.subtitle_stream = -1
         memset(st_index, -1, sizeof(st_index))
 
-        ic = avformat_alloc_context()
+        self.ic = ic = avformat_alloc_context()
         #av_opt_set_int(ic, "threads", 1, 0)
         ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
+
+        if not av_dict_get(self.player.format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE):
+            av_dict_set(&self.player.format_opts, "scan_all_pmts", "1", AV_DICT_DONT_OVERWRITE)
+            scan_all_pmts_set = 1
+
         err = avformat_open_input(&ic, self.player.input_filename, self.iformat, &self.player.format_opts)
         if err < 0:
             if av_strerror(err, errbuf, sizeof(errbuf)) < 0:
                 errbuf_ptr = strerror(AVUNERROR(err))
             av_log(NULL, AV_LOG_ERROR, "%s: %s\n", self.player.input_filename, errbuf_ptr)
             return self.failed(-1)
+
+        if scan_all_pmts_set:
+            av_dict_set(&self.player.format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)
         t = av_dict_get(self.player.format_opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
             av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t.key)
             return self.failed(AVERROR_OPTION_NOT_FOUND)
-        self.ic = ic
 
         if self.player.genpts:
             ic.flags |= AVFMT_FLAG_GENPTS
         av_format_inject_global_side_data(ic)
         opts = setup_find_stream_info_opts(ic, self.player.codec_opts)
         orig_nb_streams = ic.nb_streams
+
         err = avformat_find_stream_info(ic, opts)
-        if err < 0:
-            av_log(NULL, AV_LOG_WARNING, "%s: could not find codec parameters\n", self.player.input_filename)
-            return self.failed(-1)
         for i in range(orig_nb_streams):
             av_dict_free(&opts[i])
         av_freep(&opts)
+
+        if err < 0:
+            av_log(NULL, AV_LOG_WARNING, "%s: could not find codec parameters\n", self.player.input_filename)
+            return self.failed(-1)
 
         if ic.pb != NULL:
             ic.pb.eof_reached = 0 # FIXME hack, ffplay maybe should not use avio_feof() to test for the end
@@ -1835,9 +1827,11 @@ cdef class VideoState(object):
                 self.continue_read_thread.cond_wait_timeout(10)
                 self.continue_read_thread.unlock()
                 continue
-            if (not self.paused) and ((not self.audio_st) or\
-            self.audio_finished == self.audioq.serial) and (self.video_st == NULL or\
-            (self.video_finished == self.videoq.serial and self.pictq.frame_queue_nb_remaining() == 0)):
+            if (not self.paused) and (
+                self.audio_st == NULL or (self.auddec.finished == self.audioq.serial and
+                                        self.sampq.frame_queue_nb_remaining() == 0)) and (
+                self.video_st == NULL or (self.viddec.finished == self.videoq.serial and
+                                          self.pictq.frame_queue_nb_remaining() == 0)):
                 self.seek_req_pos = -1
                 if self.player.loop != 1:
                     if self.player.start_time != AV_NOPTS_VALUE:
@@ -1857,20 +1851,17 @@ cdef class VideoState(object):
                     if not self.reached_eof:
                         self.reached_eof = 1
                         self.vid_sink.request_thread(FF_EOF_EVENT)
-            if eof:
-                self.seek_req_pos = -1
-                if self.video_stream >= 0:
-                    self.videoq.packet_queue_put_nullpacket(self.video_stream)
-                if self.audio_stream >= 0:
-                    self.audioq.packet_queue_put_nullpacket(self.audio_stream)
-                if self.subtitle_stream >= 0:
-                    self.subtitleq.packet_queue_put_nullpacket(self.subtitle_stream)
-                self.mt_gen.delay(10)
-                eof = 0
-                continue
+
             ret = av_read_frame(ic, pkt)
             if ret < 0:
-                if ret == AVERROR_EOF or avio_feof(ic.pb):
+                if ret == AVERROR_EOF or avio_feof(ic.pb) and not eof:
+                    self.seek_req_pos = -1
+                    if self.video_stream >= 0:
+                        self.videoq.packet_queue_put_nullpacket(self.video_stream)
+                    if self.audio_stream >= 0:
+                        self.audioq.packet_queue_put_nullpacket(self.audio_stream)
+                    if self.subtitle_stream >= 0:
+                        self.subtitleq.packet_queue_put_nullpacket(self.subtitle_stream)
                     eof = 1
                 if ic.pb != NULL and ic.pb.error:
                     break
@@ -1878,6 +1869,8 @@ cdef class VideoState(object):
                 self.continue_read_thread.cond_wait_timeout(10)
                 self.continue_read_thread.unlock()
                 continue
+            else:
+                eof = 0
             # check if packet is in play range specified by user, then queue, otherwise discard
             stream_start_time = ic.streams[pkt.stream_index].start_time
             if stream_start_time != AV_NOPTS_VALUE:
@@ -1916,6 +1909,7 @@ cdef class VideoState(object):
             self.stream_component_close(self.subtitle_stream)
         if self.ic != NULL:
             avformat_close_input(&self.ic)
+            self.ic = NULL
         if ret != 0:
             self.vid_sink.request_thread(FF_QUIT_EVENT)
         return 0
