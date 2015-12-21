@@ -89,7 +89,7 @@ static const AVOption *opt_find(void *obj, const char *name, const char *unit,
 
 #define FLAGS (o->type == AV_OPT_TYPE_FLAGS) ? AV_DICT_APPEND : 0
 static int opt_default(const char *opt, const char *arg,
-        struct SwsContext *sws_opts, AVDictionary **swr_opts,
+        AVDictionary **sws_dict, AVDictionary **swr_opts, AVDictionary **resample_opts,
         AVDictionary **format_opts, AVDictionary **codec_opts)
 {
     const AVOption *o;
@@ -97,11 +97,18 @@ static int opt_default(const char *opt, const char *arg,
     char opt_stripped[128];
     const char *p;
     const AVClass *cc = avcodec_get_class(), *fc = avformat_get_class();
+#if CONFIG_AVRESAMPLE
+    const AVClass *rc = avresample_get_class();
+#endif
 #if CONFIG_SWRESAMPLE
     struct SwrContext *swr;
 #endif
     const AVClass *sc, *swr_class;
     int ret;
+#if CONFIG_SWSCALE
+    struct SwsContext *sws;
+#endif
+
 
     if (!strcmp(opt, "debug") || !strcmp(opt, "fdebug"))
         av_log_set_level(AV_LOG_DEBUG);
@@ -126,20 +133,29 @@ static int opt_default(const char *opt, const char *arg,
     }
 #if CONFIG_SWSCALE
     sc = sws_get_class();
-    if (sws_opts && !consumed && opt_find(&sc, opt, NULL, 0,
-                         AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ)) {
-        // XXX we only support sws_flags, not arbitrary sws options
-        ret = av_opt_set(sws_opts, opt, arg, 0);
+    if (!consumed && (o = opt_find(&sc, opt, NULL, 0,
+                         AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
+        sws = sws_alloc_context();
+        ret = av_opt_set(sws, opt, arg, 0);
+        sws_freeContext(sws);
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "Error setting option %s.\n", opt);
             return ret;
         }
+
+        av_dict_set(sws_dict, opt, arg, FLAGS);
+
+        consumed = 1;
+    }
+#else
+    if (!consumed && !strcmp(opt, "sws_flags")) {
+        av_log(NULL, AV_LOG_WARNING, "Ignoring %s %s, due to disabled swscale\n", opt, arg);
         consumed = 1;
     }
 #endif
 #if CONFIG_SWRESAMPLE
     swr_class = swr_get_class();
-    if (swr_opts && !consumed && (o=opt_find(&swr_class, opt, NULL, 0,
+    if (!consumed && (o=opt_find(&swr_class, opt, NULL, 0,
                                     AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
         swr = swr_alloc();
         ret = av_opt_set(swr, opt, arg, 0);
@@ -149,6 +165,13 @@ static int opt_default(const char *opt, const char *arg,
             return ret;
         }
         av_dict_set(swr_opts, opt, arg, FLAGS);
+        consumed = 1;
+    }
+#endif
+#if CONFIG_AVRESAMPLE
+    if ((o=opt_find(&rc, opt, NULL, 0,
+                       AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
+        av_dict_set(resample_opts, opt, arg, FLAGS);
         consumed = 1;
     }
 #endif

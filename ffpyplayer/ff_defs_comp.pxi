@@ -7,6 +7,7 @@ include "ffconfig.pxi"
 cdef extern from "ffconfig.h":
     bint MAC_REALLOC
     bint NOT_WIN_MAC
+    bint WIN_IS_DEFINED
 
 
 
@@ -17,7 +18,9 @@ DEF AUDIO_MIN_BUFFER_SIZE = SDL_AUDIO_MIN_BUFFER_SIZE
 DEF AUDIO_MAX_CALLBACKS_PER_SEC = 30
 
 DEF MAX_QUEUE_SIZE = (15 * 1024 * 1024)
-DEF MIN_FRAMES = 5
+DEF MIN_FRAMES = 25
+DEF EXTERNAL_CLOCK_MIN_FRAMES = 2
+DEF EXTERNAL_CLOCK_MAX_FRAMES = 10
 
 'no AV sync correction is done if below the minimum AV sync threshold '
 DEF AV_SYNC_THRESHOLD_MIN = 0.04

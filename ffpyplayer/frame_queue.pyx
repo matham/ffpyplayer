@@ -138,6 +138,10 @@ cdef class FrameQueue(object):
 
     cdef int copy_picture(self, Frame *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil except 1:
+        cdef AVDictionaryEntry *e
+        cdef const AVClass *cls
+        cdef const AVOption *o
+        cdef int ret
 
         IF CONFIG_AVFILTER:
             av_frame_unref(vp.frame_ref)
@@ -147,7 +151,16 @@ cdef class FrameQueue(object):
                 av_frame_unref(vp.frame_ref)
                 av_frame_move_ref(vp.frame_ref, src_frame)
                 return 0
-            av_opt_get_int(player.sws_opts, 'sws_flags', 0, &player.sws_flags)
+
+            e = av_dict_get(player.sws_dict, "sws_flags", NULL, 0)
+            if e != NULL:
+                cls = sws_get_class()
+                o = av_opt_find(&cls, "sws_flags", NULL, 0,
+                                                   AV_OPT_SEARCH_FAKE_OBJ);
+                ret = av_opt_eval_flags(&cls, o, e.value, &player.sws_flags)
+                if ret < 0:
+                    raise_py_exception(b'Could not av_opt_eval_flags')
+
             player.img_convert_ctx = sws_getCachedContext(player.img_convert_ctx,\
             vp.width, vp.height, <AVPixelFormat>src_frame.format, vp.width, vp.height,\
             vp.pix_fmt, player.sws_flags, NULL, NULL, NULL)

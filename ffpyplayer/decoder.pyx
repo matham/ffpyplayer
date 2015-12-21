@@ -9,11 +9,13 @@ cdef extern from "string.h" nogil:
 
 cdef class Decoder(object):
 
-    cdef void decoder_init(self, AVCodecContext *avctx, FFPacketQueue queue,
-                          MTCond empty_queue_cond) nogil:
+    cdef void decoder_init(
+            self, MTGenerator mt_gen, AVCodecContext *avctx, FFPacketQueue queue,
+            MTCond empty_queue_cond) nogil:
         with gil:
             self.queue = queue
             self.empty_queue_cond = empty_queue_cond
+            self.mt_gen = mt_gen
         self.avctx = avctx
         self.packet_pending = self.finished = self.pkt_serial = 0
         self.seeking = self.start_pts = self.next_pts = 0
@@ -27,13 +29,29 @@ cdef class Decoder(object):
     cdef void decoder_destroy(self) nogil:
         av_free_packet(&self.pkt)
 
-    cdef void set_seek_pos(double seek_req_pos) nogil:
+    cdef void set_seek_pos(self, double seek_req_pos) nogil:
         self.seek_req_pos = seek_req_pos
         if seek_req_pos == -1:
             self.seeking = 0
 
-    cdef int is_seeking() nogil:
+    cdef int is_seeking(self) nogil:
         return self.seeking and self.seek_req_pos != -1
+
+    cdef int decoder_abort(self, FrameQueue fq) nogil except 1:
+        self.queue.packet_queue_abort()
+        fq.frame_queue_signal()
+        self.decoder_tid.wait_thread(NULL)
+        with gil:
+            self.decoder_tid = None
+        self.queue.packet_queue_flush()
+        return 0
+
+    cdef int decoder_start(self, int_void_func func, void *arg) nogil except 1:
+        self.queue.packet_queue_start()
+        with gil:
+            self.decoder_tid = MTThread(self.mt_gen.mt_src)
+            self.decoder_tid.create_thread(func, arg)
+        return 0
 
     cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2:
         cdef int ret, got_frame = 0

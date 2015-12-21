@@ -207,6 +207,8 @@ cdef class MediaPlayer(object):
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
         cdef int res, paused
+        cdef const char* cy_str
+        ff_opts = self.ff_opts = dict(ff_opts)
         self.is_closed = 0
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
@@ -216,8 +218,7 @@ cdef class MediaPlayer(object):
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
         _initialize_ffmpeg()
-        settings.format_opts = settings.codec_opts = settings.swr_opts = NULL
-        settings.sws_flags = SWS_BICUBIC
+        av_dict_set(&settings.sws_dict, "flags", "bicubic", 0)
         # set x, or y to -1 to preserve pixel ratio
         settings.screen_width  = ff_opts['x'] if 'x' in ff_opts else 0
         settings.screen_height = ff_opts['y'] if 'y' in ff_opts else 0
@@ -226,9 +227,20 @@ cdef class MediaPlayer(object):
         settings.audio_disable = bool(ff_opts['an']) if 'an' in ff_opts else 0
         settings.video_disable = bool(ff_opts['vn']) if 'vn' in ff_opts else 0
         settings.subtitle_disable = bool(ff_opts['sn']) if 'sn' in ff_opts else 0
-        settings.wanted_stream[<int>AVMEDIA_TYPE_AUDIO] = ff_opts['ast'] if 'ast' in ff_opts else -1
-        settings.wanted_stream[<int>AVMEDIA_TYPE_VIDEO] = ff_opts['vst'] if 'vst' in ff_opts else -1
-        settings.wanted_stream[<int>AVMEDIA_TYPE_SUBTITLE] = ff_opts['sst'] if 'sst' in ff_opts else -1
+
+        settings.wanted_stream_spec[<int>AVMEDIA_TYPE_AUDIO] = \
+        settings.wanted_stream_spec[<int>AVMEDIA_TYPE_VIDEO] = \
+        settings.wanted_stream_spec[<int>AVMEDIA_TYPE_SUBTITLE] = NULL
+
+        if 'ast' in ff_opts:
+            cy_str = ff_opts['ast']
+            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_AUDIO] =  cy_str
+        if 'vst' in ff_opts:
+            cy_str = ff_opts['vst']
+            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_VIDEO] =  cy_str
+        if 'sst' in ff_opts:
+            cy_str = ff_opts['sst']
+            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_SUBTITLE] =  cy_str
         settings.start_time = ff_opts['ss'] * 1000000 if 'ss' in ff_opts else AV_NOPTS_VALUE
         settings.duration = ff_opts['t'] * 1000000 if 't' in ff_opts else AV_NOPTS_VALUE
         settings.autorotate = bool(ff_opts.get('autorotate', 1))
@@ -305,13 +317,11 @@ cdef class MediaPlayer(object):
                 raise ValueError('Invalid cpuflags option value.')
             av_force_cpu_flags(flags)
 
-        if CONFIG_SWSCALE:
-            settings.sws_opts = sws_getContext(16, 16, <AVPixelFormat>0, 16, 16,
-                                               <AVPixelFormat>0, SWS_BICUBIC,
-                                               NULL, NULL, NULL)
         for k, v in lib_opts.iteritems():
-            if opt_default(k, v, settings.sws_opts, &settings.swr_opts,
-                           &settings.format_opts, &self.settings.codec_opts) < 0:
+            if opt_default(
+                    k, v, &settings.sws_dict, &settings.swr_opts,
+                    &settings.resample_opts, &settings.format_opts,
+                    &self.settings.codec_opts) < 0:
                 raise Exception('library option %s: %s not found' % (k, v))
 
         'filename can start with pipe:'
@@ -380,13 +390,12 @@ cdef class MediaPlayer(object):
                 self.ivs.cquit()
         self.ivs = None
         self.vid_sink = None
-        IF CONFIG_SWSCALE:
-            sws_freeContext(self.settings.sws_opts)
-            self.settings.sws_opts = NULL
 
         av_dict_free(&self.settings.format_opts)
+        av_dict_free(&self.settings.resample_opts)
         av_dict_free(&self.settings.codec_opts)
         av_dict_free(&self.settings.swr_opts)
+        av_dict_free(&self.settings.sws_dict)
         IF CONFIG_AVFILTER:
             av_freep(&self.settings.vfilters)
         avformat_network_deinit()

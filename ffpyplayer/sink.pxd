@@ -15,7 +15,7 @@ cdef class VideoSink(object):
 
 
 cdef struct VideoSettings:
-    int64_t sws_flags
+    unsigned sws_flags
 
     AVInputFormat *file_iformat
     char input_filename[1024]
@@ -25,7 +25,7 @@ cdef struct VideoSettings:
     int audio_disable
     int video_disable
     int subtitle_disable
-    int wanted_stream[<int>AVMEDIA_TYPE_NB]
+    const char* wanted_stream_spec[<int>AVMEDIA_TYPE_NB]
     int seek_by_bytes
     int show_status
     int av_sync_type
@@ -52,7 +52,8 @@ cdef struct VideoSettings:
     int64_t audio_callback_time
 
     SwsContext *img_convert_ctx
-    SwsContext *sws_opts
     AVDictionary *format_opts
     AVDictionary *codec_opts
+    AVDictionary *resample_opts
+    AVDictionary *sws_dict
     AVDictionary *swr_opts

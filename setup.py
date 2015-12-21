@@ -206,6 +206,12 @@ with open(join('ffpyplayer', 'ffconfig.h'), 'wb') as f:
 #define NOT_WIN_MAC 0
 #endif
 
+#if defined(_WIN32)
+#define WIN_IS_DEFINED 1
+#else
+#define WIN_IS_DEFINED 0
+#endif
+
 ''')
     for k, v in c_options.iteritems():
         f.write('#define %s %d\n' % (k.upper(), int(v)))

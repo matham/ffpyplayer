@@ -53,10 +53,16 @@ cdef:
         int avio_feof(AVIOContext *)
         inline int64_t avio_tell(AVIOContext *)
 
+    extern from "libavutil/eval.h" nogil:
+        double av_strtod(const char *, char **)
+
     extern from "libavutil/avstring.h" nogil:
          size_t av_strlcpy(char *, const char *, size_t)
          size_t av_strlcatf(char *, size_t, const char *, ...)
          char *av_asprintf(const char *, ...)
+
+    extern from "libavutil/display.h" nogil:
+        double av_display_rotation_get (const int32_t [])
 
     extern from "libavutil/mathematics.h" nogil:
         int64_t av_rescale_q(int64_t, AVRational, AVRational)
@@ -245,6 +251,8 @@ cdef:
         struct AVProgram:
             unsigned int nb_stream_indexes
             unsigned int *stream_index
+        enum  AVPacketSideDataType:
+            AV_PKT_DATA_DISPLAYMATRIX
         void av_format_inject_global_side_data(AVFormatContext *)
         void av_register_all()
         int avformat_network_init()
@@ -272,6 +280,7 @@ cdef:
         AVStream *avformat_new_stream(AVFormatContext *, const AVCodec *)
         int av_interleaved_write_frame(AVFormatContext *, AVPacket *)
         void avformat_free_context(AVFormatContext *)
+        uint8_t *av_stream_get_side_data (AVStream *, AVPacketSideDataType, int *)
         AVOutputFormat *av_oformat_next(AVOutputFormat *)
         AVInputFormat *av_iformat_next(AVInputFormat  *)
 
@@ -333,8 +342,8 @@ cdef:
 
     extern from "libavcodec/avcodec.h" nogil:
         int CODEC_FLAG_EMU_EDGE
-        int CODEC_FLAG2_FAST
-        int CODEC_CAP_DR1
+        int AV_CODEC_FLAG2_FAST
+        int AV_CODEC_CAP_DR1
         int CODEC_FLAG_GLOBAL_HEADER
         int AV_PKT_FLAG_KEY
         int CODEC_CAP_DELAY
@@ -512,8 +521,9 @@ cdef:
         uint8_t SHOW_VERSION
         uint8_t SHOW_CONFIG
         void print_all_libs_info(int, int)
-        int opt_default(const char *, const char *, SwsContext *, AVDictionary **,
-                        AVDictionary **, AVDictionary **)
+        int opt_default(
+            const char *, const char *, AVDictionary **, AVDictionary **,
+            AVDictionary **, AVDictionary **, AVDictionary **)
         int get_plane_sizes(int *, int *, AVPixelFormat, int, const int *)
 
 cdef enum:

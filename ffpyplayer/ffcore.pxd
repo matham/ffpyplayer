@@ -22,8 +22,6 @@ cdef struct AudioParams:
 cdef class VideoState(object):
     cdef:
         MTThread read_tid
-        MTThread video_tid
-        MTThread audio_tid
         AVInputFormat *iformat
         int abort_request
         int paused
@@ -37,6 +35,7 @@ cdef class VideoState(object):
         AVFormatContext *ic
         int realtime
         int reached_eof
+        int eof
 
         Clock audclk
         Clock vidclk
@@ -81,7 +80,6 @@ cdef class VideoState(object):
         int16_t sample_array[SAMPLE_ARRAY_SIZE]
         int sample_array_index
 
-        MTThread subtitle_tid
         int subtitle_stream
         AVStream *subtitle_st
         FFPacketQueue subtitleq
@@ -143,7 +141,7 @@ cdef class VideoState(object):
         cdef int configure_audio_filters(VideoState self, const char *afilters,
                                          int force_output_format) nogil except? 1
     cdef int audio_thread(self) nogil except? 1
-    cdef int video_thread(VideoState self) nogil except 1
+    cdef int video_thread(VideoState self) nogil except? 1
     cdef int subtitle_thread(VideoState self) nogil except 1
     cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1
     cdef int synchronize_audio(VideoState self, int nb_samples) nogil except -1

@@ -5,8 +5,8 @@ version = '3.2-dev'
 _ffmpeg_git = '1f7b7d54471711b89f8a64bef1c6636b6aa08c12'
 
 
-# skipped commit a583e2bebe7746f7a68aede707ec3eebfd908659 and any
-# show modes related functionality
+# skipped commit a583e2bebe7746f7a68aede707ec3eebfd908659, any
+# show modes, and subtitle display related functionality
 
 import os
 import sys
