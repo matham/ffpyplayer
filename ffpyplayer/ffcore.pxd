@@ -37,9 +37,6 @@ cdef class VideoState(object):
         AVFormatContext *ic
         int realtime
         int reached_eof
-        double seek_req_pos
-        int audio_seeking
-        int video_seeking
 
         Clock audclk
         Clock vidclk

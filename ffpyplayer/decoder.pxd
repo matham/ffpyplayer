@@ -13,7 +13,6 @@ cdef class Decoder(object):
         AVCodecContext *avctx
         int pkt_serial
         int finished
-        int flushed
         int packet_pending
         MTCond empty_queue_cond
         int64_t start_pts
@@ -21,7 +20,12 @@ cdef class Decoder(object):
         int64_t next_pts
         AVRational next_pts_tb
 
+        double seek_req_pos
+        int seeking
+
     cdef void decoder_init(self, AVCodecContext *avctx, FFPacketQueue queue,
                            MTCond empty_queue_cond) nogil
     cdef void decoder_destroy(self) nogil
+    cdef void set_seek_pos(double seek_req_pos) nogil
+    cdef int is_seeking() nogil
     cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2

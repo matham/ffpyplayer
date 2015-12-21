@@ -15,8 +15,9 @@ cdef class Decoder(object):
             self.queue = queue
             self.empty_queue_cond = empty_queue_cond
         self.avctx = avctx
-        self.packet_pending = self.flushed = self.finished = self.pkt_serial = 0
-        self.start_pts = self.next_pts = 0
+        self.packet_pending = self.finished = self.pkt_serial = 0
+        self.seeking = self.start_pts = self.next_pts = 0
+        self.seek_req_pos = -1
         self.start_pts = AV_NOPTS_VALUE
         memset(&self.pkt, 0, sizeof(self.pkt))
         memset(&self.pkt_temp, 0, sizeof(self.pkt_temp))
@@ -26,11 +27,18 @@ cdef class Decoder(object):
     cdef void decoder_destroy(self) nogil:
         av_free_packet(&self.pkt)
 
+    cdef void set_seek_pos(double seek_req_pos) nogil:
+        self.seek_req_pos = seek_req_pos
+        if seek_req_pos == -1:
+            self.seeking = 0
+
+    cdef int is_seeking() nogil:
+        return self.seeking and self.seek_req_pos != -1
+
     cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2:
         cdef int ret, got_frame = 0
         cdef AVPacket pkt
         cdef AVRational tb
-        self.flushed = 0
 
         while True:
             ret = -1
@@ -49,7 +57,7 @@ cdef class Decoder(object):
                     if pkt.data == get_flush_packet().data:
                         avcodec_flush_buffers(self.avctx)
                         self.finished = 0
-                        self.flushed = 1
+                        self.seeking = self.seek_req_pos != -1
                         self.next_pts = self.start_pts
                         self.next_pts_tb = self.start_pts_tb
 
