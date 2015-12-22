@@ -37,6 +37,7 @@ cdef:
         int av_compare_ts(int64_t, AVRational, int64_t, AVRational)
         const char* av_get_media_type_string(AVMediaType)
         inline const int av_log2(unsigned int)
+        void av_packet_unref(AVPacket *)
 
     extern from "libavformat/avio.h" nogil:
         int AVIO_FLAG_WRITE
@@ -116,6 +117,7 @@ cdef:
         void av_free(void *)
         void av_freep(void *)
         void *av_malloc(size_t)
+        void *av_realloc_array(void *, size_t, size_t)
         char *av_strdup(const char *)
         int av_get_channel_layout_nb_channels(uint64_t)
         void av_get_channel_layout_string(char *, int, int, uint64_t)
@@ -293,6 +295,7 @@ cdef:
             pass
         struct SwsFilter:
             pass
+        const AVClass *sws_get_class()
         SwsContext *sws_getContext(int, int, AVPixelFormat, int, int, AVPixelFormat,
                                    int, SwsFilter *, SwsFilter *, const double *)
         SwsContext *sws_getCachedContext(SwsContext *, int, int, AVPixelFormat,
@@ -312,6 +315,7 @@ cdef:
         int AV_OPT_SEARCH_FAKE_OBJ
         struct AVOption:
             pass
+        int av_opt_eval_flags(void *, const AVOption *, const char *, int *)
         int av_opt_get_int(void *, const char *, int, int64_t *)
         int av_opt_set_int(void *, const char *, int64_t, int)
         int av_opt_set_image_size(void *, const char *, int, int, int)
@@ -329,6 +333,9 @@ cdef:
         void av_rdft_end(RDFTContext *)
         RDFTContext *av_rdft_init(int, RDFTransformType)
         void av_rdft_calc(RDFTContext *, FFTSample *)
+
+    extern from "libavcodec/version.h" nogil:
+        int FF_API_EMU_EDGE
 
     extern from "libswresample/swresample.h" nogil:
         struct SwrContext:
@@ -522,7 +529,7 @@ cdef:
         uint8_t SHOW_CONFIG
         void print_all_libs_info(int, int)
         int opt_default(
-            const char *, const char *, AVDictionary **, AVDictionary **,
+            const char *, const char *, SwsContext *, AVDictionary **, AVDictionary **,
             AVDictionary **, AVDictionary **, AVDictionary **)
         int get_plane_sizes(int *, int *, AVPixelFormat, int, const int *)
 

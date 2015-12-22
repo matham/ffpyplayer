@@ -25,7 +25,8 @@ cdef class FFPacketQueue(object):
     def __dealloc__(self):
         if self.cond is None:
             return
-        self.packet_queue_flush()
+        with nogil:
+            self.packet_queue_flush()
 
     cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil except 1:
         cdef MyAVPacketList *pkt1
@@ -56,16 +57,12 @@ cdef class FFPacketQueue(object):
     cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil except 1:
         cdef int ret
 
-        #/* duplicate the packet */
-        if pkt != &flush_pkt and av_dup_packet(pkt) < 0:
-            return -1
-
         self.cond.lock()
         ret = self.packet_queue_put_private(pkt)
         self.cond.unlock()
 
         if pkt != &flush_pkt and ret < 0:
-            av_free_packet(pkt)
+            av_packet_unref(pkt)
 
         return ret
 
@@ -86,7 +83,7 @@ cdef class FFPacketQueue(object):
         pkt = self.first_pkt
         while pkt != NULL:
             pkt1 = pkt.next
-            av_free_packet(&pkt.pkt)
+            av_packet_unref(&pkt.pkt)
             av_freep(&pkt)
             pkt = pkt1
         self.last_pkt = NULL
@@ -129,6 +126,7 @@ cdef class FFPacketQueue(object):
                     self.last_pkt = NULL
                 self.nb_packets -= 1
                 self.size -= pkt1.pkt.size + sizeof(pkt1[0])
+
                 pkt[0] = pkt1.pkt
                 if serial != NULL:
                     serial[0] = pkt1.serial

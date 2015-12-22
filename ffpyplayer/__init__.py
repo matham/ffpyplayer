@@ -1,12 +1,11 @@
 
 __all__ = ('version', )
 version = '3.2-dev'
-# The ffmpeg src git version tested with. Nov, 18, 2013
-_ffmpeg_git = '1f7b7d54471711b89f8a64bef1c6636b6aa08c12'
+# Dec 2015, the ffmpeg src git version tested and upto date with, including this commit
+_ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
 
 
-# skipped commit a583e2bebe7746f7a68aede707ec3eebfd908659, any
-# show modes, and subtitle display related functionality
+# skipped all show modes and subtitle display related functionality commits
 
 import os
 import sys

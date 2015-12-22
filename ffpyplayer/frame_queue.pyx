@@ -29,8 +29,7 @@ cdef class FrameQueue(object):
             for i in range(self.max_size):
                 self.queue[i].pix_fmt = <AVPixelFormat>-1
                 self.queue[i].frame = av_frame_alloc()
-                self.queue[i].frame_ref = av_frame_alloc()
-                if self.queue[i].frame == NULL or self.queue[i].frame_ref == NULL:
+                if self.queue[i].frame == NULL:
                     with gil:
                         raise_py_exception(b'Could not allocate avframe buffer')
 
@@ -42,15 +41,12 @@ cdef class FrameQueue(object):
             for i in range(self.max_size):
                 vp = &self.queue[i]
                 self.frame_queue_unref_item(vp)
+                if vp.need_conversion:
+                    av_freep(&vp.frame.data[0])
+                av_frame_free(&vp.frame)
 
     cdef void frame_queue_unref_item(self, Frame *vp) nogil:
-        if vp.frame != NULL:
-            av_freep(&vp.frame.data[0])
-            av_frame_free(&vp.frame)
-            vp.frame = NULL
-        if vp.frame_ref != NULL:
-            av_frame_free(&vp.frame_ref)
-            vp.frame_ref = NULL
+        av_frame_unref(vp.frame)
         avsubtitle_free(&vp.sub)
 
     cdef int frame_queue_signal(self) nogil except 1:
@@ -143,21 +139,16 @@ cdef class FrameQueue(object):
         cdef const AVOption *o
         cdef int ret
 
-        IF CONFIG_AVFILTER:
-            av_frame_unref(vp.frame_ref)
-            av_frame_move_ref(vp.frame_ref, src_frame)
-        ELSE:
-            if vp.pix_fmt == <AVPixelFormat>src_frame.format:
-                av_frame_unref(vp.frame_ref)
-                av_frame_move_ref(vp.frame_ref, src_frame)
-                return 0
-
+        if not vp.need_conversion:
+            av_frame_unref(vp.frame)
+            av_frame_move_ref(vp.frame, src_frame)
+        else:
             e = av_dict_get(player.sws_dict, "sws_flags", NULL, 0)
             if e != NULL:
                 cls = sws_get_class()
                 o = av_opt_find(&cls, "sws_flags", NULL, 0,
                                                    AV_OPT_SEARCH_FAKE_OBJ);
-                ret = av_opt_eval_flags(&cls, o, e.value, &player.sws_flags)
+                ret = av_opt_eval_flags(&cls, o, e.value, <int *>&player.sws_flags)
                 if ret < 0:
                     raise_py_exception(b'Could not av_opt_eval_flags')
 
@@ -180,20 +171,18 @@ cdef class FrameQueue(object):
         if self.requested_alloc:
             vp = &self.queue[self.windex]
             self.frame_queue_unref_item(vp)
+            if vp.need_conversion:
+                av_freep(&vp.frame.data[0])
 
-            vp.frame = av_frame_alloc()
-            vp.frame_ref = av_frame_alloc()
-            if vp.frame == NULL or vp.frame_ref == NULL:
-                av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe of size %dx%d.\n", vp.width, vp.height)
-                raise_py_exception(b'Could not allocate avframe.')
-            if (av_image_alloc(vp.frame.data, vp.frame.linesize, vp.width,
-                               vp.height, vp.pix_fmt, 1) < 0):
-                av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
-                raise_py_exception(b'Could not allocate avframe buffer')
+            if vp.need_conversion:
+                if (av_image_alloc(vp.frame.data, vp.frame.linesize, vp.width,
+                                   vp.height, vp.pix_fmt, 1) < 0):
+                    av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
+                    raise_py_exception(b'Could not allocate avframe buffer')
 
-            vp.frame.width = vp.width
-            vp.frame.height = vp.height
-            vp.frame.format = <int>vp.pix_fmt
+                vp.frame.width = vp.width
+                vp.frame.height = vp.height
+                vp.frame.format = <int>vp.pix_fmt
 
             self.cond.lock()
             vp.allocated = 1
@@ -227,7 +216,7 @@ cdef class FrameQueue(object):
         vp.sar = src_frame.sample_aspect_ratio
 
         # alloc or resize hardware picture buffer
-        if (vp.frame == NULL or vp.reallocate or (not vp.allocated) or
+        if (vp.reallocate or (not vp.allocated) or
             vp.width != src_frame.width or vp.height != src_frame.height
             or <int>vp.pix_fmt != <int>out_fmt):
             vp.allocated = 0
@@ -235,6 +224,7 @@ cdef class FrameQueue(object):
             vp.width = src_frame.width
             vp.height = src_frame.height
             vp.pix_fmt = out_fmt
+            vp.need_conversion = not CONFIG_AVFILTER and out_fmt != <AVPixelFormat>src_frame.format
 
             # the allocation must be done in the main thread to avoid locking problems.
             self.alloc_mutex.lock()
@@ -256,12 +246,11 @@ cdef class FrameQueue(object):
                 return -1
 
         # if the frame is not skipped, then display it
-        if vp.frame != NULL:
-            self.copy_picture(vp, src_frame, player)
+        self.copy_picture(vp, src_frame, player)
 
-            vp.pts = pts
-            vp.duration = duration
-            vp.pos = pos
-            vp.serial = serial
-            self.frame_queue_push()
+        vp.pts = pts
+        vp.duration = duration
+        vp.pos = pos
+        vp.serial = serial
+        self.frame_queue_push()
         return 0

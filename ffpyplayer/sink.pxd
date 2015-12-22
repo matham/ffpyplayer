@@ -18,10 +18,11 @@ cdef struct VideoSettings:
     unsigned sws_flags
 
     AVInputFormat *file_iformat
-    char input_filename[1024]
+    char *input_filename
     int screen_width
     int screen_height
-    uint8_t volume
+    uint8_t audio_volume
+    int muted
     int audio_disable
     int video_disable
     int subtitle_disable
@@ -42,7 +43,8 @@ cdef struct VideoSettings:
     char *audio_codec_name
     char *subtitle_codec_name
     char *video_codec_name
-    char *vfilters
+    const char **vfilters_list
+    int nb_vfilters
     char *afilters
     char *avfilters
 

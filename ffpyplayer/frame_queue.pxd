@@ -7,7 +7,7 @@ from ffpyplayer.sink cimport VideoSettings
 
 cdef struct Frame:
     AVFrame *frame
-    AVFrame *frame_ref
+    int need_conversion
     AVSubtitle sub
     int serial
     double pts  # presentation timestamp for the frame

@@ -69,6 +69,8 @@ ctypedef enum LoopState:
 cdef AVSampleFormat *sample_fmts = [AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE]
 cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 cdef int *next_sample_rates = [0, 44100, 48000, 96000, 192000]
+cdef int next_sample_rates_len = 5
+
 
 cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
@@ -269,30 +271,31 @@ cdef class VideoState(object):
                    VideoSettings *player, int paused) nogil except 1:
         cdef int i
         self.player = player
+        self.vfilter_idx = 0
 
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
         self.iformat = player.file_iformat
         with gil:
-            self.subtitle_tid = None
             self.read_tid = None
-            self.video_tid = None
-            self.audio_tid = None
             self.mt_gen = mt_gen
             self.vid_sink = vid_sink
             self.audioq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
             self.subtitleq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
             self.videoq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
 
-            # start video display
+            self.auddec = Decoder.__new__(Decoder)
+            self.viddec = Decoder.__new__(Decoder)
+            self.subdec = Decoder.__new__(Decoder)
+
             self.pictq = FrameQueue.__new__(
-                FrameQueue, mt_gen.mt_src, self.videoq,
+                FrameQueue, mt_gen, self.videoq,
                 VIDEO_PICTURE_QUEUE_SIZE, 1)
             self.subpq = FrameQueue.__new__(
-                FrameQueue, mt_gen.mt_src, self.subtitleq,
+                FrameQueue, mt_gen, self.subtitleq,
                 SUBPICTURE_QUEUE_SIZE, 0)
             self.sampq = FrameQueue.__new__(
-                FrameQueue, mt_gen.mt_src, self.audioq,
+                FrameQueue, mt_gen, self.audioq,
                 SAMPLE_QUEUE_SIZE, 1)
             self.continue_read_thread = MTCond.__new__(MTCond, mt_gen.mt_src)
             self.pause_cond = MTCond.__new__(MTCond, mt_gen.mt_src)
@@ -333,6 +336,17 @@ cdef class VideoState(object):
 
         with gil:
             self.read_tid = None
+
+        if self.audio_stream >= 0:
+            self.stream_component_close(self.audio_stream)
+        if self.video_stream >= 0:
+            self.stream_component_close(self.video_stream)
+        if self.subtitle_stream >= 0:
+            self.stream_component_close(self.subtitle_stream)
+
+        avformat_close_input(&self.ic)
+        self.ic = NULL
+
         IF not CONFIG_AVFILTER:
             sws_freeContext(self.player.img_convert_ctx)
 
@@ -484,7 +498,6 @@ cdef class VideoState(object):
         self.vidclk.set_clock(pts, serial)
         self.extclk.sync_clock_to_slave(self.vidclk)
 
-    #XXX refactor this crappy function
     cdef int video_refresh(VideoState self, Image next_image, double *pts, double *remaining_time,
                            int force_refresh) nogil except -1:
         ''' Returns: 1 = paused, 2 = eof, 3 = no pic but remaining_time is set, 0 = valid image
@@ -506,7 +519,6 @@ cdef class VideoState(object):
         cdef char *m
         cdef int64_t m2, m3
         cdef int result = 3
-        cdef AVFrame *frame
         remaining_time[0] = 0.
 
         self.pictq.alloc_picture()
@@ -594,15 +606,10 @@ cdef class VideoState(object):
                     # display picture
                     if (not self.player.video_disable) and self.video_st != NULL:
                         vp_temp = self.pictq.frame_queue_peek_last()
-                        if vp_temp.frame != NULL:
-                            if CONFIG_AVFILTER or vp_temp.pix_fmt == <AVPixelFormat>vp_temp.frame_ref.format:
-                                frame = vp_temp.frame_ref
-                            else:
-                                frame = vp_temp.frame
-                            if next_image is not None:
-                                next_image.cython_init(frame)
-                            pts[0] = vp_temp.pts
-                            result = 0
+                        if next_image is not None:
+                            next_image.cython_init(vp_temp.frame)
+                        pts[0] = vp_temp.pts
+                        result = 0
                     self.pictq.frame_queue_next()
                 break
 
@@ -1025,6 +1032,7 @@ cdef class VideoState(object):
             cdef AVPixelFormat last_format = <AVPixelFormat>-2
             cdef AVPixelFormat last_out_fmt_temp
             cdef int last_serial = -1
+            cdef int last_vfilter_idx = self.vfilter_idx
             if graph == NULL:
                 av_frame_free(&frame)
                 return AVERROR(ENOMEM)
@@ -1048,6 +1056,7 @@ cdef class VideoState(object):
                     or last_scr_h != self.player.screen_height
                     or last_scr_w != self.player.screen_width
                     or last_format != frame.format or last_serial != self.viddec.pkt_serial
+                    or last_vfilter_idx != self.vfilter_idx
                     or last_out_fmt != last_out_fmt_temp):
                     av_log(NULL, AV_LOG_DEBUG,
                            "Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
@@ -1058,7 +1067,9 @@ cdef class VideoState(object):
                            self.viddec.pkt_serial)
                     avfilter_graph_free(&graph)
                     graph = avfilter_graph_alloc()
-                    ret = self.configure_video_filters(graph, self.player.vfilters, frame, last_out_fmt_temp)
+                    ret = self.configure_video_filters(
+                        graph, self.player.vfilters_list[self.vfilter_idx] if self.player.vfilters_list != NULL else NULL,
+                        frame, last_out_fmt_temp)
                     if ret < 0:
                         if av_strerror(ret, errbuf, sizeof(errbuf)) < 0:
                             errbuf_ptr = strerror(AVUNERROR(ret))
@@ -1075,6 +1086,7 @@ cdef class VideoState(object):
                     last_out_fmt = last_out_fmt_temp
                     last_serial = self.viddec.pkt_serial
                     frame_rate = filt_out.inputs[0].frame_rate
+                    last_vfilter_idx = self.vfilter_idx
                     with gil:
                         self.metadata['src_vid_size'] = (last_w, last_h)
                         self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
@@ -1370,8 +1382,14 @@ cdef class VideoState(object):
             len1 = self.audio_buf_size - self.audio_buf_index
             if len1 > len:
                 len1 = len
-            #SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1, self.player.volume)
-            memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+
+            if not self.player.muted and self.player.audio_volume == SDL_MIX_MAXVOLUME:
+                memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+            else:
+                memset(stream, self.silence_buf[0], len1)
+                if not self.player.muted:
+                    SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1, self.player.audio_volume)
+
             len -= len1
             stream += len1
             self.audio_buf_index += len1
@@ -1389,7 +1407,7 @@ cdef class VideoState(object):
                         int wanted_sample_rate, AudioParams *audio_hw_params) nogil except? 1:
         cdef SDL_AudioSpec wanted_spec, spec
         cdef const char *env
-        cdef int next_sample_rate_idx = 4  # len(next_sample_rates) - 1;
+        cdef int next_sample_rate_idx = next_sample_rates_len - 1
 
         env = SDL_getenv("SDL_AUDIO_CHANNELS")
         if env != NULL:
@@ -1505,12 +1523,14 @@ cdef class VideoState(object):
             stream_lowres = av_codec_get_max_lowres(codec)
         av_codec_set_lowres(avctx, stream_lowres)
 
-        if stream_lowres:
-            avctx.flags |= CODEC_FLAG_EMU_EDGE
+        if FF_API_EMU_EDGE:
+            if stream_lowres:
+                avctx.flags |= CODEC_FLAG_EMU_EDGE
         if self.player.fast:
             avctx.flags2 |= AV_CODEC_FLAG2_FAST
-        if codec.capabilities & AV_CODEC_CAP_DR1:
-            avctx.flags |= CODEC_FLAG_EMU_EDGE
+        if FF_API_EMU_EDGE:
+            if codec.capabilities & AV_CODEC_CAP_DR1:
+                avctx.flags |= CODEC_FLAG_EMU_EDGE
 
         opts = filter_codec_opts(self.player.codec_opts, avctx.codec_id, ic,
                                  ic.streams[stream_index], codec)
@@ -1582,6 +1602,7 @@ cdef class VideoState(object):
             self.video_stream = stream_index
             self.video_st = ic.streams[stream_index]
             self.viddec.decoder_init(self.mt_gen, avctx, self.videoq, self.continue_read_thread)
+
             self.viddec.decoder_start(video_thread_enter, self.self_id)
             self.queue_attachments_req = 1
         elif avctx.codec_type ==  AVMEDIA_TYPE_SUBTITLE:
@@ -1658,10 +1679,10 @@ cdef class VideoState(object):
         self.eof = 0
         memset(st_index, -1, sizeof(st_index))
 
-        self.ic = ic = avformat_alloc_context()
+        ic = avformat_alloc_context()
         if ic == NULL:
             av_log(NULL, AV_LOG_FATAL, "Could not allocate context.\n");
-            return self.failed(AVERROR(ENOMEM))
+            return self.failed(AVERROR(ENOMEM), ic)
         #av_opt_set_int(ic, "threads", 1, 0)
         ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
@@ -1675,14 +1696,15 @@ cdef class VideoState(object):
             if av_strerror(err, errbuf, sizeof(errbuf)) < 0:
                 errbuf_ptr = strerror(AVUNERROR(err))
             av_log(NULL, AV_LOG_ERROR, "%s: %s\n", self.player.input_filename, errbuf_ptr)
-            return self.failed(-1)
+            return self.failed(-1, ic)
 
         if scan_all_pmts_set:
             av_dict_set(&self.player.format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)
         t = av_dict_get(self.player.format_opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
             av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t.key)
-            return self.failed(AVERROR_OPTION_NOT_FOUND)
+            return self.failed(AVERROR_OPTION_NOT_FOUND, ic)
+        self.ic = ic
 
         if self.player.genpts:
             ic.flags |= AVFMT_FLAG_GENPTS
@@ -1697,7 +1719,7 @@ cdef class VideoState(object):
 
         if err < 0:
             av_log(NULL, AV_LOG_WARNING, "%s: could not find codec parameters\n", self.player.input_filename)
-            return self.failed(-1)
+            return self.failed(-1, ic)
 
         if ic.pb != NULL:
             ic.pb.eof_reached = 0 # FIXME hack, ffplay maybe should not use avio_feof() to test for the end
@@ -1780,7 +1802,7 @@ cdef class VideoState(object):
         if self.video_stream < 0 and self.audio_stream < 0:
             av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
                    self.player.input_filename)
-            return self.failed(-1)
+            return self.failed(-1, ic)
 
         if self.player.infinite_buffer < 0 and self.realtime:
             self.player.infinite_buffer = 1
@@ -1840,11 +1862,12 @@ cdef class VideoState(object):
                 self.seek_req = 0
                 self.queue_attachments_req = 1
                 self.eof = 0
+
             if self.queue_attachments_req:
                 if self.video_st != NULL and self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC:
                     ret = av_copy_packet(&copy, &self.video_st.attached_pic)
                     if ret < 0:
-                        return self.failed(ret)
+                        return self.failed(ret, ic)
                     self.videoq.packet_queue_put(&copy)
                     self.videoq.packet_queue_put_nullpacket(self.video_stream)
                 self.queue_attachments_req = 0
@@ -1862,6 +1885,7 @@ cdef class VideoState(object):
                 self.continue_read_thread.cond_wait_timeout(10)
                 self.continue_read_thread.unlock()
                 continue
+
             if (not self.paused) and (
                 self.audio_st == NULL or (self.auddec.finished == self.audioq.serial and
                                         self.sampq.frame_queue_nb_remaining() == 0)) and (
@@ -1882,7 +1906,7 @@ cdef class VideoState(object):
                         if self.player.loop:
                             self.stream_seek(temp64, 0, 0, 0)
                 elif self.player.autoexit:
-                    return self.failed(AVERROR_EOF)
+                    return self.failed(AVERROR_EOF, ic)
                 else:
                     if not self.reached_eof:
                         self.reached_eof = 1
@@ -1908,6 +1932,7 @@ cdef class VideoState(object):
                 continue
             else:
                 self.eof = 0
+
             # check if packet is in play range specified by user, then queue, otherwise discard
             stream_start_time = ic.streams[pkt.stream_index].start_time
             pkt_ts = pkt.dts if pkt.pts == AV_NOPTS_VALUE else pkt.pts
@@ -1919,6 +1944,7 @@ cdef class VideoState(object):
                 temp64_2 = self.player.start_time
             else:
                 temp64_2 = 0
+
             pkt_in_play_range = self.player.duration == AV_NOPTS_VALUE or\
             (pkt_ts - temp64) * av_q2d(ic.streams[pkt.stream_index].time_base) -\
             <double>temp64_2 / 1000000.0 <= (<double>self.player.duration / 1000000.0)
@@ -1930,24 +1956,14 @@ cdef class VideoState(object):
             elif pkt.stream_index == self.subtitle_stream and pkt_in_play_range:
                 self.subtitleq.packet_queue_put(pkt)
             else:
-                av_free_packet(pkt)
-        # wait until the end
-        while not self.abort_request:
-            self.mt_gen.delay(100)
-        ret = 0
-        return self.failed(ret)
+                av_packet_unref(pkt)
 
-    cdef inline int failed(VideoState self, int ret) nogil except 1:
-        # close each stream
-        if self.audio_stream >= 0:
-            self.stream_component_close(self.audio_stream)
-        if self.video_stream >= 0:
-            self.stream_component_close(self.video_stream)
-        if self.subtitle_stream >= 0:
-            self.stream_component_close(self.subtitle_stream)
-        if self.ic != NULL:
+        ret = 0
+        return self.failed(ret, ic)
+
+    cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1:
+        if ic != NULL and self.ic == NULL:
             avformat_close_input(&self.ic)
-            self.ic = NULL
         if ret != 0:
             self.vid_sink.request_thread(FF_QUIT_EVENT)
         return 0

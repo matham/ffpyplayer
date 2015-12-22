@@ -93,6 +93,7 @@ cdef class VideoState(object):
         double max_frame_duration      # maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
         IF CONFIG_AVFILTER:
+            int vfilter_idx
             AVFilterContext *in_video_filter   # the first filter in the video chain
             AVFilterContext *out_video_filter  # the last filter in the video chain
             AVFilterContext *in_audio_filter   # the first filter in the audio chain
@@ -152,6 +153,6 @@ cdef class VideoState(object):
     cdef int stream_component_open(VideoState self, int stream_index) nogil except 1
     cdef int stream_component_close(VideoState self, int stream_index) nogil except 1
     cdef int read_thread(VideoState self) nogil except 1
-    cdef inline int failed(VideoState self, int ret) nogil except 1
+    cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1
     cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1
     cdef int decode_interrupt_cb(VideoState self) nogil

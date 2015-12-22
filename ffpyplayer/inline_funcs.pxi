@@ -93,3 +93,4 @@ cdef inline int insert_filt(
 
     last_filter[0] = filt_ctx
     return 0
+

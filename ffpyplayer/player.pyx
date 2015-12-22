@@ -33,6 +33,24 @@ from ffpyplayer.pic cimport Image
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
+from copy import deepcopy
+
+
+cdef inline void *grow_array(void *array, int elem_size, int *size, int new_size) nogil:
+    cdef uint8_t *tmp
+    if new_size >= INT_MAX / elem_size:
+        return NULL
+
+    if size[0] < new_size:
+        tmp  = <uint8_t *>av_realloc_array(array, new_size, elem_size)
+        if tmp == NULL:
+            return NULL
+
+        memset(tmp + size[0] * elem_size, 0, (new_size - size[0]) * elem_size)
+        size[0] = new_size
+        return tmp
+    return array
+
 
 cdef class MediaPlayer(object):
     '''
@@ -208,7 +226,7 @@ cdef class MediaPlayer(object):
         cdef AVPixelFormat out_fmt
         cdef int res, paused
         cdef const char* cy_str
-        ff_opts = self.ff_opts = dict(ff_opts)
+        ff_opts = self.ff_opts = deepcopy(ff_opts)
         self.is_closed = 0
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
@@ -268,7 +286,7 @@ cdef class MediaPlayer(object):
             settings.decoder_reorder_pts = val
         settings.lowres = ff_opts['lowres'] if 'lowres' in ff_opts else 0
         settings.av_sync_type = AV_SYNC_AUDIO_MASTER
-        settings.volume = SDL_MIX_MAXVOLUME
+        settings.audio_volume = SDL_MIX_MAXVOLUME
         if 'sync' in ff_opts:
             val = ff_opts['sync']
             if val == 'audio':
@@ -284,11 +302,19 @@ cdef class MediaPlayer(object):
         settings.framedrop = int(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
         # -1 means not infinite, not respected if real time.
         settings.infinite_buffer = bool(ff_opts['infbuf']) if 'infbuf' in ff_opts else -1
+
         IF CONFIG_AVFILTER:
-            settings.vfilters = NULL
             if 'vf' in ff_opts:
-                self.py_vfilters = ff_opts['vf']
-                settings.vfilters = self.py_vfilters
+                vfilters = ff_opts['vf']
+                if isinstance(vfilters, basestring):
+                    vfilters = [vfilters]
+                for vfilt in vfilters:
+                    cy_str = vfilt
+                    settings.vfilters_list = <const char **>grow_array(
+                        settings.vfilters_list, sizeof(settings.vfilters_list[0]),
+                        &settings.nb_vfilters, settings.nb_vfilters + 1)
+                    settings.vfilters_list[settings.nb_vfilters - 1] = cy_str
+
             settings.afilters = NULL
             if 'af' in ff_opts:
                 self.py_afilters = ff_opts['af']
@@ -319,13 +345,15 @@ cdef class MediaPlayer(object):
 
         for k, v in lib_opts.iteritems():
             if opt_default(
-                    k, v, &settings.sws_dict, &settings.swr_opts,
+                    k, v, NULL, &settings.sws_dict, &settings.swr_opts,
                     &settings.resample_opts, &settings.format_opts,
                     &self.settings.codec_opts) < 0:
                 raise Exception('library option %s: %s not found' % (k, v))
 
-        'filename can start with pipe:'
-        av_strlcpy(settings.input_filename, <char *>filename, sizeof(settings.input_filename))
+        # filename can start with pipe:
+        settings.input_filename = av_strdup(<char *>filename)
+        if settings.input_filename == NULL:
+            raise MemoryError()
         if thread_lib == 'SDL':
             if not CONFIG_SDL:
                 raise Exception('FFPyPlayer extension not compiled with SDL support.')
@@ -353,11 +381,6 @@ cdef class MediaPlayer(object):
 #         if res:
 #             raise ValueError('Could not initialize lock manager.')
 
-        self.next_image = Image.__new__(Image, no_create=True)
-        self.ivs = VideoState()
-        paused = ff_opts.get('paused', False)
-        with nogil:
-            self.ivs.cInit(self.mt_gen, self.vid_sink, settings, paused)
         flags = SDL_INIT_AUDIO | SDL_INIT_TIMER
         if settings.audio_disable:# or audio_sink != 'SDL':
             flags &= ~SDL_INIT_AUDIO
@@ -366,6 +389,13 @@ cdef class MediaPlayer(object):
                 flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
         if SDL_Init(flags):
             raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
+
+        self.next_image = Image.__new__(Image, no_create=True)
+        self.ivs = VideoState()
+        paused = ff_opts.get('paused', False)
+        with nogil:
+            self.ivs.cInit(self.mt_gen, self.vid_sink, settings, paused)
+
 
     def __init__(self, filename, callback, loglevel='error', ff_opts={},
                  thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
@@ -397,8 +427,9 @@ cdef class MediaPlayer(object):
         av_dict_free(&self.settings.swr_opts)
         av_dict_free(&self.settings.sws_dict)
         IF CONFIG_AVFILTER:
-            av_freep(&self.settings.vfilters)
+            av_freep(&self.settings.vfilters_list)
         avformat_network_deinit()
+        av_free(self.settings.input_filename)
         if self.settings.show_status:
             printf("\n")
         #SDL_Quit()
@@ -576,14 +607,22 @@ cdef class MediaPlayer(object):
         '''
         return self.ivs.metadata
 
-    def set_volume(self, volume):
+    def select_video_filter(self, index=0):
+        '''Selects the video filter to use from among the list of filters passed
+        with the ff_opts `vf` options.
         '''
-        Sets the volume of the audio.
+        if (self.settings.vfilters_list == NULL or
+            index >= self.settings.nb_vfilters or index < 0):
+            raise ValueError(index)
+        self.ivs.vfilter_idx = index
+
+    def set_volume(self, volume):
+        '''Sets the volume of the audio.
 
         **Args**:
             *volume* (float): A value between 0.0 - 1.0.
         '''
-        self.settings.volume = min(max(volume, 0.), 1.) * SDL_MIX_MAXVOLUME
+        self.settings.audio_volume = av_clip(volume * SDL_MIX_MAXVOLUME, 0, SDL_MIX_MAXVOLUME)
 
     def get_volume(self):
         '''
@@ -592,14 +631,46 @@ cdef class MediaPlayer(object):
         **Returns**:
             (float): A value between 0.0 - 1.0.
         '''
-        return self.settings.volume / <double>SDL_MIX_MAXVOLUME
+        return self.settings.audio_volume / <double>SDL_MIX_MAXVOLUME
+
+    def set_mute(self, state):
+        '''Mutes or un-mutes the audio.
+
+        :Parameters:
+
+            `state`: bool
+                Whether to mute or unmute the audio.
+        '''
+        self.settings.muted = state
+
+    def get_mute(self):
+        '''Returns whether the player is muted.
+        '''
+        return bool(self.settings.muted)
 
     def toggle_pause(self):
-        '''
-        Pauses or unpauses the player.
+        '''Toggles the player's pause state.
         '''
         with nogil:
             self.ivs.toggle_pause()
+
+    def set_pause(self, state):
+        '''Pauses or un-pauses the stream.
+
+        :Parameters:
+
+            `state`: bool
+                Whether to pause or un-pause the player.
+        '''
+        if self.ivs.paused and state or not self.ivs.paused and not state:
+            return
+        with nogil:
+            self.ivs.toggle_pause()
+
+    def get_pause(self):
+        '''Returns whether the player is paused.
+        '''
+        return bool(self.ivs.paused)
 
     def get_pts(VideoState self):
         '''

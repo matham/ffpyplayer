@@ -89,8 +89,8 @@ static const AVOption *opt_find(void *obj, const char *name, const char *unit,
 
 #define FLAGS (o->type == AV_OPT_TYPE_FLAGS) ? AV_DICT_APPEND : 0
 static int opt_default(const char *opt, const char *arg,
-        AVDictionary **sws_dict, AVDictionary **swr_opts, AVDictionary **resample_opts,
-        AVDictionary **format_opts, AVDictionary **codec_opts)
+        struct SwsContext *sws_opts, AVDictionary **sws_dict, AVDictionary **swr_opts,
+        AVDictionary **resample_opts, AVDictionary **format_opts, AVDictionary **codec_opts)
 {
     const AVOption *o;
     int consumed = 0;
@@ -133,7 +133,7 @@ static int opt_default(const char *opt, const char *arg,
     }
 #if CONFIG_SWSCALE
     sc = sws_get_class();
-    if (!consumed && (o = opt_find(&sc, opt, NULL, 0,
+    if (sws_dict && !consumed && (o = opt_find(&sc, opt, NULL, 0,
                          AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
         sws = sws_alloc_context();
         ret = av_opt_set(sws, opt, arg, 0);
@@ -141,6 +141,13 @@ static int opt_default(const char *opt, const char *arg,
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "Error setting option %s.\n", opt);
             return ret;
+        }
+        if (sws_opts){
+            ret = av_opt_set(sws_opts, opt, arg, 0);
+            if (ret < 0) {
+                av_log(NULL, AV_LOG_ERROR, "Error setting option %s for sws_opts.\n", opt);
+                return ret;
+            }
         }
 
         av_dict_set(sws_dict, opt, arg, FLAGS);
@@ -155,7 +162,7 @@ static int opt_default(const char *opt, const char *arg,
 #endif
 #if CONFIG_SWRESAMPLE
     swr_class = swr_get_class();
-    if (!consumed && (o=opt_find(&swr_class, opt, NULL, 0,
+    if (swr_opts && !consumed && (o=opt_find(&swr_class, opt, NULL, 0,
                                     AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
         swr = swr_alloc();
         ret = av_opt_set(swr, opt, arg, 0);
@@ -169,7 +176,7 @@ static int opt_default(const char *opt, const char *arg,
     }
 #endif
 #if CONFIG_AVRESAMPLE
-    if ((o=opt_find(&rc, opt, NULL, 0,
+    if (resample_opts && (o=opt_find(&rc, opt, NULL, 0,
                        AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
         av_dict_set(resample_opts, opt, arg, FLAGS);
         consumed = 1;

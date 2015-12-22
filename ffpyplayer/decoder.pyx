@@ -27,7 +27,7 @@ cdef class Decoder(object):
         memset(&self.next_pts_tb, 0, sizeof(self.next_pts_tb))
 
     cdef void decoder_destroy(self) nogil:
-        av_free_packet(&self.pkt)
+        av_packet_unref(&self.pkt)
 
     cdef void set_seek_pos(self, double seek_req_pos) nogil:
         self.seek_req_pos = seek_req_pos
@@ -81,7 +81,7 @@ cdef class Decoder(object):
 
                     if pkt.data != get_flush_packet().data and self.queue.serial == self.pkt_serial:
                         break
-                av_free_packet(&self.pkt)
+                av_packet_unref(&self.pkt)
                 self.pkt_temp = self.pkt = pkt
                 self.packet_pending = 1
 

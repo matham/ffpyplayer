@@ -340,7 +340,7 @@ cdef class MediaWriter(object):
                     raise Exception('Cannot find conversion context.')
 
             for k, v in lib_opts[r].iteritems():
-                if opt_default(k, v, s[r].sws_ctx, NULL, &self.format_opts, &s[r].codec_opts) < 0:
+                if opt_default(k, v, s[r].sws_ctx, NULL, NULL, NULL, &self.format_opts, &s[r].codec_opts) < 0:
                     raise Exception('library option %s: %s not found' % (k, v))
 
             res = avcodec_open2(s[r].codec_ctx, s[r].codec, &s[r].codec_opts)
