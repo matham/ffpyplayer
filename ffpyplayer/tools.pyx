@@ -10,7 +10,8 @@ devices, pixel formats and more.
 __all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
            'formats_out', 'set_log_callback', 'get_log_callback',
            'get_supported_framerates', 'get_supported_pixfmts',
-           'list_dshow_devices', 'emit_library_info')
+           'list_dshow_devices', 'emit_library_info', 'initialize_sdl',
+           'initialize_sdl_aud')
 
 
 include 'ff_defs.pxi'
@@ -20,10 +21,34 @@ import re
 from functools import partial
 
 
+cdef int sdl_initialized = 0
+def initialize_sdl():
+    '''Initializes sdl. Must be called before anything can be used.
+    '''
+    global sdl_initialized
+    if sdl_initialized:
+        return
+    if SDL_Init(0):
+        raise ValueError('Could not initialize SDL - %s' % SDL_GetError())
+    sdl_initialized = 1
+
+
+cdef int sdl_aud_initialized = 0
+def initialize_sdl_aud():
+    '''Initializes sdl audio subsystem. Must be called before audio can be used.
+    '''
+    global sdl_aud_initialized
+    if sdl_aud_initialized:
+        return
+    if SDL_InitSubSystem(SDL_INIT_AUDIO):
+        raise ValueError('Could not initialize SDL audio - %s' % SDL_GetError())
+    sdl_aud_initialized = 1
+
+
 cdef int ffmpeg_initialized = 0
 def _initialize_ffmpeg():
-    '''
-    Initializes ffmpeg libraries. Must be called before anything can be used.
+    '''Initializes ffmpeg libraries. Must be called before anything can be used.
+    Called automatically when importing this module.
     '''
     global ffmpeg_initialized
     if not ffmpeg_initialized:

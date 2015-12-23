@@ -28,11 +28,13 @@ from ffpyplayer.ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMute
 from ffpyplayer.ffqueue cimport FFPacketQueue
 from ffpyplayer.ffcore cimport VideoState
 from ffpyplayer.sink cimport VideoSettings, VideoSink
-from ffpyplayer.tools import loglevels, _initialize_ffmpeg
 from ffpyplayer.pic cimport Image
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
+import ffpyplayer.tools  # required to init ffmpeg
+from ffpyplayer.tools import loglevels, initialize_sdl, initialize_sdl_aud
+initialize_sdl()
 from copy import deepcopy
 
 
@@ -235,7 +237,7 @@ cdef class MediaPlayer(object):
             raise ValueError('Invalid log level option.')
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
-        _initialize_ffmpeg()
+
         av_dict_set(&settings.sws_dict, "flags", "bicubic", 0)
         # set x, or y to -1 to preserve pixel ratio
         settings.screen_width  = ff_opts['x'] if 'x' in ff_opts else 0
@@ -362,6 +364,7 @@ cdef class MediaPlayer(object):
             self.mt_gen = MTGenerator(Py_MT)
         else:
             raise Exception('Thread library parameter not recognized.')
+
         if audio_sink != 'SDL':
             raise Exception('Currently, only SDL is supported as a audio sink.')
         if callable(callback):
@@ -376,19 +379,8 @@ cdef class MediaPlayer(object):
         else:
             raise Exception('Video sink parameter not recognized.')
 
-#         with nogil:
-#             res = av_lockmgr_register(self.mt_gen.get_lockmgr())
-#         if res:
-#             raise ValueError('Could not initialize lock manager.')
-
-        flags = SDL_INIT_AUDIO | SDL_INIT_TIMER
-        if settings.audio_disable:# or audio_sink != 'SDL':
-            flags &= ~SDL_INIT_AUDIO
-        IF not HAS_SDL2:
-            if NOT_WIN_MAC:
-                flags |= SDL_INIT_EVENTTHREAD # Not supported on Windows or Mac OS X
-        if SDL_Init(flags):
-            raise ValueError('Could not initialize SDL - %s\nDid you set the DISPLAY variable?' % SDL_GetError())
+        if not settings.audio_disable:
+            initialize_sdl_aud()
 
         self.next_image = Image.__new__(Image, no_create=True)
         self.ivs = VideoState()
@@ -428,7 +420,7 @@ cdef class MediaPlayer(object):
         av_dict_free(&self.settings.sws_dict)
         IF CONFIG_AVFILTER:
             av_freep(&self.settings.vfilters_list)
-        avformat_network_deinit()
+        # avformat_network_deinit()
         av_free(self.settings.input_filename)
         if self.settings.show_status:
             printf("\n")

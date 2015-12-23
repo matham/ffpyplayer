@@ -9,9 +9,10 @@ Currently writes only video.
 __all__ = ('MediaWriter', )
 
 
+import ffpyplayer.tools  # required to init ffmpeg
 import copy
 from ffpyplayer.tools import get_supported_framerates, get_supported_pixfmts
-from ffpyplayer.tools import loglevels, _initialize_ffmpeg
+from ffpyplayer.tools import loglevels
 from ffpyplayer.pic cimport Image
 
 include "inline_funcs.pxi"
@@ -217,7 +218,6 @@ cdef class MediaWriter(object):
             raise ValueError('Invalid log level option.')
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         av_log_set_level(loglevels[loglevel])
-        _initialize_ffmpeg()
         if fmt:
             format_name = fmt
         if not n:

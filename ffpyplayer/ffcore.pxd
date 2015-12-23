@@ -36,6 +36,7 @@ cdef class VideoState(object):
         int realtime
         int reached_eof
         int eof
+        int audio_dev
 
         Clock audclk
         Clock vidclk

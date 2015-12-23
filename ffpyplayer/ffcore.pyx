@@ -1407,6 +1407,7 @@ cdef class VideoState(object):
                         int wanted_sample_rate, AudioParams *audio_hw_params) nogil except? 1:
         cdef SDL_AudioSpec wanted_spec, spec
         cdef const char *env
+        cdef int error
         cdef int next_sample_rate_idx = next_sample_rates_len - 1
 
         env = SDL_getenv("SDL_AUDIO_CHANNELS")
@@ -1433,7 +1434,13 @@ cdef class VideoState(object):
         wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC))
         wanted_spec.callback = <void (*)(void *, uint8_t *, int)>self.sdl_audio_callback
         wanted_spec.userdata = self.self_id
-        while SDL_OpenAudio(&wanted_spec, &spec) < 0:
+
+        IF HAS_SDL2:
+            self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
+            error = self.audio_dev == 0
+        ELSE:
+            error = SDL_OpenAudio(&wanted_spec, &spec) < 0
+        while error:
             av_log(NULL, AV_LOG_WARNING, "SDL_OpenAudio (%d channels, %d Hz): %s\n",
                wanted_spec.channels, wanted_spec.freq, SDL_GetError())
 
@@ -1447,6 +1454,12 @@ cdef class VideoState(object):
                            "No more channel combinations to try, audio open failed\n")
                     return -1
             wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels)
+
+            IF HAS_SDL2:
+                self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
+                error = self.audio_dev == 0
+            ELSE:
+                error = SDL_OpenAudio(&wanted_spec, &spec) < 0
 
         if spec.format != AUDIO_S16SYS:
             av_log(NULL, AV_LOG_ERROR,
@@ -1478,7 +1491,6 @@ cdef class VideoState(object):
                audio_hw_params.channel_layout, audio_hw_params.channels)
 
         return spec.size
-
 
     # open a given stream. Return 0 if OK
     cdef int stream_component_open(VideoState self, int stream_index) nogil except 1:
@@ -1595,7 +1607,10 @@ cdef class VideoState(object):
                 self.auddec.start_pts = self.audio_st.start_time
                 self.auddec.start_pts_tb = self.audio_st.time_base
             self.auddec.decoder_start(audio_thread_enter, self.self_id)
-            SDL_PauseAudio(0)
+            IF HAS_SDL2:
+                SDL_PauseAudioDevice(<SDL_AudioDeviceID>self.audio_dev, 0)
+            ELSE:
+                SDL_PauseAudio(0)
         elif avctx.codec_type ==  AVMEDIA_TYPE_VIDEO:
             with gil:
                 self.metadata['src_pix_fmt'] = av_get_pix_fmt_name(avctx.pix_fmt)
@@ -1623,7 +1638,10 @@ cdef class VideoState(object):
 
         if avctx.codec_type == AVMEDIA_TYPE_AUDIO:
             self.auddec.decoder_abort(self.sampq)
-            SDL_CloseAudio()
+            IF HAS_SDL2:
+                SDL_CloseAudioDevice(<SDL_AudioDeviceID>self.audio_dev)
+            ELSE:
+                SDL_CloseAudio()
 
             self.auddec.decoder_destroy()
             swr_free(&self.swr_ctx)
