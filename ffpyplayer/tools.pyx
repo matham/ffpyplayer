@@ -335,22 +335,30 @@ cdef int list_dshow_opts(list log, str stream, str option) except 1:
     return 0
 
 def list_dshow_devices():
-    '''
-    Returns a list of the dshow devices available.
+    '''Returns a list of the dshow devices available.
 
-    **Returns**:
+    :returns:
 
-        *(2-tuple)*: A 2-tuple, of (`video`, `audio`)
-            `video` is a dict all the direct show **video** devices. The keys
-            of the dict are the names of the available direct show devices. The values
-            are a list of the available configurations for that device. Each
-            element in the list has the following format:
-            ``(pix_fmt, codec_fmt, (frame_width, frame_height), (min_framerate, max_framerate))``
-            `audio` is a dict all the direct show **audio** devices. The keys
-            of the dict are the names of the available direct show devices. The values
-            are a list of the available configurations for that device. Each
-            element in the list has the following format:
-            ``((min_num_channels, min_num_channels), (min_bits, max_bits), (min_rate, max_rate))``.
+        `3-tuple`: A 3-tuple, of (`video`, `audio`, `names`)
+
+            `video`: dict
+                A dict of all the direct show **video** devices. The keys
+                of the dict are the unique names of the available direct show devices. The values
+                are a list of the available configurations for that device. Each
+                element in the list has the following format:
+                ``(pix_fmt, codec_fmt, (frame_width, frame_height), (min_framerate, max_framerate))``
+            `audio`: dict
+                A dict of all the direct show **audio** devices. The keys
+                of the dict are the unique names of the available direct show devices. The values
+                are a list of the available configurations for that device. Each
+                element in the list has the following format:
+                ``((min_num_channels, min_num_channels), (min_bits, max_bits), (min_rate, max_rate))``.
+            `names`: dict
+                A dict mapping the unique names of the video and audio devices to
+                a more human friendly (possibly non-unique) name. Either of these
+                names can be used when opening the device. However, if using the non-unique
+                name, it's not guarenteed which of the devices sharing the name will be opened.
+
 
     For example::
 
@@ -359,18 +367,22 @@ def list_dshow_devices():
         >>> import time, weakref
         >>> dev = list_dshow_devices()
         >>> print dev
-        ({'Logitech HD Webcam C525': [('bgr24', '', (160, 120), (5, 30)),
+        ({'@device_pnp_...223196\\global': [('bgr24', '', (160, 120), (5, 30)),
         ('bgr24', '', (176, 144), (5, 30)), ('bgr24', '', (320, 176), (5, 30)),
         ('bgr24', '', (320, 240), (5, 30)), ('bgr24', '', (352, 288), (5, 30)),
         ...
         ('yuv420p', '', (320, 240), (5, 30)), ('yuv420p', '', (352, 288), (5, 30))],
-        'Laptop Integrated Webcam': [('bgr24', '', (160, 120), (30, 30)),
+        '@device_pnp_...223196\\global': [('bgr24', '', (160, 120), (30, 30)),
         ...
         ('yuyv422', '', (352, 288), (30, 30)),
         ('yuyv422', '', (640, 480), (30, 30))]},
-        {'Microphone (Plantronics .Audio ': [((1, 2), (8, 16), (11025, 44100))],
-        'Microphone Array (2- SigmaTel H': [((1, 2), (8, 16), (11025, 44100))],
-        'Microphone (HD Webcam C525)': [((1, 2), (8, 16), (11025, 44100))]})
+        {'@device_cm_...2- HD Webcam C615)': [((1, 2), (8, 16), (11025, 44100))],
+        '@device_cm_...HD Webcam C615)': [((1, 2), (8, 16), (11025, 44100))]},
+        {'@device_cm_...- HD Webcam C615)': 'Microphone (2- HD Webcam C615)',
+         '@device_cm_...2- HD Webcam C615)': 'Microphone (3- HD Webcam C615)',
+        ...
+         '@device_pnp...223196\\global': 'HD Webcam C615',
+         '@device_pnp...223196\\global': 'Laptop Integrated Webcam'})
 
         >>> def callback(selector, value):
         ...     if selector == 'quit':
@@ -410,23 +422,59 @@ def list_dshow_devices():
     cdef list res = []
     cdef dict video = {}, audio = {}, curr = None
     cdef object last
+    cdef dict name_map = {}
 
     # list devices
     list_dshow_opts(res, 'dummy', 'list_devices')
     pvid = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow video devices.*')
     paud = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow audio devices.*')
-    pname = re.compile(' *\[dshow *@ *[\w]+\] *\"(.+)\"\\n.*')
+    pname = re.compile(' *\[dshow *@ *[\w]+\] *"(.+)"\\n.*')
+    apname = re.compile(' *\[dshow *@ *[\w]+\] *Alternative name *"(.+)"\\n.*')
+    m = m2 = None
     for message, level in res:
+        switched = False
+        # check whether we switch to audio/video opts
         if pvid.match(message):
+            switched = True
             curr = video
         elif paud.match(message):
+            switched = True
             curr = audio
+
+        m_temp = pname.match(message)
+        # add the previous cams if exist
+        if curr is None or switched or m_temp:
+            assert not (m and m2)
+            if m:
+                curr[m.group(1)] = []
+                name_map[m.group(1)] = m.group(1)
+            elif m2:
+                curr[m2.group(1)] = []
+                name_map[m2.group(1)] = m2.group(1)
+            m = m2 = None
+
         if curr is None:
             av_log(NULL, loglevels[level], message)
             continue
-        m = pname.match(message)
-        if m:
-            curr[m.group(1)] = []
+        elif switched:
+            continue
+
+        m2 = apname.match(message)
+        if m2:
+            if m:
+                curr[m2.group(1)] = []
+                name_map[m2.group(1)] = m.group(1)
+            else:
+                curr[m2.group(1)] = []
+                name_map[m2.group(1)] = m2.group(1)
+            m = m2 = None
+        else:
+            m = m_temp
+            if not m:
+                av_log(NULL, loglevels[level], message)
+    if m:
+        curr[m.group(1)] = []
+        name_map[m.group(1)] = m.group(1)
 
     # list video devices options
     pvid_pix = re.compile(' *\[dshow *@ *[\w]+\] *pixel_format=([\w]+).*')
@@ -434,7 +482,7 @@ def list_dshow_devices():
     pvid_opts = re.compile(' *\[dshow *@ *[\w]+\] *min +s=\d+x\d+ +fps=(\d+)\
  +max +s=(\d+)x(\d+) +fps=(\d+).*')
     pheader1 = re.compile(' *\[dshow *@ *[\w]+\] *Pin "(?:Capture|Output)".*')
-    pheader2 = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow (?:video|audio) device options.*')
+    pheader2 = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow (?:video|audio) (?:only )?device options.*')
     for video_stream in video:
         res = []
         last = ()
@@ -451,8 +499,10 @@ def list_dshow_devices():
                 av_log(NULL, loglevels[level], message)
                 continue
             if mopts:
-                video[video_stream].append((last[0], last[1], (int(mopts.group(2)), int(mopts.group(3))),
-                                            (int(mopts.group(1)), int(mopts.group(4)))))
+                opts = (last[0], last[1], (int(mopts.group(2)), int(mopts.group(3))),
+                        (int(mopts.group(1)), int(mopts.group(4))))
+                if opts not in video[video_stream]:
+                    video[video_stream].append(opts)
                 last = ()
             if (not mpix) and (not mcodec) and (not mopts) and\
             (not pheader1.match(message)) and (not pheader2.match(message)):
@@ -468,11 +518,13 @@ def list_dshow_devices():
         for message, level in res:
             mopts = paud_opts.match(message)
             if mopts:
-                audio[audio_stream].append(((int(mopts.group(1)), int(mopts.group(4))),
-                                            (int(mopts.group(2)), int(mopts.group(5))),
-                                            (int(mopts.group(3)), int(mopts.group(6)))))
+                opts = ((int(mopts.group(1)), int(mopts.group(4))),
+                        (int(mopts.group(2)), int(mopts.group(5))),
+                        (int(mopts.group(3)), int(mopts.group(6))))
+                if opts not in audio[audio_stream]:
+                    audio[audio_stream].append(opts)
             elif (not pheader1.match(message)) and (not pheader2.match(message)):
                 av_log(NULL, loglevels[level], message)
         audio[audio_stream] = sorted(list(set(audio[audio_stream])))
 
-    return video, audio
+    return video, audio, name_map
