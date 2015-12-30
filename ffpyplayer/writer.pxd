@@ -1,7 +1,4 @@
-
-include 'ff_defs.pxi'
-
-
+include 'includes/ffmpeg.pxi'
 
 
 cdef class MediaWriter(object):

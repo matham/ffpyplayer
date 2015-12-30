@@ -1,5 +1,5 @@
 
-include "ff_defs.pxi"
+include "includes/ffmpeg.pxi"
 
 
 cdef enum MT_lib:

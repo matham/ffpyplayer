@@ -8,14 +8,7 @@ Currently writes only video.
 
 __all__ = ('MediaWriter', )
 
-
-import ffpyplayer.tools  # required to init ffmpeg
-import copy
-from ffpyplayer.tools import get_supported_framerates, get_supported_pixfmts
-from ffpyplayer.tools import loglevels
-from ffpyplayer.pic cimport Image
-
-include "inline_funcs.pxi"
+include "includes/inline_funcs.pxi"
 
 cdef extern from "string.h" nogil:
     void *memset(void *, int, size_t)
@@ -30,6 +23,12 @@ cdef extern from "math.h" nogil:
 cdef extern from "errno.h" nogil:
     int ENOENT
 
+from ffpyplayer.pic cimport Image
+
+import ffpyplayer.tools  # required to init ffmpeg
+import copy
+from ffpyplayer.tools import get_supported_framerates, get_supported_pixfmts
+from ffpyplayer.tools import loglevels
 
 DEF VSYNC_PASSTHROUGH = 0
 DEF VSYNC_CFR = 1

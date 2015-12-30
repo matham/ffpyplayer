@@ -1,9 +1,9 @@
 
-include 'ff_defs.pxi'
+include '../includes/ffmpeg.pxi'
 
-from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex
-from ffpyplayer.ffcore cimport VideoState
-from ffpyplayer.sink cimport VideoSettings, VideoSink
+from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex
+from ffpyplayer.player.core cimport VideoState
+from ffpyplayer.player.sink cimport VideoSettings, VideoSink
 from ffpyplayer.pic cimport Image
 
 

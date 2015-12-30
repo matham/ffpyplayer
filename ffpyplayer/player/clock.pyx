@@ -2,7 +2,7 @@
 
 __all__ = ('Clock', )
 
-include 'ff_defs_comp.pxi'
+include '../includes/ff_consts.pxi'
 
 cdef extern from "math.h" nogil:
     double NAN

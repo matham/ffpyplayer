@@ -1,9 +1,9 @@
 
-include 'ff_defs.pxi'
+include '../includes/ffmpeg.pxi'
 
-from ffpyplayer.ffthreading cimport MTGenerator, MTCond, MTMutex
-from ffpyplayer.ffqueue cimport FFPacketQueue
-from ffpyplayer.sink cimport VideoSettings
+from ffpyplayer.threading cimport MTGenerator, MTCond, MTMutex
+from ffpyplayer.player.queue cimport FFPacketQueue
+from ffpyplayer.player.sink cimport VideoSettings
 
 cdef struct Frame:
     AVFrame *frame

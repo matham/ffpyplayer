@@ -1,16 +1,14 @@
 
-include "ff_defs.pxi"
+include "includes/ffmpeg.pxi"
 
-from ffpyplayer.ffthreading cimport MTMutex
+from ffpyplayer.threading cimport MTMutex
 
 cdef class VideoSink(object):
-    cdef object callback
     cdef AVPixelFormat pix_fmt
 
     cdef AVPixelFormat _get_out_pix_fmt(VideoSink self) nogil
     cdef object get_out_pix_fmt(VideoSink self)
     cdef void set_out_pix_fmt(VideoSink self, AVPixelFormat out_fmt)
-    cdef int request_thread(VideoSink self, uint8_t type) nogil except 1
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1
 
 

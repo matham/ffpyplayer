@@ -1,7 +1,7 @@
 #cython: cdivision=True
 
-include "ff_defs_comp.pxi"
-include "inline_funcs.pxi"
+include "../includes/ff_consts.pxi"
+include "../includes/inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
 
@@ -9,16 +9,14 @@ cdef extern from "Python.h":
     PyObject* PyString_FromString(const char *)
     void Py_DECREF(PyObject *)
 
-from ffpyplayer.ffthreading cimport MTMutex
-
+from ffpyplayer.threading cimport MTMutex
 
 cdef bytes sub_ass = b'ass', sub_text = b'text', sub_fmt
 
 
 cdef class VideoSink(object):
 
-    def __cinit__(VideoSink self, object callback=None, **kwargs):
-        self.callback = callback
+    def __cinit__(self, **kwargs):
         self.pix_fmt = AV_PIX_FMT_NONE
 
     cdef AVPixelFormat _get_out_pix_fmt(VideoSink self) nogil:
@@ -38,15 +36,6 @@ cdef class VideoSink(object):
         receive the new fmt in case pics were already queued.
         '''
         self.pix_fmt = out_fmt
-
-    cdef int request_thread(VideoSink self, uint8_t request) nogil except 1:
-        if request == FF_QUIT_EVENT:
-            with gil:
-                self.callback()('quit', '')
-        elif request == FF_EOF_EVENT:
-            with gil:
-                self.callback()('eof', '')
-        return 0
 
     cdef int subtitle_display(VideoSink self, AVSubtitle *sub) nogil except 1:
         cdef PyObject *buff

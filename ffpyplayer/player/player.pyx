@@ -1,17 +1,8 @@
-'''
-FFmpeg based media player
-=========================
-
-A FFmpeg based python media player. See :class:`MediaPlayer` for details.
-
-TDOD: make callback not ref by default.
-'''
-
 
 __all__ = ('MediaPlayer', )
 
-include 'ff_defs_comp.pxi'
-include "inline_funcs.pxi"
+include '../includes/ff_consts.pxi'
+include "../includes/inline_funcs.pxi"
 
 cdef extern from "Python.h":
     void PyEval_InitThreads()
@@ -23,18 +14,16 @@ cdef extern from "math.h" nogil:
 cdef extern from "string.h" nogil:
     void * memset(void *, int, size_t)
 
-
-from ffpyplayer.ffthreading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
-from ffpyplayer.ffqueue cimport FFPacketQueue
-from ffpyplayer.ffcore cimport VideoState
-from ffpyplayer.sink cimport VideoSettings, VideoSink
+from ffpyplayer.threading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
+from ffpyplayer.player.queue cimport FFPacketQueue
+from ffpyplayer.player.core cimport VideoState
+from ffpyplayer.player.sink cimport VideoSettings, VideoSink
 from ffpyplayer.pic cimport Image
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
 import ffpyplayer.tools  # required to init ffmpeg
-from ffpyplayer.tools import loglevels, initialize_sdl, initialize_sdl_aud
-initialize_sdl()
+from ffpyplayer.tools import loglevels, initialize_sdl_aud
 from copy import deepcopy
 
 
@@ -367,23 +356,23 @@ cdef class MediaPlayer(object):
 
         if audio_sink != 'SDL':
             raise Exception('Currently, only SDL is supported as a audio sink.')
-        if callable(callback):
-            self.vid_sink = VideoSink(callback)
-            if 'out_fmt' in ff_opts:
-                out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
-            else:
-                out_fmt = av_get_pix_fmt('rgb24')
-            if out_fmt == AV_PIX_FMT_NONE:
-                raise Exception('Unrecognized output pixel format.')
-            self.vid_sink.set_out_pix_fmt(out_fmt)
-        else:
+        if not callable(callback):
             raise Exception('Video sink parameter not recognized.')
+
+        self.vid_sink = VideoSink()
+        if 'out_fmt' in ff_opts:
+            out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
+        else:
+            out_fmt = av_get_pix_fmt('rgb24')
+        if out_fmt == AV_PIX_FMT_NONE:
+            raise Exception('Unrecognized output pixel format.')
+        self.vid_sink.set_out_pix_fmt(out_fmt)
 
         if not settings.audio_disable:
             initialize_sdl_aud()
 
         self.next_image = Image.__new__(Image, no_create=True)
-        self.ivs = VideoState()
+        self.ivs = VideoState(callback)
         paused = ff_opts.get('paused', False)
         with nogil:
             self.ivs.cInit(self.mt_gen, self.vid_sink, settings, paused)

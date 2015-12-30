@@ -1,11 +1,10 @@
 
 __all__ = ('MTGenerator', )
 
-include "ff_defs_comp.pxi"
-include "inline_funcs.pxi"
+include "includes/ff_consts.pxi"
+include "includes/inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
-import traceback
 
 cdef extern from "Python.h":
     void Py_INCREF(PyObject *)
@@ -13,6 +12,21 @@ cdef extern from "Python.h":
     void Py_DECREF(PyObject *)
 
 ctypedef int (*int_cls_method)(void *) nogil
+
+import traceback
+
+cdef int sdl_initialized = 0
+def initialize_sdl():
+    '''Initializes sdl. Must be called before anything can be used.
+    It is automatically called by the modules that use SDL.
+    '''
+    global sdl_initialized
+    if sdl_initialized:
+        return
+    if SDL_Init(0):
+        raise ValueError('Could not initialize SDL - %s' % SDL_GetError())
+    sdl_initialized = 1
+initialize_sdl()
 
 
 cdef class MTMutex(object):

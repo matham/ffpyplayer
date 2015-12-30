@@ -6,36 +6,21 @@ Module for manipulating and finding information of FFmpeg formats, codecs,
 devices, pixel formats and more.
 '''
 
+__all__ = ('initialize_sdl_aud', 'loglevels', 'codecs_enc',
+           'codecs_dec', 'pix_fmts', 'formats_in', 'formats_out',
+           'set_log_callback', 'get_log_callback', 'get_codecs')
 
-__all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
-           'formats_out', 'set_log_callback', 'get_log_callback',
-           'get_supported_framerates', 'get_supported_pixfmts',
-           'list_dshow_devices', 'emit_library_info', 'initialize_sdl',
-           'initialize_sdl_aud')
+include "includes/ffmpeg.pxi"
 
-
-include 'ff_defs.pxi'
-
-from ffpyplayer.ffthreading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
+from ffpyplayer.threading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
+import ffpyplayer.threading  # for sdl init
 import re
 from functools import partial
-
-
-cdef int sdl_initialized = 0
-def initialize_sdl():
-    '''Initializes sdl. Must be called before anything can be used.
-    '''
-    global sdl_initialized
-    if sdl_initialized:
-        return
-    if SDL_Init(0):
-        raise ValueError('Could not initialize SDL - %s' % SDL_GetError())
-    sdl_initialized = 1
-
 
 cdef int sdl_aud_initialized = 0
 def initialize_sdl_aud():
     '''Initializes sdl audio subsystem. Must be called before audio can be used.
+    It is automatically called by the modules that use SDL audio.
     '''
     global sdl_aud_initialized
     if sdl_aud_initialized:
@@ -62,32 +47,46 @@ def _initialize_ffmpeg():
 _initialize_ffmpeg()
 
 
-def set_ffmpeg_lockmagr():
+def _set_ffmpeg_lockmagr():
+    '''Sets the default lockmanager for ffmpeg.
+    Called automatically when importing this module.
+    '''
     cdef int res
     with nogil:
         res = av_lockmgr_register(get_lib_lockmgr(SDL_MT))
     if res:
         raise ValueError('Could not initialize lock manager.')
-set_ffmpeg_lockmagr()
+_set_ffmpeg_lockmagr()
 
-
+def _get_item0(x):
+    return x[0]
 
 'see http://ffmpeg.org/ffmpeg.html for log levels'
-loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
-             "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
-             "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG, "trace":AV_LOG_TRACE}
+loglevels = {
+    "quiet": AV_LOG_QUIET, "panic": AV_LOG_PANIC, "fatal": AV_LOG_FATAL,
+    "error": AV_LOG_ERROR, "warning": AV_LOG_WARNING, "info": AV_LOG_INFO,
+    "verbose": AV_LOG_VERBOSE, "debug": AV_LOG_DEBUG, "trace": AV_LOG_TRACE}
+'''A dictionary with all the available ffmpeg log levels. The keys are the loglevels
+and the values are their ffmpeg values. The lower the value, the more important
+the log.
+'''
 _loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
-codecs_enc = sorted(list_enc_codecs())
-codecs_dec = sorted(list_dec_codecs())
-pix_fmts = sorted(list_pixfmts())
-formats_in = sorted(list_fmt_in())
-formats_out = sorted(list_fmt_out())
-
+codecs_enc = get_codecs(encode=True, video=True)
+'''A list of all the codecs available for encoding video. '''
+codecs_dec = get_codecs(decode=True)
+'''A list of all the codecs available for decoding video and audio. '''
+pix_fmts = list_pixfmts()
+'''A list of all the pixel formats available to ffmpeg. '''
+formats_in = get_fmts(input=True)[0]
+'''A list of all the formats (e.g. file formats) available for reading. '''
+formats_out = get_fmts(output=True)[0]
+'''A list of all the formats (e.g. file formats) available for writing. '''
 
 cdef object _log_callback = None
 cdef int _print_prefix
-cdef MTMutex _log_mutex= MTMutex(Py_MT)
+cdef MTMutex _log_mutex= MTMutex(SDL_MT)
+
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
@@ -102,19 +101,24 @@ cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) 
             _log_callback(str(line), _loglevel_inverse[level])
     _log_mutex.unlock()
 
-def set_log_callback(object callback):
-    '''
-    Sets a callback to be used for printing ffmpeg logs.
+def set_log_callback(object callback, int default_only=False):
+    '''Sets a callback to be used by ffmpeg when emitting logs. It is thread safe.
 
-    **Args**:
-        *callback* (callable, or None): A function which will be called with strings to
-        be printed. Takes two parameters: *message* and *level*. *message* is the
-        string to be printed. *level* is the log level of the string and is one
-        of the keys of the :attr:`loglevels` dict. If None, the default ffmpeg
-        log callback will be set, which prints to stderr.
+    :Parameters:
 
-    **Returns**:
-        The last callback set, or None.
+        `callback`: callable or None
+            A function which will be called with strings to be printed. It takes
+            two parameters: ``message`` and ``level``. ``message`` is the string
+            to be printed. ``level`` is the log level of the string and is one
+            of the keys of the :attr:`loglevels` dict. If None, the default ffmpeg
+            log callback will be set, which prints to stderr.
+        `default_only`: bool
+            If True, when not ``None``, ``callback`` will only be set if a
+            callback has not already been set.
+
+    :returns:
+
+        The previous callback set (None, if it has not been set).
 
     >>> from ffpyplayer.tools import set_log_callback, loglevels
     >>> loglevel_emit = 'error' # This and worse errors will be emitted.
@@ -133,18 +137,16 @@ def set_log_callback(object callback):
     old_callback = _log_callback
     if callback is None:
         av_log_set_callback(&av_log_default_callback)
-    else:
+        _log_callback = None
+    elif not default_only or old_callback is None:
         av_log_set_callback(&_log_callback_func)
-    _log_callback = callback
+        _log_callback = callback
     _log_mutex.unlock()
     return old_callback
 
 def get_log_callback():
-    '''
-    Returns the last log callback set, or None. See :func:`set_log_callback`
-
-    **Returns**:
-        (callable) The last log callback set, or None.
+    '''Returns the last log callback set, or None if it has not been set.
+    See :func:`set_log_callback`.
     '''
     _log_mutex.lock()
     old_callback = _log_callback
@@ -152,27 +154,54 @@ def get_log_callback():
     return old_callback
 
 
-cdef list list_enc_codecs():
+cpdef get_codecs(
+        int encode=False, int decode=False, int video=False, int audio=False,
+        int data=False, int subtitle=False, int attachment=False, other=False):
+    '''Returns a list of codecs (e.g. h264) that is available by ffpyplayer for
+    encoding or decoding and matches the media types, e.g. video or audio.
+
+    The parameters determine which codecs is included in the result. The parameters
+    all default to False.
+
+    :Parameters:
+
+        `encode`: bool
+            If True, includes the encoding codecs in the result. Defaults to False.
+        `decode`: bool
+            If True, includes the decoding codecs in the result. Defaults to False.
+        `video`: bool
+            If True, includes the video codecs in the result. Defaults to False.
+        `audio`: bool
+            If True, includes the audio codecs in the result. Defaults to False.
+        `data`: bool
+            If True, includes the (continuous) side data codecs in the result. Defaults to False.
+        `subtitle`: bool
+            If True, includes the subtitle codecs in the result. Defaults to False.
+        `attachment`: bool
+            If True, includes the (sparse) data attachment codecs in the result. Defaults to False.
+        `other`: bool
+            If True, returns all the codec media types.
+
+    :returns:
+
+        A sorted list of the matching codec names.
+    '''
     cdef list codecs = []
     cdef AVCodec *codec = NULL
     codec = av_codec_next(codec)
 
     while codec != NULL:
-        if av_codec_is_encoder(codec) and codec.type == AVMEDIA_TYPE_VIDEO:
+        if ((encode and av_codec_is_encoder(codec) or
+             decode and av_codec_is_decoder(codec)) and
+            (video and codec.type == AVMEDIA_TYPE_VIDEO or
+             audio and codec.type == AVMEDIA_TYPE_AUDIO or
+             data and codec.type == AVMEDIA_TYPE_DATA or
+             subtitle and codec.type == AVMEDIA_TYPE_SUBTITLE or
+             attachment and codec.type == AVMEDIA_TYPE_ATTACHMENT or
+             other)):
             codecs.append(codec.name)
         codec = av_codec_next(codec)
-    return codecs
-
-cdef list list_dec_codecs():
-    cdef list codecs = []
-    cdef AVCodec *codec = NULL
-    codec = av_codec_next(codec)
-
-    while codec != NULL:
-        if av_codec_is_decoder(codec):
-            codecs.append(codec.name)
-        codec = av_codec_next(codec)
-    return codecs
+    return sorted(codecs)
 
 cdef list list_pixfmts():
     cdef list fmts = []
@@ -182,49 +211,93 @@ cdef list list_pixfmts():
     while desc != NULL:
         fmts.append(desc.name)
         desc = av_pix_fmt_desc_next(desc)
-    return fmts
+    return sorted(fmts)
 
-cdef list list_fmt_out():
-    cdef list fmts = []
-    cdef AVOutputFormat *fmt = NULL
-    fmt = av_oformat_next(fmt)
+cpdef get_fmts(int input=False, int output=False):
+    '''Returns the formats available in FFmpeg.
 
-    while fmt != NULL:
-        fmts.extend(fmt.name.split(','))
-        fmt = av_oformat_next(fmt)
-    return fmts
+    :Parameters:
 
-cdef list list_fmt_in():
-    cdef list fmts = []
-    cdef AVInputFormat *fmt = NULL
-    fmt = av_iformat_next(fmt)
+        `input`: bool
+            If True, also includes input formats in the result. Defaults to False
+        `output`: bool
+            If True, also includes output formats in the result. Defaults to False
 
-    while fmt != NULL:
-        fmts.extend(fmt.name.split(','))
-        fmt = av_iformat_next(fmt)
-    return fmts
+    :returns:
+
+        A 3-tuple of 3 lists, ``formats``, ``full_names``, and ``extensions``.
+        Each of the three lists are of identical length.
+
+        `formats`: list
+            A list of the names of the formats.
+        `full_names`: list
+            A list of the corresponding human readable names for each of the
+            formats. Can be the empty string if none is available.
+        `extensions`: list
+            A list of the extensions associated with the corresponding formats.
+            Each item is a (possibly empty) list of extensions names.
+    '''
+    cdef list fmts = [], full_names = [], exts = []
+    cdef AVOutputFormat *ofmt = NULL
+    cdef AVInputFormat *ifmt = NULL
+    cdef object names, full_name, ext
+
+    if output:
+        ofmt = av_oformat_next(ofmt)
+        while ofmt != NULL:
+            if ofmt.name != NULL:
+                names = ofmt.name.split(',')
+                full_name = ofmt.long_name if ofmt.long_name != NULL else ''
+                ext = ofmt.extensions.split(',') if ofmt.extensions != NULL else []
+
+                fmts.extend(names)
+                full_names.extend([full_name, ] * len(names))
+                exts.extend([ext, ] * len(names))
+            ofmt = av_oformat_next(ofmt)
+
+    if input:
+        ifmt = av_iformat_next(ifmt)
+        while ifmt != NULL:
+            if ifmt.name != NULL:
+                names = ifmt.name.split(',')
+                full_name = ifmt.long_name if ifmt.long_name != NULL else ''
+                ext = ifmt.extensions.split(',') if ifmt.extensions != NULL else []
+
+                fmts.extend(names)
+                full_names.extend([full_name, ] * len(names))
+                exts.extend([ext, ] * len(names))
+            ifmt = av_iformat_next(ifmt)
+
+    exts = [x for (y, x) in sorted(zip(fmts, exts), key=_get_item0)]
+    full_names = [x for (y, x) in sorted(zip(fmts, full_names), key=_get_item0)]
+    fmts = sorted(fmts)
+    return fmts, full_names, exts
+
 
 def get_supported_framerates(codec_name, rate=()):
-    '''
-    Returns the supported frame rates for encoding codecs. If a desired rate is
+    '''Returns the supported frame rates for encoding codecs. If a desired rate is
     provided, it also returns the closest valid rate.
 
-    **Args**:
-        *codec_name* (str): The name of a encoding codec.
+    :Parameters:
 
-        *rate* (2-tuple of ints, or empty tuple): If provided, a 2-tuple where the
-        first element is the numerator, and the second the denominator of the frame
-        rate we wish to use. E.g. (2997, 100) means a frame rate of 29.97.
+        `codec_name`: str
+            The name of a encoding codec.
+        `rate`: 2-tuple of ints, or empty tuple.
+            If provided, a 2-tuple where the first element is the numerator,
+            and the second the denominator of the frame rate we wish to use. E.g.
+            (2997, 100) means a frame rate of 29.97.
 
-    **Returns**:
-        (list of 2-tuples, or empty list): If there are no restrictions on the frame
-        rate it returns a empty list, otherwise it returns a list with the valid
-        frame rates. If rate is provided and there are restrictions to the frame
-        rates, the closest frame rate is the zero'th element in the list.
+    :returns:
 
-    ::
+        (list of 2-tuples, or empty list):
+            If there are no restrictions on the frame rate (i.e. all rates are valid)
+            it returns a empty list, otherwise it returns a list with the valid
+            frame rates. If `rate` is provided and there are restrictions on the frame
+            rates, the closest frame rate is the zero'th element in the list.
 
-        >>> print get_supported_framerates('mpeg1video', ())
+    For example::
+
+        >>> print get_supported_framerates('mpeg1video')
         [(24000, 1001), (24, 1), (25, 1), (30000, 1001), (30, 1), (50, 1),
         (60000, 1001), (60, 1), (15, 1), (5, 1), (10, 1), (12, 1), (15, 1)]
 
@@ -253,27 +326,30 @@ def get_supported_framerates(codec_name, rate=()):
     return rate_list
 
 def get_supported_pixfmts(codec_name, pix_fmt=''):
-    '''
-    Returns the supported pixel formats for encoding codecs. If a desired format
+    '''Returns the supported pixel formats for encoding codecs. If a desired format
     is provided, it also returns the closest format (i.e. the format with minimum
     conversion loss).
 
-    **Args**:
-        *codec_name* (str): The name of a encoding codec.
+    :Parameters:
 
-        *pix_fmt* (str): If not empty, the name of a pixel format we wish to use
-        with this codec, e.g. 'rgb24'.
+        `codec_name`: str
+            The name of a encoding codec.
+        `pix_fmt`: str
+            If not empty, the name of a pixel format we wish to use with this codec,
+            e.g. 'rgb24'.
 
-    **Returns**:
-        (list of pixel formats, or empty list): If there are no restrictions on the
-        pixel formats it returns a empty list, otherwise it returns a list with the
-        valid formats. If pix_fmt is not empty and there are restrictions to the
-        formats, the closest format which results in the minimum loss when converting
-        will be returned as the zero'th element in the list.
+    :returns:
 
-    ::
+        (list of pixel formats, or empty list):
+            If there are no restrictions on the pixel formats (i.e. all the formats
+            are valid) it returns a empty list, otherwise it returns a list with the
+            valid formats. If pix_fmt is not empty and there are restrictions to the
+            formats, the closest format which results in the minimum loss when converting
+            will be returned as the zero'th element in the list.
 
-        >>> print get_supported_pixfmts('ffv1', '')
+    For example::
+
+        >>> print get_supported_pixfmts('ffv1')
         ['yuv420p', 'yuva420p', 'yuva422p', 'yuv444p', 'yuva444p', 'yuv440p', ...
         'gray16le', 'gray', 'gbrp9le', 'gbrp10le', 'gbrp12le', 'gbrp14le']
 
@@ -306,8 +382,7 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
     return fmt_list
 
 def emit_library_info():
-    '''
-    Prints to the ffmpeg log all the ffmpeg library's versions and configure
+    '''Prints to the ffmpeg log all the ffmpeg library's versions and configure
     options.
     '''
     print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
@@ -384,40 +459,7 @@ def list_dshow_devices():
          '@device_pnp...223196\\global': 'HD Webcam C615',
          '@device_pnp...223196\\global': 'Laptop Integrated Webcam'})
 
-        >>> def callback(selector, value):
-        ...     if selector == 'quit':
-        ...         print 'quitting'
-        >>> # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
-        >>> # lets use the yuv420p, 320x240, 30fps
-        >>> # 27648000 = 320*240*3 at 30fps, for 4 seconds.
-        >>> # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
-        >>> lib_opts = {'framerate':'30', 'video_size':'320x240',
-        ... 'pixel_format': 'yuv420p', 'rtbufsize':'27648000'}
-        >>> ff_opts = {'f':'dshow'}
-        >>> player = MediaPlayer('video=Logitech HD Webcam C525:audio=Microphone (HD Webcam C525)',
-        ...                      callback=weakref.ref(callback), ff_opts=ff_opts,
-        ...                      lib_opts=lib_opts)
-
-        >>> while 1:
-        ...     frame, val = player.get_frame()
-        ...     if val == 'eof':
-        ...         break
-        ...     elif frame is None:
-        ...         time.sleep(0.01)
-        ...     else:
-        ...         img, t = frame
-        ...         print val, t, img.get_pixel_format(), img.get_buffer_size()
-        ...         time.sleep(val)
-        0.0 264107.429 rgb24 (230400, 0, 0, 0)
-        0.0 264108.364 rgb24 (230400, 0, 0, 0)
-        0.0790016651154 264108.628 rgb24 (230400, 0, 0, 0)
-        0.135997533798 264108.764 rgb24 (230400, 0, 0, 0)
-        0.274529457092 264108.897 rgb24 (230400, 0, 0, 0)
-        0.272421836853 264109.028 rgb24 (230400, 0, 0, 0)
-        0.132406949997 264109.164 rgb24 (230400, 0, 0, 0)
-        ...
-        # NOTE, by default the output is rgb24, that's why the output above is
-        # rgb24. To keep the output format the same as the input, do ff_opts['out_fmt'] = 'yuv420p'
+    See :ref:`dshow-example` for a full example.
     '''
     cdef list res = []
     cdef dict video = {}, audio = {}, curr = None

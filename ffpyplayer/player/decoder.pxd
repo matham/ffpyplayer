@@ -1,9 +1,9 @@
 
-include 'ff_defs.pxi'
+include '../includes/ffmpeg.pxi'
 
-from ffpyplayer.ffthreading cimport MTGenerator, MTCond, MTMutex, MTThread
-from ffpyplayer.ffqueue cimport FFPacketQueue, get_flush_packet
-from ffpyplayer.frame_queue cimport FrameQueue
+from ffpyplayer.threading cimport MTGenerator, MTCond, MTMutex, MTThread
+from ffpyplayer.player.queue cimport FFPacketQueue, get_flush_packet
+from ffpyplayer.player.frame_queue cimport FrameQueue
 
 
 cdef class Decoder(object):

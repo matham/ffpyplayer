@@ -1,12 +1,12 @@
 
-include 'ff_defs.pxi'
+include '../includes/ffmpeg.pxi'
 
-from ffpyplayer.ffqueue cimport FFPacketQueue
-from ffpyplayer.frame_queue cimport FrameQueue, Frame
-from ffpyplayer.decoder cimport Decoder
-from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
-from ffpyplayer.ffclock cimport Clock
-from ffpyplayer.sink cimport VideoSettings, VideoSink
+from ffpyplayer.player.queue cimport FFPacketQueue
+from ffpyplayer.player.frame_queue cimport FrameQueue, Frame
+from ffpyplayer.player.decoder cimport Decoder
+from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond
+from ffpyplayer.player.clock cimport Clock
+from ffpyplayer.player.sink cimport VideoSettings, VideoSink
 from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 
@@ -118,10 +118,15 @@ cdef class VideoState(object):
         bytes py_m
         dict metadata
 
+        object callback
+        int is_ref
+
 
     cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
                    VideoSettings *player, int paused) nogil except 1
     cdef int cquit(VideoState self) nogil except 1
+    cdef int request_thread(self, char *name, char *msg) nogil except 1
+    cdef int request_thread_py(self, char *name, char *msg) except 1
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil except? 0.0
     cdef int check_external_clock_speed(VideoState self) nogil except 1

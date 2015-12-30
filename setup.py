@@ -2,7 +2,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 import os
 import sys
-from os.path import join, exists, isdir
+from os.path import join, exists, isdir, dirname, abspath
 from os import environ
 from ffpyplayer import version
 try:
@@ -174,8 +174,10 @@ else:
     libraries.append(sdl)
 
 
-mods = ['player', 'ffqueue', 'ffthreading', 'sink', 'ffcore', 'ffclock', 'tools',
-        'writer', 'pic', 'frame_queue', 'decoder']
+mods = [
+    'pic', 'threading', 'tools', 'writer', 'player/clock', 'player/core',
+    'player/decoder', 'player/frame_queue', 'player/player', 'player/queue',
+    'player/sink']
 extra_compile_args = ["-O3", '-fno-strict-aliasing']
 c_options['has_sdl2'] = sdl == 'SDL2'
 
@@ -186,7 +188,7 @@ else:
 
 
 print('Generating ffconfig.h')
-with open(join('ffpyplayer', 'ffconfig.h'), 'wb') as f:
+with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'wb') as f:
     f.write('''
 #ifndef _FFCONFIG_H
 #define _FFCONFIG_H
@@ -220,14 +222,17 @@ with open(join('ffpyplayer', 'ffconfig.h'), 'wb') as f:
 ''')
 
 print('Generating ffconfig.pxi')
-with open(join('ffpyplayer', 'ffconfig.pxi'), 'wb') as f:
+with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'wb') as f:
     for k, v in c_options.iteritems():
         f.write('DEF %s = %d\n' % (k.upper(), int(v)))
 
-
+include_dirs.extend(
+    [join(abspath(dirname(__file__)), 'ffpyplayer'),
+     join(abspath(dirname(__file__)), 'ffpyplayer', 'includes')])
 ext_modules = [Extension(
-    'ffpyplayer.' + src_file,
-    sources=[join('ffpyplayer', src_file + mod_suffix)],
+    'ffpyplayer.' + src_file.replace('/', '.'),
+    sources=[join('ffpyplayer', *(src_file + mod_suffix).split('/')),
+             join('ffpyplayer', 'clib', 'misc.c')],
     libraries=libraries,
     include_dirs=include_dirs,
     library_dirs=library_dirs,
@@ -253,5 +258,5 @@ setup(name='ffpyplayer',
                    'Operating System :: POSIX :: BSD :: FreeBSD',
                    'Operating System :: POSIX :: Linux',
                    'Intended Audience :: Developers'],
-      packages=['ffpyplayer'],
+      packages=['ffpyplayer', 'ffpyplayer.player'],
       cmdclass=cmdclass, ext_modules=ext_modules)

@@ -26,6 +26,49 @@ Converting Image formats
     map(len, planes)
     [50000, 12500, 12500, 0]
 
+.. _dshow-example
+
+Playing webcam with DirectShow
+------------------------------
+
+::
+
+    def callback(selector, value):
+        if selector == 'quit':
+            print 'quitting'
+    # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
+    # lets use the yuv420p, 320x240, 30fps
+    # 27648000 = 320*240*3 at 30fps, for 4 seconds.
+    # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
+    lib_opts = {'framerate':'30', 'video_size':'320x240',
+    'pixel_format': 'yuv420p', 'rtbufsize':'27648000'}
+    ff_opts = {'f':'dshow'}
+    player = MediaPlayer('video=Logitech HD Webcam C525:audio=Microphone (HD Webcam C525)',
+                         callback=weakref.ref(callback), ff_opts=ff_opts,
+                         lib_opts=lib_opts)
+
+    while 1:
+        frame, val = player.get_frame()
+        if val == 'eof':
+            break
+        elif frame is None:
+            time.sleep(0.01)
+        else:
+            img, t = frame
+            print val, t, img.get_pixel_format(), img.get_buffer_size()
+            time.sleep(val)
+    0.0 264107.429 rgb24 (230400, 0, 0, 0)
+    0.0 264108.364 rgb24 (230400, 0, 0, 0)
+    0.0790016651154 264108.628 rgb24 (230400, 0, 0, 0)
+    0.135997533798 264108.764 rgb24 (230400, 0, 0, 0)
+    0.274529457092 264108.897 rgb24 (230400, 0, 0, 0)
+    0.272421836853 264109.028 rgb24 (230400, 0, 0, 0)
+    0.132406949997 264109.164 rgb24 (230400, 0, 0, 0)
+    ...
+
+    # NOTE, by default the output was rgb24. To keep the output format the
+    # same as the input, do ff_opts['out_fmt'] = 'yuv420p'
+
 Simple transcoding example
 --------------------------
 

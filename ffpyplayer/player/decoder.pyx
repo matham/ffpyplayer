@@ -1,7 +1,7 @@
 
 __all__ = ('Decoder', )
 
-include 'ff_defs_comp.pxi'
+include '../includes/ff_consts.pxi'
 
 cdef extern from "string.h" nogil:
     void * memset(void *, int, size_t)

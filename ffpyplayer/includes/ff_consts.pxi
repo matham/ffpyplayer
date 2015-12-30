@@ -1,14 +1,9 @@
-DEF FF_ALLOC_EVENT = 24
-DEF FF_QUIT_EVENT = FF_ALLOC_EVENT + 2
-DEF FF_EOF_EVENT = FF_ALLOC_EVENT + 3
-'-----------------------------------------------------------------------------'
 include "ffconfig.pxi"
 
 cdef extern from "ffconfig.h":
     bint MAC_REALLOC
     bint NOT_WIN_MAC
     bint WIN_IS_DEFINED
-
 
 
 ''' Minimum SDL audio buffer size, in samples.. '''

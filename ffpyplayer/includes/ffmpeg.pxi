@@ -1,16 +1,17 @@
 
+from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
+int16_t, uint8_t, int8_t, uintptr_t
+
 cdef extern from "stdarg.h":
     ctypedef struct va_list:
         pass
-from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
-int16_t, uint8_t, int8_t, uintptr_t
 
 ctypedef int (*lockmgr_func)(void **, AVLockOp)
 ctypedef int (*int_void_func)(void *) except? 1
 
 ctypedef float FFTSample
 
-include "ff_defs_comp.pxi"
+include "ff_consts.pxi"
 include "sdl.pxi"
 
 
@@ -219,10 +220,16 @@ cdef:
             AVDictionary *metadata
         struct AVInputFormat:
             int (*read_seek)(AVFormatContext *, int, int64_t, int)
+            int (*get_device_list)(AVFormatContext *, AVDeviceInfoList *)
+            int (*create_device_capabilities)(AVFormatContext *, AVDeviceCapabilitiesQuery *)
             int flags
             const char *name
+            const char *long_name
+            const char *extensions
         struct AVOutputFormat:
             const char *name
+            const char *long_name
+            const char *extensions
             int flags
         struct AVFormatContext:
             AVInputFormat *iformat
@@ -288,6 +295,15 @@ cdef:
 
     extern from "libavdevice/avdevice.h" nogil:
         void avdevice_register_all()
+        struct AVDeviceInfo:
+            char *device_name
+            char *device_description
+        struct AVDeviceInfoList:
+            AVDeviceInfo **devices
+            int nb_devices
+            int default_device
+        struct AVDeviceCapabilitiesQuery:
+            pass
 
     extern from "libswscale/swscale.h" nogil:
         int SWS_BICUBIC
@@ -523,7 +539,7 @@ cdef:
     extern from "libavfilter/buffersrc.h" nogil:
         int av_buffersrc_add_frame(AVFilterContext *, AVFrame *)
 
-    extern from "ffinfo.h" nogil:
+    extern from "clib/misc.h" nogil:
         uint8_t INDENT
         uint8_t SHOW_VERSION
         uint8_t SHOW_CONFIG

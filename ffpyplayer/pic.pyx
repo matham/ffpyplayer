@@ -45,11 +45,10 @@ Copy the image::
 
 __all__ = ('Image', 'SWScale', 'get_image_size', 'ImageLoader')
 
-include "inline_funcs.pxi"
+include "includes/inline_funcs.pxi"
 
 from cpython.ref cimport PyObject
 from cython cimport view as cyview
-from ffpyplayer.tools import loglevels, _initialize_ffmpeg
 
 cdef extern from "string.h" nogil:
     void *memset(void *, int, size_t)
@@ -59,8 +58,7 @@ cdef extern from "Python.h":
     PyObject* PyString_FromStringAndSize(const char *, Py_ssize_t)
     void Py_DECREF(PyObject *)
 
-_initialize_ffmpeg()
-
+import ffpyplayer.tools  # for initialization purposes
 
 def get_image_size(pix_fmt, width, height):
     '''

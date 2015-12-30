@@ -1,10 +1,9 @@
 
 __all__ = ('FFPacketQueue', )
 
-include 'ff_defs_comp.pxi'
+include '../includes/ff_consts.pxi'
 
-from ffpyplayer.ffthreading cimport MTGenerator, MTMutex, MTCond
-
+from ffpyplayer.threading cimport MTGenerator, MTMutex, MTCond
 
 cdef AVPacket flush_pkt
 av_init_packet(&flush_pkt)

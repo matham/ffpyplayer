@@ -75,6 +75,13 @@ cdef inline char * emsg(int code, char *msg, int buff_size) except NULL:
         return strerror(code)
     return msg
 
+cdef inline char * fmt_err(int code, char *msg, int buff_size) nogil:
+    if av_strerror(code, msg, buff_size) < 0:
+        if EDOM > 0:
+            code = -code
+        return strerror(code)
+    return msg
+
 
 cdef inline int insert_filt(
         const char *name, const char *arg, AVFilterGraph *graph,
@@ -93,4 +100,3 @@ cdef inline int insert_filt(
 
     last_filter[0] = filt_ctx
     return 0
-

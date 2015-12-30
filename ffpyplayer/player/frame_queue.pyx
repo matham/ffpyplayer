@@ -1,8 +1,8 @@
 
 __all__ = ('FrameQueue', )
 
-include 'ff_defs_comp.pxi'
-include "inline_funcs.pxi"
+include '../includes/ff_consts.pxi'
+include "../includes/inline_funcs.pxi"
 
 cdef extern from "string.h" nogil:
     void * memset(void *, int, size_t)
