@@ -182,12 +182,12 @@ def get_wheel_data():
     ff = environ.get('FFMPEG_ROOT')
     if ff:
         if isdir(join(ff, 'bin')):
-            data.append(
-                ('share/ffpyplayer/ffmpeg/bin', listdir(join(ff, 'bin'))))
+            data.append(('share/ffpyplayer/ffmpeg/bin', [
+                join(ff, 'bin', f) for f in listdir(join(ff, 'bin'))]))
         if isdir(join(ff, 'licenses')):
-            data.append(
-                ('share/ffpyplayer/ffmpeg/licenses',
-                 listdir(join(ff, 'licenses'))))
+            data.append(('share/ffpyplayer/ffmpeg/licenses', [
+                join(ff, 'licenses', f) for
+                f in listdir(join(ff, 'licenses'))]))
         if exists(join(ff, 'README.txt')):
             data.append(('share/ffpyplayer/ffmpeg', [join(ff, 'README.txt')]))
 
@@ -195,7 +195,8 @@ def get_wheel_data():
     if sdl:
         if isdir(join(sdl, 'bin')):
             data.append(
-                ('share/ffpyplayer/sdl/bin', listdir(join(sdl, 'bin'))))
+                ('share/ffpyplayer/sdl/bin', [
+                    join(sdl, 'bin', f) for f in listdir(join(sdl, 'bin'))]))
     return data
 
 
