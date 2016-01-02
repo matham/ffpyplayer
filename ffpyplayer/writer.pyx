@@ -313,7 +313,7 @@ cdef class MediaWriter(object):
     def __dealloc__(self):
         self.close()
 
-    cpdef close():
+    cpdef close(self):
         '''Closes the writer and writes any frames cached and not yet written.
 
         Until called, or until the instance is deleted (and this is implicitly called)
@@ -333,7 +333,8 @@ cdef class MediaWriter(object):
         with nogil:
             if self.fmt_ctx == NULL or (not self.n_streams) or self.streams[0].codec_ctx == NULL:
                 self.clean_up()
-                return
+                with gil:
+                    return
 
             for r in range(self.n_streams):
                 if ((not self.streams[r].count) or

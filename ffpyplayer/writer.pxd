@@ -10,7 +10,7 @@ cdef class MediaWriter(object):
     cdef int64_t total_size
     cdef int closed
 
-    cpdef close()
+    cpdef close(self)
     cdef void clean_up(MediaWriter self) nogil
 
 
