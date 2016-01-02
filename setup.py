@@ -1,10 +1,13 @@
-from distutils.core import setup
-from distutils.extension import Extension
+try:
+    from setuptools import setup, Extension
+except ImportError:
+    from distutils.core import setup
+    from distutils.extension import Extension
 import os
 import sys
 from os.path import join, exists, isdir, dirname, abspath
-from os import environ
-from ffpyplayer import version
+from os import environ, listdir
+from ffpyplayer import __version__
 try:
     import Cython.Compiler.Options
     #Cython.Compiler.Options.annotate = True
@@ -174,6 +177,28 @@ else:
     libraries.append(sdl)
 
 
+def get_wheel_data():
+    data = []
+    ff = environ.get('FFMPEG_ROOT')
+    if ff:
+        if isdir(join(ff, 'bin')):
+            data.append(
+                ('share/ffpyplayer/ffmpeg/bin', listdir(join(ff, 'bin'))))
+        if isdir(join(ff, 'licenses')):
+            data.append(
+                ('share/ffpyplayer/ffmpeg/licenses',
+                 listdir(join(ff, 'licenses'))))
+        if exists(join(ff, 'README.txt')):
+            data.append(('share/ffpyplayer/ffmpeg', [join(ff, 'README.txt')]))
+
+    sdl = environ.get('SDL_ROOT')
+    if sdl:
+        if isdir(join(sdl, 'bin')):
+            data.append(
+                ('share/ffpyplayer/sdl/bin', listdir(join(sdl, 'bin'))))
+    return data
+
+
 mods = [
     'pic', 'threading', 'tools', 'writer', 'player/clock', 'player/core',
     'player/decoder', 'player/frame_queue', 'player/player', 'player/queue']
@@ -242,7 +267,7 @@ for e in ext_modules:
     e.cython_directives = {"embedsignature": True}
 
 setup(name='ffpyplayer',
-      version=version,
+      version=__version__,
       author='Matthew Einhorn',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
@@ -258,5 +283,6 @@ setup(name='ffpyplayer',
                    'Operating System :: POSIX :: Linux',
                    'Intended Audience :: Developers'],
       packages=['ffpyplayer', 'ffpyplayer.player'],
+      data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=['cython'])
