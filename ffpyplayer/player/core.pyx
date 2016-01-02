@@ -9,7 +9,6 @@ from ffpyplayer.player.queue cimport FFPacketQueue, get_flush_packet
 from ffpyplayer.player.frame_queue cimport FrameQueue
 from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
 from ffpyplayer.player.clock cimport Clock
-from ffpyplayer.player.sink cimport VideoSink
 from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 
@@ -20,6 +19,11 @@ from weakref import ref
 # android platform detection
 from os import environ
 cdef int IS_ANDROID = 0
+
+cdef extern from "Python.h":
+    PyObject* PyString_FromString(const char *)
+    void Py_DECREF(PyObject *)
+
 if "ANDROID_ARGUMENT" in environ:
     import jnius
     IS_ANDROID = 1
@@ -72,6 +76,8 @@ cdef AVSampleFormat *sample_fmts = [AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE]
 cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 cdef int *next_sample_rates = [0, 44100, 48000, 96000, 192000]
 cdef int next_sample_rates_len = 5
+
+cdef bytes sub_ass = b'ass', sub_text = b'text', sub_fmt
 
 cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
@@ -274,11 +280,12 @@ cdef class VideoState(object):
             'src_vid_size': (0, 0), 'sink_vid_size': (0, 0), 'title': '',
             'duration': None, 'frame_rate': (0, 0), 'src_pix_fmt': ''}
 
-    cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                   VideoSettings *player, int paused) nogil except 1:
+    cdef int cInit(self, MTGenerator mt_gen, VideoSettings *player, int paused,
+                   AVPixelFormat out_fmt) nogil except 1:
         cdef int i
         self.player = player
         self.vfilter_idx = 0
+        self.pix_fmt = out_fmt
 
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
@@ -286,7 +293,6 @@ cdef class VideoState(object):
         with gil:
             self.read_tid = None
             self.mt_gen = mt_gen
-            self.vid_sink = vid_sink
             self.audioq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
             self.subtitleq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
             self.videoq = FFPacketQueue.__new__(FFPacketQueue, mt_gen)
@@ -360,6 +366,8 @@ cdef class VideoState(object):
         return 0
 
     cdef int request_thread(self, char *name, char *msg) nogil except 1:
+        if self.callback is None:
+            return 0
         with gil:
             return self.request_thread_py(name, msg)
 
@@ -372,6 +380,21 @@ cdef class VideoState(object):
         else:
             self.callback(name, msg)
         return 0
+
+    cdef object get_out_pix_fmt(self):
+        return av_get_pix_fmt_name(self.pix_fmt)
+
+    cdef void set_out_pix_fmt(self, AVPixelFormat out_fmt):
+        '''
+        Users set the pixel fmt here. If avfilter is enabled, the filter is
+        changed when this is changed. If disabled, this method may only
+        be called before other methods below, and can not be called once things
+        are running.
+
+        After the user changes the pix_fmt, it might take a few frames until they
+        receive the new fmt in case pics were already queued.
+        '''
+        self.pix_fmt = out_fmt
 
     cdef int decode_interrupt_cb(VideoState self) nogil:
         return self.abort_request
@@ -1057,7 +1080,7 @@ cdef class VideoState(object):
         cdef AVRational tb_temp
         cdef AVRational frame_rate = av_guess_frame_rate(self.ic, self.video_st, NULL)
         cdef char err_msg[256]
-        cdef AVPixelFormat last_out_fmt = self.vid_sink._get_out_pix_fmt()
+        cdef AVPixelFormat last_out_fmt = self.pix_fmt
         IF CONFIG_AVFILTER:
             cdef AVFilterGraph *graph = avfilter_graph_alloc()
             cdef AVFilterContext *filt_out = NULL
@@ -1092,7 +1115,7 @@ cdef class VideoState(object):
                 continue
 
             IF CONFIG_AVFILTER:
-                last_out_fmt_temp = self.vid_sink._get_out_pix_fmt()
+                last_out_fmt_temp = self.pix_fmt
                 if (last_w != frame.width or last_h != frame.height
                     or last_scr_h != self.player.screen_height
                     or last_scr_w != self.player.screen_width
@@ -1196,7 +1219,6 @@ cdef class VideoState(object):
             self.request_thread('video:exit', '')
         return 0
 
-
     cdef int subtitle_thread(VideoState self) nogil except 1:
         cdef Frame *sp
         cdef int got_subtitle
@@ -1223,14 +1245,14 @@ cdef class VideoState(object):
 #                 sp.pts = pts
 #                 sp.serial = self.subdec.pkt_serial
 #
-# #                 for i in range(sp.sub.num_rects):
-# #                     for j in range(sp.sub.rects[i].nb_colors):
-# #                         sp.sub.rects[i]
+#                 for i in range(sp.sub.num_rects):
+#                     for j in range(sp.sub.rects[i].nb_colors):
+#                         sp.sub.rects[i]
 #
 #                 self.subpq.frame_queue_push()
             if got_subtitle:
                 if sp.sub.format != 0:
-                    self.vid_sink.subtitle_display(&sp.sub)
+                    self.subtitle_display(&sp.sub)
                 avsubtitle_free(&sp.sub)
 
         if ret:
@@ -1244,6 +1266,31 @@ cdef class VideoState(object):
             self.request_thread('subtitle:exit', '')
         return 0
 
+    cdef int subtitle_display(self, AVSubtitle *sub) nogil except 1:
+        cdef PyObject *buff
+        cdef int i
+        cdef double pts
+        with gil:
+            for i in range(sub.num_rects):
+                if sub.rects[i].type == SUBTITLE_ASS:
+                    buff = PyString_FromString(sub.rects[i].ass)
+                    sub_fmt = sub_ass
+                elif sub.rects[i].type == SUBTITLE_TEXT:
+                    buff = PyString_FromString(sub.rects[i].text)
+                    sub_fmt = sub_text
+                else:
+                    buff = NULL
+                    continue
+                if sub.pts != AV_NOPTS_VALUE:
+                    pts = sub.pts / <double>AV_TIME_BASE
+                else:
+                    pts = 0.0
+                self.request_thread('display_sub', (<object>buff, sub_fmt, pts,
+                                                sub.start_display_time / 1000.,
+                                                sub.end_display_time / 1000.))
+                if buff != NULL:
+                    Py_DECREF(buff)
+        return 0
 
     # copy samples for viewing in editor window
     cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1:
@@ -1459,9 +1506,9 @@ cdef class VideoState(object):
         self.audio_write_buf_size = self.audio_buf_size - self.audio_buf_index
         # Let's assume the audio driver that is used by SDL has two periods.
         if not isnan(self.audio_clock):
-            self.audclk.set_clock_at(self.audio_clock - <double>(2 * self.audio_hw_buf_size\
-            + self.audio_write_buf_size) / self.audio_tgt.bytes_per_sec, self.audio_clock_serial,\
-            self.player.audio_callback_time / 1000000.0)
+            self.audclk.set_clock_at(
+                self.audio_clock - <double>(2 * self.audio_hw_buf_size + self.audio_write_buf_size) /
+                self.audio_tgt.bytes_per_sec, self.audio_clock_serial, self.player.audio_callback_time / 1000000.0)
             self.extclk.sync_clock_to_slave(self.audclk)
         return 0
 

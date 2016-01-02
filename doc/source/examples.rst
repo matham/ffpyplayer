@@ -28,10 +28,11 @@ Converting Image formats
 
 .. _dshow-example
 
-Playing webcam with DirectShow
-------------------------------
+Playing a webcam with DirectShow on windows
+-------------------------------------------
 
-::
+One can use :meth:`~ffpyplayer.tools.list_dshow_devices` to get a list of the
+devices and their option for playing. For example::
 
     def callback(selector, value):
         if selector == 'quit':
@@ -147,10 +148,51 @@ More complex transcoding example
             img, t = frame
             writer.write_frame(img=img, pts=t, stream=0)
 
+.. _write-simple:
+
+Writing video to file
+---------------------
+
+::
+
+    from ffpyplayer.writer import MediaWriter
+    from ffpyplayer.pic import Image
+
+    w, h = 640, 480
+    # write at 5 fps.
+    out_opts = {'pix_fmt_in':'rgb24', 'width_in':w, 'height_in':h, 'codec':'rawvideo',
+                'frame_rate':(5, 1)}
+    # write using rgb24 frames into a two stream rawvideo file where the output
+    # is half the input size for both streams. Avi format will be used.
+    writer = MediaWriter('output.avi', [out_opts] * 2, width_out=w/2,
+                         height_out=h/2)
+
+    # Construct images
+    size = w * h * 3
+    buf = [int(x * 255 / size) for x in range(size)]
+    buf = ''.join(map(chr, buf))
+    img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+
+    buf = [int((size - x) * 255 / size) for x in range(size)]
+    buf = ''.join(map(chr, buf))
+    img2 = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
+
+    for i in range(20):
+        writer.write_frame(img=img, pts=i / 5., stream=0)  # stream 1
+        writer.write_frame(img=img2, pts=i / 5., stream=1)  # stream 2
+
+Or force an output format of avi, even though the filename is .mp4.::
+
+    writer = MediaWriter('output.mp4', [out_opts] * 2, fmt='avi',
+                          width_out=w/2, height_out=h/2)
+
+.. _write-h264:
+
 Compressing video to h264
 -------------------------
 
-::
+Or writing compressed h264 files (notice the file is now only 5KB, while
+the above results in a 10MB file)::
 
     from ffpyplayer.writer import MediaWriter
     from ffpyplayer.tools import get_supported_pixfmts, get_supported_framerates

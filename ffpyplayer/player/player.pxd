@@ -2,8 +2,7 @@
 include '../includes/ffmpeg.pxi'
 
 from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex
-from ffpyplayer.player.core cimport VideoState
-from ffpyplayer.player.sink cimport VideoSettings, VideoSink
+from ffpyplayer.player.core cimport VideoState, VideoSettings
 from ffpyplayer.pic cimport Image
 
 
@@ -11,7 +10,6 @@ cdef class MediaPlayer(object):
     cdef:
         VideoSettings settings
         MTGenerator mt_gen
-        VideoSink vid_sink
         VideoState ivs
         bytes py_window_title
         bytes py_vfilters

@@ -6,7 +6,6 @@ from ffpyplayer.player.frame_queue cimport FrameQueue, Frame
 from ffpyplayer.player.decoder cimport Decoder
 from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond
 from ffpyplayer.player.clock cimport Clock
-from ffpyplayer.player.sink cimport VideoSettings, VideoSink
 from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 
@@ -18,6 +17,7 @@ cdef struct AudioParams:
     AVSampleFormat fmt
     int frame_size
     int bytes_per_sec
+
 
 cdef class VideoState(object):
     cdef:
@@ -106,7 +106,6 @@ cdef class VideoState(object):
 
         MTCond continue_read_thread
         MTGenerator mt_gen
-        VideoSink vid_sink
         VideoSettings *player
         int64_t last_time
 
@@ -120,13 +119,16 @@ cdef class VideoState(object):
 
         object callback
         int is_ref
+        AVPixelFormat pix_fmt
 
 
-    cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                   VideoSettings *player, int paused) nogil except 1
+    cdef int cInit(self, MTGenerator mt_gen, VideoSettings *player, int paused,
+                   AVPixelFormat out_fmt) nogil except 1
     cdef int cquit(VideoState self) nogil except 1
     cdef int request_thread(self, char *name, char *msg) nogil except 1
     cdef int request_thread_py(self, char *name, char *msg) except 1
+    cdef object get_out_pix_fmt(self)
+    cdef void set_out_pix_fmt(self, AVPixelFormat out_fmt)
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil except? 0.0
     cdef int check_external_clock_speed(VideoState self) nogil except 1
@@ -150,6 +152,7 @@ cdef class VideoState(object):
     cdef int audio_thread(self) nogil except? 1
     cdef int video_thread(VideoState self) nogil except? 1
     cdef int subtitle_thread(VideoState self) nogil except 1
+    cdef int subtitle_display(self, AVSubtitle *sub) nogil except 1
     cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1
     cdef int synchronize_audio(VideoState self, int nb_samples) nogil except -1
     cdef int audio_decode_frame(VideoState self) nogil except? 1
@@ -162,3 +165,51 @@ cdef class VideoState(object):
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1
     cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1
     cdef int decode_interrupt_cb(VideoState self) nogil
+
+
+cdef struct VideoSettings:
+    unsigned sws_flags
+
+    AVInputFormat *file_iformat
+    char *input_filename
+    int screen_width
+    int screen_height
+    uint8_t audio_volume
+    int muted
+    int audio_sdl
+    int audio_disable
+    int video_disable
+    int subtitle_disable
+    const char* wanted_stream_spec[<int>AVMEDIA_TYPE_NB]
+    int seek_by_bytes
+    int show_status
+    int av_sync_type
+    int64_t start_time
+    int64_t duration
+    int fast
+    int genpts
+    int lowres
+    int decoder_reorder_pts
+    int autoexit
+    int loop
+    int framedrop
+    int infinite_buffer
+    char *audio_codec_name
+    char *subtitle_codec_name
+    char *video_codec_name
+    const char **vfilters_list
+    int nb_vfilters
+    char *afilters
+    char *avfilters
+
+    int autorotate
+
+    #/* current context */
+    int64_t audio_callback_time
+
+    SwsContext *img_convert_ctx
+    AVDictionary *format_opts
+    AVDictionary *codec_opts
+    AVDictionary *resample_opts
+    AVDictionary *sws_dict
+    AVDictionary *swr_opts

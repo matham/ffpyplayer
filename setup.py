@@ -176,8 +176,7 @@ else:
 
 mods = [
     'pic', 'threading', 'tools', 'writer', 'player/clock', 'player/core',
-    'player/decoder', 'player/frame_queue', 'player/player', 'player/queue',
-    'player/sink']
+    'player/decoder', 'player/frame_queue', 'player/player', 'player/queue']
 extra_compile_args = ["-O3", '-fno-strict-aliasing']
 c_options['has_sdl2'] = sdl == 'SDL2'
 
@@ -259,4 +258,5 @@ setup(name='ffpyplayer',
                    'Operating System :: POSIX :: Linux',
                    'Intended Audience :: Developers'],
       packages=['ffpyplayer', 'ffpyplayer.player'],
-      cmdclass=cmdclass, ext_modules=ext_modules)
+      cmdclass=cmdclass, ext_modules=ext_modules,
+      setup_requires=['cython'])

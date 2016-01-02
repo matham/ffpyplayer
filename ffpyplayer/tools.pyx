@@ -8,7 +8,8 @@ devices, pixel formats and more.
 
 __all__ = ('initialize_sdl_aud', 'loglevels', 'codecs_enc',
            'codecs_dec', 'pix_fmts', 'formats_in', 'formats_out',
-           'set_log_callback', 'get_log_callback', 'get_codecs')
+           'set_log_callback', 'get_log_callback', 'set_default_loglevel',
+           'get_codecs')
 
 include "includes/ffmpeg.pxi"
 
@@ -37,6 +38,7 @@ def _initialize_ffmpeg():
     '''
     global ffmpeg_initialized
     if not ffmpeg_initialized:
+        av_log_set_flags(AV_LOG_SKIP_REPEATED)
         IF CONFIG_AVDEVICE:
             avdevice_register_all()
         IF CONFIG_AVFILTER:
@@ -152,6 +154,15 @@ def get_log_callback():
     old_callback = _log_callback
     _log_mutex.unlock()
     return old_callback
+
+
+def set_default_loglevel(loglevel):
+    '''This sets the FFmpeg log level to be used when no log :func:`set_log_callback`
+    is set and ffmpeg itself handles the log and prints it to stderr.
+    '''
+    if loglevel not in loglevels:
+        raise ValueError('Invalid loglevel {}'.format(loglevel))
+    av_log_set_level(loglevels[loglevel])
 
 
 cpdef get_codecs(

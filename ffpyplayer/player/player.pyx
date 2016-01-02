@@ -16,14 +16,13 @@ cdef extern from "string.h" nogil:
 
 from ffpyplayer.threading cimport MTGenerator, SDL_MT, Py_MT, MTThread, MTMutex
 from ffpyplayer.player.queue cimport FFPacketQueue
-from ffpyplayer.player.core cimport VideoState
-from ffpyplayer.player.sink cimport VideoSettings, VideoSink
+from ffpyplayer.player.core cimport VideoState, VideoSettings
 from ffpyplayer.pic cimport Image
 from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
 import ffpyplayer.tools  # required to init ffmpeg
-from ffpyplayer.tools import loglevels, initialize_sdl_aud
+from ffpyplayer.tools import initialize_sdl_aud
 from copy import deepcopy
 
 
@@ -44,8 +43,7 @@ cdef inline void *grow_array(void *array, int elem_size, int *size, int new_size
 
 
 cdef class MediaPlayer(object):
-    '''
-    An FFmpeg based media player.
+    '''An FFmpeg based media player.
 
     Was originally ported from FFplay. Most options offered in FFplay is
     also available here.
@@ -55,132 +53,179 @@ cdef class MediaPlayer(object):
     using SDL. And subtitles are acquired either through the callback function
     (text subtitles only), or are overlaid directly using the subtitle filter.
 
-    **Args**:
-        *filename* (str): The filename or url of the media object. This can be
-        physical files, remote files or even webcam name's e.g. for direct show
-        or Video4Linux webcams. The *f* specifier in *ff_opts* can be used to
-        indicate the format needed to open the file (e.g. dshow).
+    :Parameters:
 
-        *callback* (ref to function): A weak ref to a function that will be called
-        when quitting, when eof is reached (determined by whichever is the *sync*
-        stream, audio or video), or when text subtitles are available. The function takes
-        two parameters, *selector*, and *value*.
+        `filename`: str
+            The filename or url of the media object. This can be physical files,
+            remote files or even webcam name's e.g. for direct show or Video4Linux
+            webcams. The ``f`` specifier in ``ff_opts`` can be used to indicate the
+            format needed to open the file (e.g. dshow).
+        `callback`: Function or ref to function or None
+            A function, which if not None will be called when a internal thread quits,
+            when eof is reached (as determined by whichever is the main ``sync`` stream,
+            audio or video), or when text subtitles are available. In future version it
+            may be extended.
 
-        When the player is closing internally due to some error the *selector* will be 'quit'.
+            The function takes two parameters, ``selector``, and ``value``.
+            ``selector`` can be one of:
 
-        When eof is reached the *selector* will be 'eof'.
+            `eof`: When eof is reached. ``value`` is the empty string.
+            `display_sub`:
+                When a new subtitle string is available. ``value`` will be a
+                5-tuple of the form ``(text, fmt, pts, start, end)``. Where
 
-        When a new subtitle string is available, *selector* will be 'display_sub'
-        and *value* will be a 5-tuple of the form *(text, fmt, pts, start, end)*.
-        Where *text* is the text, *fmt* is the subtitle format e.g. 'ass', *pts*
-        is the timestamp of the text, *start*, and *end* respectively are the times
-        in video time when to start and finish displaying the text.
+                `text`: is the text
+                `fmt`: is the subtitle format e.g. 'ass'
+                `pts`: is the timestamp of the text
+                `start`: is the time in video time when to start displaying the text
+                `end`: is the time in video time when to end displaying the text
 
-        .. note::
+            `exceptions or thread exits`:
+                In case of an exception by the internal audio, video, subtitle, or read threads,
+                or when these threads exit, it is called with a ``value`` of the error message
+                or an empty string when an error is not available.
 
-            This functions gets called from a second internal thread.
+                The ``selector`` will be one of
+                ``audio:error``, ``audio:exit``, ``video:error``, ``video:exit``,
+                ``subtitle:error``, ``subtitle:exit``, ``read:error``, or ``read:exit``
+                indicating which thread called and why.
 
-        *loglevel* (str): The level of logs to emit. Its value is one of the keywords
-        defined in :attr:`ffpyplayer.tools.loglevels`. Note this only affects
-        the default FFmpeg logger, which prints to stderr. You can manipulate the
-        log stream directly using :attr:`ffpyplayer.tools.set_log_callback`.
+            .. warning::
 
-        *thread_lib* (str): The threading library to use internally. Can be one of
-        'SDL' or 'python'.
+                This functions gets called from a second internal thread.
 
-        .. warning::
+        `thread_lib`: str
+            The threading library to use internally. Can be one of 'SDL' or 'python'.
 
-            If the python threading library is used, care must be taken to delete
-            the player before exiting python, otherwise it may hang. The reason is
-            that the internal threads are created as non-daemon, consequently, when the
-            python main thread exits, the internal threads will keep python alive.
-            By deleting the player directly, the internal threads will be shut down
-            before python exits.
+            .. warning::
 
-        *audio_sink* (str): Currently it must be 'SDL'.
+                If the python threading library is used, care must be taken to delete
+                the player before exiting python, otherwise it may hang. The reason is
+                that the internal threads are created as non-daemon, consequently, when the
+                python main thread exits, the internal threads will keep python alive.
+                By deleting the player directly, the internal threads will be shut down
+                before python exits.
 
-        *lib_opts* (dict): A dictionary of options that will be passed to the
-        ffmpeg libraries, codecs, sws, swr, and formats when opening them. This accepts
-        most of the options that can be passed to FFplay. Examples are
-        "threads":"auto", "lowres":"1" etc. Both the keywords and values must be
-        strings.
+        `audio_sink`: str
+            Currently it must be 'SDL'. Defaults to 'SDL'.
+        `lib_opts`: dict
+            A dictionary of options that will be passed to the ffmpeg libraries,
+            codecs, sws, swr, and formats when opening them. This accepts most of the
+            options that can be passed to FFplay. Examples are "threads":"auto",
+            "lowres":"1" etc. Both the keywords and values must be strings.
+            See :ref:`examples` for `lib_opts` usage examples.
+        `ff_opts`: dict
+            A dictionary with options for the player. Following are
+            the available options. Note, many options have identical names and meaning
+            as in the FFplay options: www.ffmpeg.org/ffplay.html :
 
-        *ff_opts* (dict): A dictionary with options for the player. Following are
-        the available options. Note, many options have identical names and meaning
-        as in the FFplay options: www.ffmpeg.org/ffplay.html
+            `paused`: bool
+                If True, the player will be in a paused state after creation, otherwise,
+                it will immediately start playing. Defaults to False.
+            `cpuflags`: str
+                Similar to ffplay
+            `max_alloc: int
+                Set the maximum size that may me allocated in one block.
+            `infbuf`: bool
+                If True, do not limit the input buffer size and read as much data as possible
+                from the input as soon as possible. Enabled by default for realtime streams,
+                where data may be dropped if not read in time. Use this option to enable
+                infinite buffers for all inputs.
+            `framedrop`: bool
+                Drop video frames if video is out of sync. Enabled by default if the master
+                clock (``sync``) is not set to video. Use this option to enable/disable frame
+                dropping for all master clock sources.
+            `loop`: int
+                Loops movie playback <number> times. 0 means forever. Defaults to 1.
+            `autoexit`: bool
+                If True, the player stops on eof. Defaults to False.
+            `lowres`: int
+                low resolution decoding, 1-> 1/2 size, 2->1/4 size, defaults to zero.
+            `drp`: int
+                let decoder reorder pts 0=off 1=on -1=auto. Defaults to 0.
+            `genpts`: bool
+                Generate missing pts even if it requires parsing future frames, defaults to False.
+            `fast: bool
+                Enable non-spec-compliant optimizations, defaults to False.
+            `stats`: bool
+                Print several playback statistics, in particular show the stream duration,
+                the codec parameters, the current position in the stream and the audio/video
+                synchronisation drift. Defaults to False.
+            `pixel_format`: str
+                Sets the pixel format. Note, this sets the format of the input file. For the output
+                format see ``out_fmt``.
+            `t`: float
+                Play only ``t`` seconds of the audio/video. Defaults to the full audio/video.
+            `ss`: float
+                Seek to pos ``ss`` into the file when starting. Note that in most formats it is not
+                possible to seek exactly, so it will seek to the nearest seek point to ``ss``.
+                Defaults to the start of the file.
+            `sync`: str
+                Set the master clock to audio, video, or external (ext). Default is audio.
+                The master clock is used to control audio-video synchronization. Most
+                media players use audio as master clock, but in some cases (streaming or
+                high quality broadcast) it is necessary to change that. Also, setting
+                it to video can ensure the reproducibility of timestamps of video frames.
+            `acodec, vcodec, and scodec`: str
+                Forces a specific audio, video, and/or subtitle decoder. Defaults to None.
+            `ast`: str
+                Select the desired audio stream. If this option is not specified, the "best" audio
+                stream is selected in the program of the already selected video stream.
+                See https://ffmpeg.org/ffplay.html#Stream-specifiers-1 for the format.
+            `vst`: str
+                Select the desired video stream. If this option is not specified, the "best" video
+                stream is selected.
+                See https://ffmpeg.org/ffplay.html#Stream-specifiers-1 for the format.
+            `sst`: str
+                Select the desired subtitle stream. If this option is not specified, the "best" audio
+                stream is selected in the program of the already selected video or audio stream.
+                See https://ffmpeg.org/ffplay.html#Stream-specifiers-1 for the format.
+            `an`: bool
+                Disable audio. Default to False.
+            `vn`: bool
+                Disable video. Default to False.
+            `sn`: bool
+                Disable subtitle. Default to False.
+            `f`: str
+                Force the format to open the file with. E.g. dshow for webcams on windows.
+                See :ref:`dshow-example` for an example. Defaults to none specified.
+            `vf`: str or list of strings
+                The filtergraph(s) used to filter the video stream. A filtergraph is applied to the
+                stream, and must have a single video input and a single video output.
+                In the filtergraph, the input is associated to the label in, and the output
+                to the label out. See the ffmpeg-filters manual for more information
+                about the filtergraph syntax.
 
-            *paused* (bool): If True, the player will be in a paused state
-            after creation, otherwise, it will immediately start playing.
+                Examples are 'crop=100:100' to crop, 'vflip' to flip horizontally, 'subtitles=filename'
+                to overlay subtitles from another media or text file etc. If a list of filters is
+                specified, :meth:`select_video_filter` can be used to select the desired filter.
 
-            *cpuflags* (str): similar to ffplay
+                CONFIG_AVFILTER must be True (the default) when compiling in order to use this.
+                Defaults to no filters.
+            `af`: str
+                Similar to ``vf``. However, unlike ``vf``, ``af`` only accepts a single string
+                filter and not a list of filters.
+            `x`: int
+                The desired width of the output frames returned by :meth:`get_frame`. Accepts the
+                same values as the width parameter of :meth:`set_size`.
+            `y`: int
+                The desired height of the output frames returned by :meth:`get_frame`. Accepts the
+                same values as the height parameter of :meth:`set_size`.
 
-            *max_alloc* (int): similar to ffplay
+                CONFIG_AVFILTER must be True (the default) when compiling in order to use this.
+                Defaults to 0.
+            `out_fmt`: str
+                The desired pixel format for the data returned by :meth:`get_frame`. Accepts
+                the same value as :meth:`set_output_pix_fmt` and can be
+                one of :attr:`ffpyplayer.tools.pix_fmts`. Defaults to rgb24.
+            `autorotate`: bool
+                Whether to automatically rotate the video according to presentation metadata.
+                Defaults to True.
 
-            *infbuf* (bool): similar to ffplay, defaults to -1.
-
-            *framedrop* (int): similar to ffplay. True if positive, or negative and
-            *sync* is not video, otherwise false.
-
-            *loop* (int): similar to ffplay, defaults to 1.
-
-            *autoexit* (bool): If True, the player closes on eof. Defaults to False.
-
-            *lowres* (int): similar to ffplay, defaults to zero.
-
-            *drp* (int): similar to ffplay.
-
-            *genpts* (bool): similar to ffplay, defaults to False.
-
-            *fast* (bool): similar to ffplay, defaults to False.
-
-            *bug* (bool): similar to ffplay, defaults to True.
-
-            *stats* (bool): similar to ffplay, defaults to False.
-
-            *pixel_format* (str): similar to ffplay. Note, this sets the format
-            of the input file. For the output format see *out_fmt*.
-
-            *bytes* (int): similar to ffplay, not used. Defaults to -1.
-
-            *t* (float): similar to ffplay, defaults to -1.
-
-            *ss* (float): similar to ffplay, defaults to -1.
-
-            *sync* (str): similar to ffplay, can be one of 'audio', 'video', 'ext'.
-            Defaults to 'audio'.
-
-            *acodec, vcodec, scodec* (str): similar to ffplay, defaults to None.
-
-            *ast, vst, sst* (int): similar to ffplay, defaults to -1.
-
-            *an, sn, vn* (bool): similar to ffplay, defaults to False.
-
-            *f* (str): similar to ffplay. The format to open the file with. E.g. dshow for webcams.
-            See :meth:`ffpyplayer.tools.list_dshow_devices` for an example. Defaults to None.
-
-            *af, vf* (str) similar to ffplay. These are filters applied to the audio/video.
-            Examples are 'crop=100:100' to crop, 'vflip' to flip horizontally, 'subtitles=filename'
-            to overlay subtitles from another media or text file etc. CONFIG_AVFILTER must be True
-            (the default) when compiling in order to use this. Defaults to None.
-
-            *x, y* (int): The width and height of the output frames. Similar to
-            :meth:`set_size`. CONFIG_AVFILTER must be True (the default) when
-            compiling in order to use this. Defaults to 0.
-
-            *out_fmt* (str): The pixel format of the data returned by :meth:`get_frame`. Can be
-            one of :attr:`ffpyplayer.tools.pix_fmts`. Defaults to rgb24.
-
-            *autorotate* (bool): Whether to automatically rotate the video according
-                to presentation metadata. Defaults to True.
-
-    A simple player::
+    For example, a simple player::
 
         from ffpyplayer.player import MediaPlayer
-        import time, weakref
-        def callback(selector, value):
-            if selector == 'quit':
-                print 'quitting'
-        player = MediaPlayer(filename, callback=weakref.ref(callback))
+        player = MediaPlayer(filename)
         while 1:
             frame, val = player.get_frame()
             if val == 'eof':
@@ -191,6 +236,7 @@ cdef class MediaPlayer(object):
                 img, t = frame
                 print val, t, img.get_pixel_format(), img.get_buffer_size()
                 time.sleep(val)
+        # which prints
         0.0 0.0 rgb24 (929280, 0, 0, 0)
         0.0 0.0611284 rgb24 (929280, 0, 0, 0)
         0.0411274433136 0.1222568 rgb24 (929280, 0, 0, 0)
@@ -198,34 +244,28 @@ cdef class MediaPlayer(object):
         0.121630907059 0.2445136 rgb24 (929280, 0, 0, 0)
         ...
 
-    See :meth:`ffpyplayer.tools.list_dshow_devices` for a more complex example.
     See also :ref:`examples`.
-
-    TODO: offer audio buffers, similar to video frames (if wanted?).
 
     .. warning::
 
         Most of the methods of this class are not thread safe. That is, they
-        should not be called from different threads without fully protecting
-        them.
+        should not be called from different threads for the same instance
+        without protecting them.
     '''
 
-    def __cinit__(self, filename, callback, loglevel='error', ff_opts={},
+    def __cinit__(self, filename, callback=None, ff_opts={},
                   thread_lib='SDL', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
         cdef int res, paused
         cdef const char* cy_str
+        kargs.pop('loglevel', None)
         ff_opts = self.ff_opts = deepcopy(ff_opts)
         self.is_closed = 0
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
         PyEval_InitThreads()
-        if loglevel not in loglevels:
-            raise ValueError('Invalid log level option.')
-        av_log_set_flags(AV_LOG_SKIP_REPEATED)
-        av_log_set_level(loglevels[loglevel])
 
         av_dict_set(&settings.sws_dict, "flags", "bicubic", 0)
         # set x, or y to -1 to preserve pixel ratio
@@ -254,11 +294,6 @@ cdef class MediaPlayer(object):
         settings.duration = ff_opts['t'] * 1000000 if 't' in ff_opts else AV_NOPTS_VALUE
         settings.autorotate = bool(ff_opts.get('autorotate', 1))
         settings.seek_by_bytes = -1
-        if 'bytes' in ff_opts:
-            val = ff_opts['bytes']
-            if val != 1 and val != 0 and val != -1:
-                raise ValueError('Invalid bytes option value.')
-            settings.seek_by_bytes = val
         settings.file_iformat = NULL
         if 'f' in ff_opts:
             settings.file_iformat = av_find_input_format(ff_opts['f'])
@@ -290,9 +325,9 @@ cdef class MediaPlayer(object):
                 raise ValueError('Invalid sync option value.')
         settings.autoexit = bool(ff_opts['autoexit']) if 'autoexit' in ff_opts else 0
         settings.loop = ff_opts['loop'] if 'loop' in ff_opts else 1
-        settings.framedrop = int(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
+        settings.framedrop = bool(ff_opts['framedrop']) if 'framedrop' in ff_opts else -1
         # -1 means not infinite, not respected if real time.
-        settings.infinite_buffer = bool(ff_opts['infbuf']) if 'infbuf' in ff_opts else -1
+        settings.infinite_buffer = 1 if 'infbuf' in ff_opts and ff_opts['infbuf'] else -1
 
         IF CONFIG_AVFILTER:
             if 'vf' in ff_opts:
@@ -354,19 +389,18 @@ cdef class MediaPlayer(object):
         else:
             raise Exception('Thread library parameter not recognized.')
 
+        settings.audio_sdl = audio_sink == 'SDL'
         if audio_sink != 'SDL':
-            raise Exception('Currently, only SDL is supported as a audio sink.')
-        if not callable(callback):
+            raise Exception('Audio sink "{}" not recognized'.format(audio_sink))
+        if callback is not None and not callable(callback):
             raise Exception('Video sink parameter not recognized.')
 
-        self.vid_sink = VideoSink()
         if 'out_fmt' in ff_opts:
             out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
         else:
             out_fmt = av_get_pix_fmt('rgb24')
         if out_fmt == AV_PIX_FMT_NONE:
             raise Exception('Unrecognized output pixel format.')
-        self.vid_sink.set_out_pix_fmt(out_fmt)
 
         if not settings.audio_disable:
             initialize_sdl_aud()
@@ -375,19 +409,18 @@ cdef class MediaPlayer(object):
         self.ivs = VideoState(callback)
         paused = ff_opts.get('paused', False)
         with nogil:
-            self.ivs.cInit(self.mt_gen, self.vid_sink, settings, paused)
-
-
-    def __init__(self, filename, callback, loglevel='error', ff_opts={},
-                 thread_lib='python', audio_sink='SDL', lib_opts={}, **kargs):
-        pass
+            self.ivs.cInit(self.mt_gen, settings, paused, out_fmt)
 
     def __dealloc__(self):
         self.close_player()
 
     cpdef close_player(self):
-        '''Closes the player and all resources. Calling any class method after
-        this, may result in exceptions.
+        '''Closes the player and all resources.
+
+        .. warning::
+
+            After calling this method, calling any other class method on this instance may
+            result in a crash or program corruption.
         '''
         cdef const char *empty = ''
         if self.is_closed:
@@ -400,7 +433,6 @@ cdef class MediaPlayer(object):
             with nogil:
                 self.ivs.cquit()
         self.ivs = None
-        self.vid_sink = None
 
         av_dict_free(&self.settings.format_opts)
         av_dict_free(&self.settings.resample_opts)
@@ -417,8 +449,7 @@ cdef class MediaPlayer(object):
         av_log(NULL, AV_LOG_QUIET, "%s", empty)
 
     def get_frame(self, force_refresh=False, show=True, *args):
-        '''
-        Retrieves the next available frame if ready.
+        '''Retrieves the next available frame if ready.
 
         The frame is returned as a :class:`ffpyplayer.pic.Image`. If CONFIG_AVFILTER
         is True when compiling, or if the video pixel format is the same as the
@@ -426,39 +457,46 @@ cdef class MediaPlayer(object):
         buffers and no copying occurs (see :class:`ffpyplayer.pic.Image`), otherwise
         the buffers are newly created and copied.
 
-        **Args**:
-            *force_refresh* (bool): If True, a new instance of the last frame will
-            be returned again. Defaults to False.
-            *show* (bool): If True a image is returned as normal, if False, no
-            image will be returned, event when one is available. Defaults to True.
+        :Parameters:
 
-        **Returns**:
-            *(frame, val)*.
-            *frame* is None or a 2-tuple.
-            *val* is either 'paused', 'eof', or a float.
+            `force_refresh`: bool
+                If True, a new instance of the last frame will be returned again.
+                Defaults to False.
+            `show`: bool
+                If True a image is returned as normal, if False, no image will be
+                returned, even when one is available. Can be useful if we just need
+                the timestamps or when ``force_refresh`` to just get the timestamps.
+                Defaults to True.
 
-            If *val* is either 'paused' or 'eof', *frame* is None. Otherwise, if
-            *frame* is not None, *val* is the realtime time one should wait before
-            displaying this frame to the user to achieve a play rate of 1.0.
+        :returns:
 
-            If *frame* is not None it's a 2-tuple - *(image, pts)*:
+            `A 2-tuple of (frame, val)` where
+                `frame`: is None or a 2-tuple
+                `val`: is either 'paused', 'eof', or a float
 
-                *image*: The :class:`ffpyplayer.pic.Image` instance containing
-                the frame. The size of the image can change because the output
-                can be resized dynamically (see :meth:`set_size`). If `show` was
-                False, it will be None.
+            If ``val`` is either ``'paused'`` or ``'eof'`` then ``frame`` is None.
 
-                *pts* is the presentation timestamp of this frame. This is the time
-                when the frame should be displayed to the user in video time (i.e.
-                not realtime).
+            Otherwise, if ``frame`` is not None, ``val`` is the realtime time from now
+            one should wait before displaying this frame to the user to achieve a play
+            rate of 1.0.
+
+            Finally, if ``frame`` is not None then it's a 2-tuple of ``(image, pts)`` where:
+
+                `image`: The :class:`ffpyplayer.pic.Image` instance containing
+                    the frame. The size of the image can change because the output
+                    can be resized dynamically (see :meth:`set_size`). If `show` was
+                    False, it will be None.
+                `pts`: The presentation timestamp of this frame. This is the time
+                    when the frame should be displayed to the user in video time (i.e.
+                    not realtime).
 
         .. note::
 
             The audio plays at a normal play rate, independent of when and if
             this function is called. Therefore, 'eof' will only be received when
             the audio is complete, even if all the frames have been read (unless
-            audio is disabled). I.e. a None frame will be sent after all the frames
-            have been read until eof.
+            audio is disabled or sync is set to video). I.e. a None frame will
+            be sent after all the frames have been read until eof.
 
         For example, playing as soon as frames are read::
 
@@ -550,15 +588,17 @@ cdef class MediaPlayer(object):
         return ((next_image, pts), remaining_time)
 
     def get_metadata(self):
-        '''
-        Returns metadata of the file being played.
+        '''Returns metadata of the file being played.
 
-        **Returns**:
-            (dict): Some player metadata. e.g. `frame_rate` is reported as a
-            numerator and denominator. src and sink video sizes correspond to
-            the frame size of the original video, and the frames returned by
-            :meth:`get_frame`, respectively. `src_pix_fmt` is the pixel format
-            of the original input stream.
+        :returns:
+
+            dict:
+                Media file metadata. e.g. `frame_rate` is reported as a
+                numerator and denominator. src and sink video sizes correspond to
+                the frame size of the original video, and the frames returned by
+                :meth:`get_frame`, respectively. `src_pix_fmt` is the pixel format
+                of the original input stream. Duration is the file duration and
+                defaults to None until updated.
 
         ::
 
@@ -600,17 +640,19 @@ cdef class MediaPlayer(object):
     def set_volume(self, volume):
         '''Sets the volume of the audio.
 
-        **Args**:
-            *volume* (float): A value between 0.0 - 1.0.
+        :Parameters:
+
+            `volume`: float
+                A value between 0.0 - 1.0.
         '''
         self.settings.audio_volume = av_clip(volume * SDL_MIX_MAXVOLUME, 0, SDL_MIX_MAXVOLUME)
 
     def get_volume(self):
-        '''
-        Returns the volume of the audio.
+        '''Returns the volume of the audio.
 
-        **Returns**:
-            (float): A value between 0.0 - 1.0.
+        :returns:
+
+            `float`: A value between 0.0 - 1.0.
         '''
         return self.settings.audio_volume / <double>SDL_MIX_MAXVOLUME
 
@@ -636,7 +678,7 @@ cdef class MediaPlayer(object):
             self.ivs.toggle_pause()
 
     def set_pause(self, state):
-        '''Pauses or un-pauses the stream.
+        '''Pauses or un-pauses the file.
 
         :Parameters:
 
@@ -654,14 +696,15 @@ cdef class MediaPlayer(object):
         return bool(self.ivs.paused)
 
     def get_pts(VideoState self):
-        '''
-        Returns the elapsed play time.
+        '''Returns the elapsed play time.
 
-        **Returns**:
-            (float): The amount of the time that the video has been playing.
-            The time is from the clock used for the player (default is audio,
-            see sync option). If the clock is based on video, it should correspond
-            with the pts from get_frame.
+        :returns:
+
+            `float`:
+                The amount of the time that the file has been playing.
+                The time is from the clock used for the player (default is audio,
+                see ``sync`` options). If the clock is based on video, it should correspond
+                with the pts from get_frame.
         '''
         cdef double pos
         cdef int sync_type = self.ivs.get_master_sync_type()
@@ -681,16 +724,17 @@ cdef class MediaPlayer(object):
         return pos
 
     def set_size(self, int width=-1, int height=-1):
-        '''
-        Dynamically sets the size of the frames returned by get_frame.
+        '''Dynamically sets the size of the frames returned by :meth:`get_frame`.
 
-        **Args**:
-            *width*, *height* (int): The width and height of the output frames.
-            A value of 0 will set that parameter to the source height/width.
-            A value of -1 for one of the parameters, will result in a value of that
-            parameter that maintains the original aspect ratio.
+        :Parameters:
 
-        ::
+            `width, height`: int
+                The width and height of the output frames.
+                A value of 0 will set that parameter to the source width/height.
+                A value of -1 for one of the parameters, will result in a value of that
+                parameter that maintains the original aspect ratio.
+
+        For example ::
 
             >>> print player.get_frame()[0][0].get_size()
             (704, 480)
@@ -721,7 +765,7 @@ cdef class MediaPlayer(object):
             >>> print player.get_frame()[0][0].get_size()
             (200, 136)
 
-        Note that it takes a few calls to flush the old frames.
+        Note, that it takes a few calls to flush the old frames.
 
         .. note::
 
@@ -734,11 +778,10 @@ cdef class MediaPlayer(object):
         self.settings.screen_height = height
 
     def get_output_pix_fmt(self):
-        '''
-        Returns the pixel fmt in which output images are returned when calling
+        '''Returns the pixel fmt in which output images are returned when calling
         :attr:`get_frame`.
 
-        You can set the output format by specifying `out_fmt` in `ff_opts`
+        You can set the output format by specifying ``out_fmt`` in ``ff_opts``
         when creating this instance. Also, if avfilter is enabled, you can
         change it dynamically with :meth:`set_output_pix_fmt`.
 
@@ -747,30 +790,24 @@ cdef class MediaPlayer(object):
             >>> print(player.get_output_pix_fmt())
             rgb24
         '''
-        return self.vid_sink.get_out_pix_fmt()
+        return self.ivs.get_out_pix_fmt()
 
     def set_output_pix_fmt(self, pix_fmt):
-        '''
-        Sets the pixel fmt in which output images are returned when calling
-        :attr:`get_frame`.
+        '''Sets the pixel fmt in which output images are returned when calling
+        :meth:`get_frame`.
 
-        ::
+        For example::
 
             >>> player.set_output_pix_fmt('yuv420p')
 
-        sets the output format to use, this will only take effect on images that
-        have not been queued yet.
+        sets the output format to use. This will only take effect on images that
+        have not been queued yet so it may take a few calls to :meth:`get_frame`
+        to reflect the new pixel format.
 
         .. note::
 
             if CONFIG_AVFILTER was False when compiling, this function will raise
             an exception.
-
-        .. note::
-
-            It may take a few calls to :attr:`get_frame` before it starts returning
-            frames in the newly set output format. If images have been queued internally
-            before this is called, they will still be returned in the old format.
         '''
         cdef AVPixelFormat fmt
         if not CONFIG_AVFILTER:
@@ -779,28 +816,29 @@ cdef class MediaPlayer(object):
         fmt = av_get_pix_fmt(pix_fmt)
         if fmt == AV_PIX_FMT_NONE:
             raise Exception('Unrecognized output pixel format {}.'.format(pix_fmt))
-        self.vid_sink.set_out_pix_fmt(fmt)
+        self.ivs.set_out_pix_fmt(fmt)
 
     # Currently, if a stream is re-opened when the stream was not open before
     # it'l cause some seeking. We can probably remove it by setting a seek flag
     # only for this stream and not for all, provided is not the master clock stream.
     def request_channel(self, stream_type, action='cycle', int requested_stream=-1):
-        '''
-        Opens or closes a stream dynamically.
+        '''Opens or closes a stream dynamically.
 
         This function may result in seeking when opening a new stream.
 
-        **Args**:
-            *stream_type* (str): The stream group on which to operate. Can be one of
-            'audio', 'video', or 'subtitle'.
+        :Parameters:
 
-            *action* (str): The action to preform. Can be one of 'open', 'close',
-            or 'cycle'. A value of 'cycle' will close the current stream and
-            open the next stream in this group.
-
-            *requested_stream* (int): The stream to open next when *action* is
-            'cycle' or 'open'. If -1, the next stream will be opened. Otherwise,
-            this stream will be attempted to be opened.
+            `stream_type`: str
+                The stream group on which to operate. Can be one of ``'audio'``,
+                ``'video'``, or ``'subtitle'``.
+            `action`: str
+                The action to perform. Can be one of ``'open'``, ``'close'``, or
+                ``'cycle'``. A value of 'cycle' will close the current stream and
+                open the next stream in this group.
+            `requested_stream`: int
+                The stream to open next when ``action`` is ``'cycle'`` or ``'open'``.
+                If ``-1``, the next stream will be opened. Otherwise, this stream will
+                be attempted to be opened.
         '''
         cdef int stream, old_index
         if stream_type == 'audio':
@@ -820,30 +858,31 @@ cdef class MediaPlayer(object):
         elif action == 'close':
             self.ivs.stream_component_close(old_index)
 
-    def seek(self, pts, relative=True, seek_by_bytes=False, accurate=True):
-        '''
-        Seeks in the current streams.
+    def seek(self, pts, relative=True, seek_by_bytes='auto', accurate=True):
+        '''Seeks in the current streams.
 
         Seeks to the desired timepoint as close as possible while not exceeding
         that time.
 
-        **Args**:
-            *pts* (float): The timestamp to seek to (in seconds).
+        :Parameters:
 
-            *relative* (bool): Whether the pts parameter is interpreted as the
-            time offset from the current stream position.
+            `pts`: float
+                The timestamp to seek to (in seconds).
+            `relative`: bool
+                Whether the pts parameter is interpreted as the
+                time offset from the current stream position (can be negative if True).
+            `seek_by_bytes`: bool or ``'auto'``
+                Whether we seek based on the position in bytes or in time. In some
+                instances seeking by bytes may be more accurate (don't ask me which).
+                If ``'auto'``, the default, it is automatically decided based on
+                the media.
+            `accurate`: bool
+                Whether to do finer seeking if we didn't seek directly to the requested
+                frame. This is likely to be slower because after the coarser seek,
+                we have to walk through the frames until the requested frame is
+                reached. If paused or we reached eof this is ignored. Defaults to True.
 
-            *seek_by_bytes* (bool): Whether we seek based on the position in bytes
-            or in time. In some instances seeking by bytes may be more accurate
-            (don't ask me which).
-
-            *accurate*: (bool): Whether to do finer seeking if we didn't seek
-            directly to the requested frame. This is likely to be slower because
-            after the coarser seek, we have to walk through the frames until
-            the requested frame is reached. If paused or we reached eof this is
-            ignored.
-
-        ::
+        For example::
 
             >>> print player.get_frame()[0][1]
             1016.392
@@ -862,12 +901,29 @@ cdef class MediaPlayer(object):
         '''
         cdef int c_relative = relative
         cdef int c_accurate = accurate
-        cdef int c_seek_by_bytes = seek_by_bytes
+        cdef int c_seek_by_bytes
         cdef double c_pts = pts
+        if seek_by_bytes == 'auto':
+            c_seek_by_bytes = self.settings.seek_by_bytes > 0
+        else:
+            c_seek_by_bytes = seek_by_bytes
+
         with nogil:
             self._seek(c_pts, c_relative, c_seek_by_bytes, c_accurate)
 
     def seek_to_chapter(self, increment, accurate=True):
+        '''Seeks forwards or backwards (if negative) by ``increment`` chapters.
+
+        :Parameters:
+
+            `increment`: int
+                The number of chapters to seek forwards or backwards to.
+            `accurate`: bool
+                Whether to do finer seeking if we didn't seek directly to the requested
+                frame. This is likely to be slower because after the coarser seek,
+                we have to walk through the frames until the requested frame is
+                reached. Defaults to True.
+        '''
         cdef int c_increment = increment
         cdef int c_accurate = accurate
         with nogil:

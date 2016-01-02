@@ -3,7 +3,7 @@ include '../includes/ffmpeg.pxi'
 
 from ffpyplayer.threading cimport MTGenerator, MTCond, MTMutex
 from ffpyplayer.player.queue cimport FFPacketQueue
-from ffpyplayer.player.sink cimport VideoSettings
+from ffpyplayer.player.core cimport VideoSettings
 
 cdef struct Frame:
     AVFrame *frame

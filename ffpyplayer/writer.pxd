@@ -8,8 +8,10 @@ cdef class MediaWriter(object):
     cdef list config
     cdef AVDictionary *format_opts
     cdef int64_t total_size
+    cdef int closed
 
-    cdef void clean_up(MediaWriter self)
+    cpdef close()
+    cdef void clean_up(MediaWriter self) nogil
 
 
 cdef struct MediaStream:
