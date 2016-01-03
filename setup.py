@@ -7,7 +7,7 @@ import os
 import sys
 from os.path import join, exists, isdir, dirname, abspath
 from os import environ, listdir
-from ffpyplayer import __version__
+import ffpyplayer
 try:
     import Cython.Compiler.Options
     #Cython.Compiler.Options.annotate = True
@@ -124,14 +124,14 @@ else:
     objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                    'avutil', 'swscale', 'swresample', 'postproc']
     for libname in objects[:]:
-        for key, val in c_options.iteritems():
+        for key, val in c_options.items():
             if key.endswith(libname) and not val:
                 objects.remove(libname)
                 break
 
     flags = {'include_dirs': [], 'library_dirs': [], 'libraries': []}
     if ffmpeg_lib is None and ffmpeg_include is None:
-        flags = pkgconfig(*objects)
+        flags = pkgconfig(*['lib' + l for l in objects])
 
     library_dirs = flags.get('library_dirs', []) if ffmpeg_lib is None \
         else [ffmpeg_lib]
@@ -240,7 +240,7 @@ with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'wb') as f:
 #endif
 
 ''')
-    for k, v in c_options.iteritems():
+    for k, v in c_options.items():
         f.write('#define %s %d\n' % (k.upper(), int(v)))
     f.write('''
 #endif
@@ -248,7 +248,7 @@ with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'wb') as f:
 
 print('Generating ffconfig.pxi')
 with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'wb') as f:
-    for k, v in c_options.iteritems():
+    for k, v in c_options.items():
         f.write('DEF %s = %d\n' % (k.upper(), int(v)))
 
 include_dirs.extend(
@@ -268,7 +268,7 @@ for e in ext_modules:
     e.cython_directives = {"embedsignature": True}
 
 setup(name='ffpyplayer',
-      version=__version__,
+      version=ffpyplayer.__version__,
       author='Matthew Einhorn',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',

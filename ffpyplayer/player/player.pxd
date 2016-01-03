@@ -11,13 +11,6 @@ cdef class MediaPlayer(object):
         VideoSettings settings
         MTGenerator mt_gen
         VideoState ivs
-        bytes py_window_title
-        bytes py_vfilters
-        bytes py_afilters
-        bytes py_avfilters
-        bytes py_audio_codec_name
-        bytes py_video_codec_name
-        bytes py_subtitle_codec_name
         Image next_image
         int is_closed
         dict ff_opts

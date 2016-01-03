@@ -113,8 +113,6 @@ cdef class VideoState(object):
         double last_clock
         PyObject *self_id
 
-        bytes py_pat
-        bytes py_m
         dict metadata
 
         object callback
@@ -125,8 +123,9 @@ cdef class VideoState(object):
     cdef int cInit(self, MTGenerator mt_gen, VideoSettings *player, int paused,
                    AVPixelFormat out_fmt) nogil except 1
     cdef int cquit(VideoState self) nogil except 1
-    cdef int request_thread(self, char *name, char *msg) nogil except 1
-    cdef int request_thread_py(self, char *name, char *msg) except 1
+    cdef int request_thread_s(self, char *name, char *msg) nogil except 1
+    cdef int request_thread(self, char *name, object msg) nogil except 1
+    cdef int request_thread_py(self, object name, object msg) except 1
     cdef object get_out_pix_fmt(self)
     cdef void set_out_pix_fmt(self, AVPixelFormat out_fmt)
     cdef int get_master_sync_type(VideoState self) nogil

@@ -7,7 +7,7 @@ include "../includes/inline_funcs.pxi"
 cdef extern from "string.h" nogil:
     void * memset(void *, int, size_t)
 
-cdef void raise_py_exception(bytes msg) nogil except *:
+cdef void raise_py_exception(msg) nogil except *:
     with gil:
         raise Exception(msg)
 
@@ -143,10 +143,10 @@ cdef class FrameQueue(object):
             av_frame_unref(vp.frame)
             av_frame_move_ref(vp.frame, src_frame)
         else:
-            e = av_dict_get(player.sws_dict, "sws_flags", NULL, 0)
+            e = av_dict_get(player.sws_dict, b"sws_flags", NULL, 0)
             if e != NULL:
                 cls = sws_get_class()
-                o = av_opt_find(&cls, "sws_flags", NULL, 0,
+                o = av_opt_find(&cls, b"sws_flags", NULL, 0,
                                                    AV_OPT_SEARCH_FAKE_OBJ);
                 ret = av_opt_eval_flags(&cls, o, e.value, <int *>&player.sws_flags)
                 if ret < 0:
@@ -156,7 +156,7 @@ cdef class FrameQueue(object):
             vp.width, vp.height, <AVPixelFormat>src_frame.format, vp.width, vp.height,\
             vp.pix_fmt, player.sws_flags, NULL, NULL, NULL)
             if player.img_convert_ctx == NULL:
-                av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n")
+                av_log(NULL, AV_LOG_FATAL, b"Cannot initialize the conversion context\n")
                 raise_py_exception(b'Cannot initialize the conversion context.')
             sws_scale(player.img_convert_ctx, src_frame.data, src_frame.linesize,
                       0, vp.height, vp.frame.data, vp.frame.linesize)
@@ -177,7 +177,7 @@ cdef class FrameQueue(object):
             if vp.need_conversion:
                 if (av_image_alloc(vp.frame.data, vp.frame.linesize, vp.width,
                                    vp.height, vp.pix_fmt, 1) < 0):
-                    av_log(NULL, AV_LOG_FATAL, "Could not allocate avframe buffer.\n")
+                    av_log(NULL, AV_LOG_FATAL, b"Could not allocate avframe buffer.\n")
                     raise_py_exception(b'Could not allocate avframe buffer')
 
                 vp.frame.width = vp.width
@@ -206,7 +206,7 @@ cdef class FrameQueue(object):
         cdef Frame *vp
 
         IF 0:# and defined(DEBUG_SYNC):
-            av_log(NULL, AV_LOG_DEBUG, "frame_type=%c pts=%0.3f\n",
+            av_log(NULL, AV_LOG_DEBUG, b"frame_type=%c pts=%0.3f\n",
                    av_get_picture_type_char(src_frame.pict_type), pts)
 
         vp = self.frame_queue_peek_writable()

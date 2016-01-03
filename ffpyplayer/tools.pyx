@@ -9,14 +9,18 @@ devices, pixel formats and more.
 __all__ = ('initialize_sdl_aud', 'loglevels', 'codecs_enc',
            'codecs_dec', 'pix_fmts', 'formats_in', 'formats_out',
            'set_log_callback', 'get_log_callback', 'set_default_loglevel',
-           'get_codecs')
+           'get_codecs', 'encode_to_bytes', 'decode_to_unicode',
+           'convert_to_str')
 
 include "includes/ffmpeg.pxi"
 
 from ffpyplayer.threading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
 import ffpyplayer.threading  # for sdl init
 import re
+import sys
 from functools import partial
+
+cdef int PY3 = sys.version_info > (3, )
 
 cdef int sdl_aud_initialized = 0
 def initialize_sdl_aud():
@@ -86,22 +90,28 @@ formats_out = get_fmts(output=True)[0]
 '''A list of all the formats (e.g. file formats) available for writing. '''
 
 cdef object _log_callback = None
-cdef int _print_prefix
 cdef MTMutex _log_mutex= MTMutex(SDL_MT)
 
 
+cdef void call_callback(char *line, int level):
+    cdef bytes l
+    cdef object callback = _log_callback
+    if callback is None:
+        return
+
+    l = line
+    if PY3:
+        _log_callback(l.decode('utf8'), _loglevel_inverse[level])
+    else:
+        _log_callback(l, _loglevel_inverse[level])
+
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
-    if level == AV_LOG_TRACE:
-        return
-    global _print_prefix
-    _log_mutex.lock()
-    _print_prefix = 1
-    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &_print_prefix)
-    if _log_callback is not None:
-        with gil:
-            _log_callback(str(line), _loglevel_inverse[level])
-    _log_mutex.unlock()
+    cdef int print_prefix = 1
+    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &print_prefix)
+
+    with gil:
+        call_callback(line, level)
 
 def set_log_callback(object callback, int default_only=False):
     '''Sets a callback to be used by ffmpeg when emitting logs. It is thread safe.
@@ -160,9 +170,11 @@ def set_default_loglevel(loglevel):
     '''This sets the FFmpeg log level to be used when no log :func:`set_log_callback`
     is set and ffmpeg itself handles the log and prints it to stderr.
     '''
+    cdef bytes level
     if loglevel not in loglevels:
         raise ValueError('Invalid loglevel {}'.format(loglevel))
-    av_log_set_level(loglevels[loglevel])
+    level = loglevels[loglevel].encode('utf8')
+    av_log_set_level(level)
 
 
 cpdef get_codecs(
@@ -210,7 +222,7 @@ cpdef get_codecs(
              subtitle and codec.type == AVMEDIA_TYPE_SUBTITLE or
              attachment and codec.type == AVMEDIA_TYPE_ATTACHMENT or
              other)):
-            codecs.append(codec.name)
+            codecs.append(<str><bytes>codec.name)
         codec = av_codec_next(codec)
     return sorted(codecs)
 
@@ -220,7 +232,7 @@ cdef list list_pixfmts():
     desc = av_pix_fmt_desc_next(desc)
 
     while desc != NULL:
-        fmts.append(desc.name)
+        fmts.append(<str><bytes>desc.name)
         desc = av_pix_fmt_desc_next(desc)
     return sorted(fmts)
 
@@ -257,9 +269,9 @@ cpdef get_fmts(int input=False, int output=False):
         ofmt = av_oformat_next(ofmt)
         while ofmt != NULL:
             if ofmt.name != NULL:
-                names = ofmt.name.split(',')
-                full_name = ofmt.long_name if ofmt.long_name != NULL else ''
-                ext = ofmt.extensions.split(',') if ofmt.extensions != NULL else []
+                names = (<str><bytes>ofmt.name).split(',')
+                full_name = <str><bytes>ofmt.long_name if ofmt.long_name != NULL else ''
+                ext = (<str><bytes>ofmt.extensions).split(',') if ofmt.extensions != NULL else []
 
                 fmts.extend(names)
                 full_names.extend([full_name, ] * len(names))
@@ -270,9 +282,9 @@ cpdef get_fmts(int input=False, int output=False):
         ifmt = av_iformat_next(ifmt)
         while ifmt != NULL:
             if ifmt.name != NULL:
-                names = ifmt.name.split(',')
-                full_name = ifmt.long_name if ifmt.long_name != NULL else ''
-                ext = ifmt.extensions.split(',') if ifmt.extensions != NULL else []
+                names = (<str><bytes>ifmt.name).split(',')
+                full_name = <str><bytes>ifmt.long_name if ifmt.long_name != NULL else ''
+                ext = (<str><bytes>ifmt.extensions).split(',') if ifmt.extensions != NULL else []
 
                 fmts.extend(names)
                 full_names.extend([full_name, ] * len(names))
@@ -319,7 +331,8 @@ def get_supported_framerates(codec_name, rate=()):
     cdef AVRational rate_struct
     cdef list rate_list = []
     cdef int i = 0
-    cdef AVCodec *codec = avcodec_find_encoder_by_name(codec_name)
+    cdef bytes name = codec_name.encode('utf8')
+    cdef AVCodec *codec = avcodec_find_encoder_by_name(name)
     if codec == NULL:
         raise Exception('Encoder codec %s not available.' % codec_name)
     if codec.supported_framerates == NULL:
@@ -369,24 +382,26 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
         'gray16le', 'gbrp9le', 'gbrp10le', 'gbrp12le', 'gbrp14le']
     '''
     cdef AVPixelFormat fmt
+    cdef bytes name = codec_name.encode('utf8'), fmt_b = pix_fmt.encode('utf8')
     cdef list fmt_list = []
     cdef int i = 0, loss = 0, has_alpha = 0
-    cdef AVCodec *codec = avcodec_find_encoder_by_name(codec_name)
+    cdef AVCodec *codec = avcodec_find_encoder_by_name(name)
     if codec == NULL:
         raise Exception('Encoder codec %s not available.' % codec_name)
-    if pix_fmt and av_get_pix_fmt(pix_fmt) == AV_PIX_FMT_NONE:
+    if pix_fmt and av_get_pix_fmt(fmt_b) == AV_PIX_FMT_NONE:
         raise Exception('Pixel format not recognized.')
     if codec.pix_fmts == NULL:
         return fmt_list
 
     while codec.pix_fmts[i] != AV_PIX_FMT_NONE:
-        fmt_list.append(av_get_pix_fmt_name(codec.pix_fmts[i]))
+        fmt_list.append(<str><bytes>av_get_pix_fmt_name(codec.pix_fmts[i]))
         i += 1
     if pix_fmt:
-        has_alpha = av_pix_fmt_desc_get(av_get_pix_fmt(pix_fmt)).nb_components % 2 == 0
-        fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, av_get_pix_fmt(pix_fmt),
+        # XXX: fix this to check if NULL (although kinda already checked above)
+        has_alpha = av_pix_fmt_desc_get(av_get_pix_fmt(fmt_b)).nb_components % 2 == 0
+        fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, av_get_pix_fmt(fmt_b),
                                                 has_alpha, &loss)
-        i = fmt_list.index(av_get_pix_fmt_name(fmt))
+        i = fmt_list.index(<str><bytes>av_get_pix_fmt_name(fmt))
         pix = fmt_list[i]
         del fmt_list[i]
         fmt_list.insert(0, pix)
@@ -400,22 +415,24 @@ def emit_library_info():
     print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
 
 def _dshow_log_callback(log, message, level):
-    log.append((message, level))
+    log.append((<bytes>message, level))
 
-cdef int list_dshow_opts(list log, str stream, str option) except 1:
+cdef int list_dshow_opts(list log, bytes stream, bytes option) except 1:
     cdef AVFormatContext *fmt = NULL
     cdef AVDictionary* opts = NULL
     cdef AVInputFormat *ifmt
     cdef object old_callback
 
-    ifmt = av_find_input_format("dshow")
+    ifmt = av_find_input_format(b"dshow")
     if ifmt == NULL:
         raise Exception('Direct show not found.')
 
-    av_dict_set(&opts, option, "true", 0)
+    av_dict_set(&opts, option, b"true", 0)
+    _log_mutex.lock()
     old_callback = set_log_callback(partial(_dshow_log_callback, log))
     avformat_open_input(&fmt, stream, ifmt, &opts)
     set_log_callback(old_callback)
+    _log_mutex.unlock()
     avformat_close_input(&fmt)
     av_dict_free(&opts)
     return 0
@@ -475,16 +492,19 @@ def list_dshow_devices():
     cdef list res = []
     cdef dict video = {}, audio = {}, curr = None
     cdef object last
+    cdef bytes msg
     cdef dict name_map = {}
 
     # list devices
-    list_dshow_opts(res, 'dummy', 'list_devices')
+    list_dshow_opts(res, b'dummy', b'list_devices')
     pvid = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow video devices.*')
     paud = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow audio devices.*')
     pname = re.compile(' *\[dshow *@ *[\w]+\] *"(.+)"\\n.*')
     apname = re.compile(' *\[dshow *@ *[\w]+\] *Alternative name *"(.+)"\\n.*')
     m = m2 = None
-    for message, level in res:
+    for msg, level in res:
+        message = msg.decode('utf8') if PY3 else msg
+
         switched = False
         # check whether we switch to audio/video opts
         if pvid.match(message):
@@ -507,7 +527,7 @@ def list_dshow_devices():
             m = m2 = None
 
         if curr is None:
-            av_log(NULL, loglevels[level], message)
+            av_log(NULL, loglevels[level], msg)
             continue
         elif switched:
             continue
@@ -539,18 +559,22 @@ def list_dshow_devices():
     for video_stream in video:
         res = []
         last = ()
-        list_dshow_opts(res, "video=%s" % video_stream, 'list_options')
-        for message, level in res:
+        list_dshow_opts(res, ("video=%s" % video_stream).encode('utf8'), b'list_options')
+
+        for msg, level in res:
+            message = msg.decode('utf8') if PY3 else msg
             mpix = pvid_pix.match(message)
             mcodec = pvid_codec.match(message)
             mopts = pvid_opts.match(message)
+
             if mpix:
                 last = (mpix.group(1), '')
             if mcodec:
                 last = ('', mcodec.group(1))
             if mopts and not last:
-                av_log(NULL, loglevels[level], message)
+                av_log(NULL, loglevels[level], msg)
                 continue
+
             if mopts:
                 opts = (last[0], last[1], (int(mopts.group(2)), int(mopts.group(3))),
                         (int(mopts.group(1)), int(mopts.group(4))))
@@ -559,7 +583,8 @@ def list_dshow_devices():
                 last = ()
             if (not mpix) and (not mcodec) and (not mopts) and\
             (not pheader1.match(message)) and (not pheader2.match(message)):
-                av_log(NULL, loglevels[level], message)
+                av_log(NULL, loglevels[level], msg)
+
         video[video_stream] = sorted(list(set(video[video_stream])))
 
     # list audio devices options
@@ -567,9 +592,11 @@ def list_dshow_devices():
  +rate= *(\d+) +max +ch= *(\d+) +bits= *(\d+) +rate= *(\d+).*')
     for audio_stream in audio:
         res = []
-        list_dshow_opts(res, "audio=%s" % audio_stream, 'list_options')
-        for message, level in res:
+        list_dshow_opts(res, ("audio=%s" % audio_stream).encode('utf8'), b'list_options')
+        for msg, level in res:
+            message = msg.decode('utf8') if PY3 else msg
             mopts = paud_opts.match(message)
+
             if mopts:
                 opts = ((int(mopts.group(1)), int(mopts.group(4))),
                         (int(mopts.group(2)), int(mopts.group(5))),
@@ -577,7 +604,71 @@ def list_dshow_devices():
                 if opts not in audio[audio_stream]:
                     audio[audio_stream].append(opts)
             elif (not pheader1.match(message)) and (not pheader2.match(message)):
-                av_log(NULL, loglevels[level], message)
+                av_log(NULL, loglevels[level], msg)
         audio[audio_stream] = sorted(list(set(audio[audio_stream])))
 
     return video, audio, name_map
+
+
+cdef object encode_text(object item, int encode):
+    if isinstance(item, basestring):
+        if encode:
+            return item.encode('utf8')
+        return item.decode('utf8')
+
+    if isinstance(item, dict):
+        for k, v in item.items():
+            item[k] = encode_text(v, encode)
+        return item
+
+    try:
+        iter(item)
+    except TypeError:
+        return item
+
+    return item.__class__((encode_text(i, encode) for i in item))
+
+def encode_to_bytes(item):
+    '''Takes the item and walks it recursively whether it's a string, int, iterable,
+    etc. and encodes all the strings to utf-8.
+
+    :Parameters:
+
+        `item`: anything
+            The object to be walked and encoded.
+
+    :returns:
+
+        An object identical to the ``item``, but with all strings encoded to utf-8.
+    '''
+    return encode_text(item, 1)
+
+def decode_to_unicode(item):
+    '''Takes the item and walks it recursively whether it's a string, int, iterable,
+    etc. and encodes all the strings to utf-8.
+
+    :Parameters:
+
+        `item`: anything
+            The object to be walked and encoded.
+
+    :returns:
+
+        An object identical to the ``item``, but with all strings encoded to utf-8.
+    '''
+    return encode_text(item, 0)
+
+def convert_to_str(item):
+    '''Takes the item and walks it recursively whether it's a string, int, iterable,
+    etc. and encodes all the strings to utf-8.
+
+    :Parameters:
+
+        `item`: anything
+            The object to be walked and encoded.
+
+    :returns:
+
+        An object identical to the ``item``, but with all strings encoded to utf-8.
+    '''
+    return encode_text(item, not PY3)

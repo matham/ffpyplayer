@@ -197,8 +197,8 @@ cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
                 Py_DECREF(<PyObject *>mtx[0])
             res = 0
     except:
-        msg = traceback.format_exc()
-        #av_log(NULL, AV_LOG_ERROR, msg)
+        msg = traceback.format_exc().encode('utf8')
+        av_log(NULL, AV_LOG_ERROR, msg)
     return res
 
 cdef int SDL_lockmgr(void ** mtx, AVLockOp op) nogil:
@@ -231,8 +231,8 @@ cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
                 Py_DECREF(<PyObject *>mtx[0])
             res = 0
     except:
-        msg = traceback.format_exc()
-        #av_log(NULL, AV_LOG_ERROR, msg)
+        msg = traceback.format_exc().encode('utf8')
+        av_log(NULL, AV_LOG_ERROR, msg)
         res = 1
     return res
 

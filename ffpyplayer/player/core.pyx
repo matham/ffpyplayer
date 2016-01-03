@@ -1,4 +1,3 @@
-#cython: cdivision=True
 
 __all__ = ('VideoState', )
 
@@ -21,7 +20,7 @@ from os import environ
 cdef int IS_ANDROID = 0
 
 cdef extern from "Python.h":
-    PyObject* PyString_FromString(const char *)
+    PyObject *PyUnicode_FromString(const char *u)
     void Py_DECREF(PyObject *)
 
 if "ANDROID_ARGUMENT" in environ:
@@ -77,7 +76,7 @@ cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 cdef int *next_sample_rates = [0, 44100, 48000, 96000, 192000]
 cdef int next_sample_rates_len = 5
 
-cdef bytes sub_ass = b'ass', sub_text = b'text', sub_fmt
+cdef object sub_ass = <str>b'ass', sub_text = <str>b'text', sub_fmt
 
 cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
@@ -86,10 +85,11 @@ cdef int read_thread_enter(void *obj_id) except? 1 with gil:
         with nogil:
             return vs.read_thread()
     except Exception as e:
-        msg = traceback.format_exc()
-        av_log(NULL, AV_LOG_FATAL, e)
+        msg = str(e).encode('utf8')
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.request_thread('read:error', e)
+        msg = traceback.format_exc().encode('utf8')
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.request_thread_s('read:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -105,10 +105,11 @@ cdef int video_thread_enter(void *obj_id) except? 1 with gil:
         with nogil:
             return vs.video_thread()
     except Exception as e:
-        msg = traceback.format_exc()
-        av_log(NULL, AV_LOG_FATAL, e)
+        msg = str(e).encode('utf8')
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.request_thread('video:error', e)
+        msg = traceback.format_exc().encode('utf8')
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.request_thread_s('video:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -124,10 +125,11 @@ cdef int audio_thread_enter(void *obj_id) except? 1 with gil:
         with nogil:
             return vs.audio_thread()
     except Exception as e:
-        msg = traceback.format_exc()
-        av_log(NULL, AV_LOG_FATAL, e)
+        msg = str(e).encode('utf8')
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.request_thread('audio:error', e)
+        msg = traceback.format_exc().encode('utf8')
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.request_thread_s('audio:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -143,10 +145,11 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
         with nogil:
             return vs.subtitle_thread()
     except Exception as e:
-        msg = traceback.format_exc()
-        av_log(NULL, AV_LOG_FATAL, e)
+        msg = str(e).encode('utf8')
         av_log(NULL, AV_LOG_FATAL, msg)
-        vs.request_thread('subtitle:error', e)
+        msg = traceback.format_exc().encode('utf8')
+        av_log(NULL, AV_LOG_FATAL, msg)
+        vs.request_thread_s('subtitle:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
         else:
@@ -158,7 +161,7 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
 cdef int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec) nogil:
     cdef int ret = avformat_match_stream_specifier(s, st, spec)
     if ret < 0:
-        av_log(s, AV_LOG_ERROR, "Invalid stream specifier: %s.\n", spec)
+        av_log(s, AV_LOG_ERROR, b"Invalid stream specifier: %s.\n", spec)
     return ret
 
 cdef AVDictionary *filter_codec_opts(AVDictionary *opts, AVCodecID codec_id,
@@ -181,20 +184,20 @@ cdef AVDictionary *filter_codec_opts(AVDictionary *opts, AVCodecID codec_id,
             codec = avcodec_find_decoder(codec_id)
 
     if st.codec.codec_type == AVMEDIA_TYPE_VIDEO:
-        prefix  = 'v'
+        prefix  = b'v'
         flags  |= AV_OPT_FLAG_VIDEO_PARAM
     elif st.codec.codec_type ==  AVMEDIA_TYPE_AUDIO:
-        prefix  = 'a'
+        prefix  = b'a'
         flags  |= AV_OPT_FLAG_AUDIO_PARAM
     elif st.codec.codec_type ==  AVMEDIA_TYPE_SUBTITLE:
-        prefix  = 's'
+        prefix  = b's'
         flags  |= AV_OPT_FLAG_SUBTITLE_PARAM
 
     while 1:
-        t = av_dict_get(opts, "", t, AV_DICT_IGNORE_SUFFIX)
+        t = av_dict_get(opts, b"", t, AV_DICT_IGNORE_SUFFIX)
         if t == NULL:
             break
-        p = strchr(t.key, ':')
+        p = strchr(t.key, b':')
 
         # check stream specification in opt name
         if p != NULL:
@@ -215,16 +218,16 @@ cdef AVDictionary *filter_codec_opts(AVDictionary *opts, AVCodecID codec_id,
             av_dict_set(&ret, t.key + 1, t.value, 0)
 
         if p != NULL:
-            p[0] = ':'
+            p[0] = b':'
     return ret
 
 cdef int is_realtime(AVFormatContext *s) nogil:
-    if((not strcmp(s.iformat.name, "rtp")) or
-       (not strcmp(s.iformat.name, "rtsp")) or
-       not strcmp(s.iformat.name, "sdp")):
+    if((not strcmp(s.iformat.name, b"rtp")) or
+       (not strcmp(s.iformat.name, b"rtsp")) or
+       not strcmp(s.iformat.name, b"sdp")):
         return 1
-    if s.pb and ((not strncmp(s.filename, "rtp:", 4)) or
-                 not strncmp(s.filename, "udp:", 4)):
+    if s.pb and ((not strncmp(s.filename, b"rtp:", 4)) or
+                 not strncmp(s.filename, b"udp:", 4)):
         return 1
     return 0
 
@@ -236,7 +239,7 @@ cdef AVDictionary **setup_find_stream_info_opts(AVFormatContext *s, AVDictionary
         return NULL
     opts = <AVDictionary **>av_mallocz(s.nb_streams * sizeof(AVDictionary *))
     if opts == NULL:
-        av_log(NULL, AV_LOG_ERROR, "Could not alloc memory for stream options.\n")
+        av_log(NULL, AV_LOG_ERROR, b"Could not alloc memory for stream options.\n")
         return NULL
     for i in range(s.nb_streams):
         opts[i] = filter_codec_opts(codec_opts, s.streams[i].codec.codec_id,
@@ -246,10 +249,10 @@ cdef AVDictionary **setup_find_stream_info_opts(AVFormatContext *s, AVDictionary
 cdef double get_rotation(AVStream *st) nogil:
     cdef double theta = 0
     cdef char *tail
-    cdef AVDictionaryEntry *rotate_tag = av_dict_get(st.metadata, "rotate", NULL, 0)
+    cdef AVDictionaryEntry *rotate_tag = av_dict_get(st.metadata, b"rotate", NULL, 0)
     cdef uint8_t* displaymatrix = av_stream_get_side_data(st, AV_PKT_DATA_DISPLAYMATRIX, NULL)
 
-    if rotate_tag and rotate_tag.value[0] and strcmp(rotate_tag.value, "0"):
+    if rotate_tag and rotate_tag.value[0] and strcmp(rotate_tag.value, b"0"):
         theta = av_strtod(rotate_tag.value, &tail)
         if tail[0]:
             theta = 0
@@ -260,8 +263,7 @@ cdef double get_rotation(AVStream *st) nogil:
 
     return theta
 
-cdef bytes py_pat = <bytes>("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" +
-                            PRId64 + "/%" + PRId64 + "   \r")
+cdef bytes py_pat = <bytes>("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" + PRId64 + "/%" + PRId64 + "   \r")
 cdef char *py_pat_str = py_pat
 cdef bytes av_str = b"A-V", mv_str = b"M-V", ma_str = b"M-A", empty_str = b"   "
 cdef char *str_av = av_str
@@ -365,13 +367,19 @@ cdef class VideoState(object):
 
         return 0
 
-    cdef int request_thread(self, char *name, char *msg) nogil except 1:
+    cdef int request_thread_s(self, char *name, char *msg) nogil except 1:
         if self.callback is None:
             return 0
         with gil:
-            return self.request_thread_py(name, msg)
+            return self.request_thread_py(<str><bytes>name, <str><bytes>msg)
 
-    cdef int request_thread_py(self, char *name, char *msg) except 1:
+    cdef int request_thread(self, char *name, object msg) nogil except 1:
+        if self.callback is None:
+            return 0
+        with gil:
+            return self.request_thread_py(<str><bytes>name, msg)
+
+    cdef int request_thread_py(self, object name, object msg) except 1:
         cdef object f
         if self.is_ref:
             f = self.callback()
@@ -382,7 +390,7 @@ cdef class VideoState(object):
         return 0
 
     cdef object get_out_pix_fmt(self):
-        return av_get_pix_fmt_name(self.pix_fmt)
+        return <str><bytes>av_get_pix_fmt_name(self.pix_fmt)
 
     cdef void set_out_pix_fmt(self, AVPixelFormat out_fmt):
         '''
@@ -484,7 +492,7 @@ cdef class VideoState(object):
         if i >= self.ic.nb_chapters:
             return 0
 
-        av_log(NULL, AV_LOG_VERBOSE, "Seeking to chapter %d.\n", i)
+        av_log(NULL, AV_LOG_VERBOSE, b"Seeking to chapter %d.\n", i)
         self.stream_seek(av_rescale_q(self.ic.chapters[i].start, self.ic.chapters[i].time_base, AV_TIME_BASE_Q),
                          0, 0, flush)
         return 0
@@ -523,7 +531,7 @@ cdef class VideoState(object):
                 elif diff >= sync_threshold:
                     delay = 2 * delay
 
-        av_log(NULL, AV_LOG_TRACE, "video: delay=%0.3f A-V=%f\n", delay, -diff)
+        av_log(NULL, AV_LOG_TRACE, b"video: delay=%0.3f A-V=%f\n", delay, -diff)
         return delay
 
     cdef double vp_duration(VideoState self, Frame *vp, Frame *nextvp) nogil except? 0.0:
@@ -747,12 +755,12 @@ cdef class VideoState(object):
                     ret = AVERROR(ENOMEM)
 
                 if not ret:
-                    outputs.name       = av_strdup("in")
+                    outputs.name       = av_strdup(b"in")
                     outputs.filter_ctx = source_ctx
                     outputs.pad_idx    = 0
                     outputs.next       = NULL
 
-                    inputs.name        = av_strdup("out")
+                    inputs.name        = av_strdup(b"out")
                     inputs.filter_ctx  = sink_ctx
                     inputs.pad_idx     = 0
                     inputs.next        = NULL
@@ -796,40 +804,40 @@ cdef class VideoState(object):
             cdef AVDictionaryEntry *e = NULL
             memset(str_flags, 0, sizeof(str_flags))
             memset(sws_flags_str, 0, sizeof(sws_flags_str))
-            strcpy(str_flags, "flags=%")
+            strcpy(str_flags, b"flags=%")
             strcat(str_flags, PRId64)
 
-            e = av_dict_get(self.player.sws_dict, "", e, AV_DICT_IGNORE_SUFFIX)
+            e = av_dict_get(self.player.sws_dict, b"", e, AV_DICT_IGNORE_SUFFIX)
             while e != NULL:
-                if not strcmp(e.key, "sws_flags"):
-                    av_strlcatf(sws_flags_str, sizeof(sws_flags_str), "%s=%s:", "flags", e.value)
+                if not strcmp(e.key, b"sws_flags"):
+                    av_strlcatf(sws_flags_str, sizeof(sws_flags_str), b"%s=%s:", b"flags", e.value)
                 else:
-                    av_strlcatf(sws_flags_str, sizeof(sws_flags_str), "%s=%s:", e.key, e.value)
-                e = av_dict_get(self.player.sws_dict, "", e, AV_DICT_IGNORE_SUFFIX)
+                    av_strlcatf(sws_flags_str, sizeof(sws_flags_str), b"%s=%s:", e.key, e.value)
+                e = av_dict_get(self.player.sws_dict, b"", e, AV_DICT_IGNORE_SUFFIX)
             if strlen(sws_flags_str):
-                sws_flags_str[strlen(sws_flags_str) - 1] = '\0'
+                sws_flags_str[strlen(sws_flags_str) - 1] = b'\0'
 
             graph.scale_sws_opts = av_strdup(sws_flags_str)
 
             snprintf(buffersrc_args, sizeof(buffersrc_args),
-                     "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+                     b"video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                      frame.width, frame.height, frame.format,
                      self.video_st.time_base.num, self.video_st.time_base.den,
                      codec.sample_aspect_ratio.num, FFMAX(codec.sample_aspect_ratio.den, 1))
             if fr.num and fr.den:
-                av_strlcatf(buffersrc_args, sizeof(buffersrc_args), ":frame_rate=%d/%d", fr.num, fr.den)
+                av_strlcatf(buffersrc_args, sizeof(buffersrc_args), b":frame_rate=%d/%d", fr.num, fr.den)
 
-            ret = avfilter_graph_create_filter(&filt_src, avfilter_get_by_name("buffer"),
-                                               "ffpyplayer_buffer", buffersrc_args, NULL, graph)
+            ret = avfilter_graph_create_filter(&filt_src, avfilter_get_by_name(b"buffer"),
+                                               b"ffpyplayer_buffer", buffersrc_args, NULL, graph)
             if ret < 0:
                 return ret
 
-            ret = avfilter_graph_create_filter(&filt_out, avfilter_get_by_name("buffersink"),
-                                               "ffpyplayer_buffersink", NULL, NULL, graph)
+            ret = avfilter_graph_create_filter(&filt_out, avfilter_get_by_name(b"buffersink"),
+                                               b"ffpyplayer_buffersink", NULL, NULL, graph)
             if ret < 0:
                 return ret
 
-            ret = av_opt_set_int_list(filt_out, "pix_fmts", pix_fmts,
+            ret = av_opt_set_int_list(filt_out, b"pix_fmts", pix_fmts,
                                       sizeof(pix_fmts[0]), AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN)
             if ret < 0:
                 return ret
@@ -838,28 +846,28 @@ cdef class VideoState(object):
 
             ''' SDL YUV code is not handling odd width/height for some driver
             combinations, therefore we crop the picture to an even width/height. '''
-            ret = insert_filt("crop", "floor(in_w/2)*2:floor(in_h/2)*2", graph, &last_filter)
+            ret = insert_filt(b"crop", b"floor(in_w/2)*2:floor(in_h/2)*2", graph, &last_filter)
             if ret < 0:
                 return ret
 
             if self.player.autorotate:
                 theta  = get_rotation(self.video_st)
                 if fabs(theta - 90) < 1.0:
-                    insert_filt("transpose", "clock", graph, &last_filter)
+                    insert_filt(b"transpose", b"clock", graph, &last_filter)
                 elif fabs(theta - 180) < 1.0:
-                    insert_filt("hflip", NULL, graph, &last_filter)
-                    insert_filt("vflip", NULL, graph, &last_filter)
+                    insert_filt(b"hflip", NULL, graph, &last_filter)
+                    insert_filt(b"vflip", NULL, graph, &last_filter)
                 elif fabs(theta - 270) < 1.0:
-                    insert_filt("transpose", "cclock", graph, &last_filter)
+                    insert_filt(b"transpose", b"cclock", graph, &last_filter)
                 elif fabs(theta) > 1.0:
-                    snprintf(rotate_buf, sizeof(rotate_buf), "%f*PI/180", theta)
-                    insert_filt("rotate", rotate_buf, graph, &last_filter)
+                    snprintf(rotate_buf, sizeof(rotate_buf), b"%f*PI/180", theta)
+                    insert_filt(b"rotate", rotate_buf, graph, &last_filter)
 
             if self.player.screen_height or self.player.screen_width:
-                snprintf(scale_args, sizeof(scale_args), "%d:%d", self.player.screen_width,
+                snprintf(scale_args, sizeof(scale_args), b"%d:%d", self.player.screen_width,
                          self.player.screen_height)
-                ret = avfilter_graph_create_filter(&filt_scale, avfilter_get_by_name("scale"),
-                                                   "ffpyplayer_scale", scale_args,
+                ret = avfilter_graph_create_filter(&filt_scale, avfilter_get_by_name(b"scale"),
+                                                   b"ffpyplayer_scale", scale_args,
                                                    NULL, graph)
                 if ret < 0:
                     return ret
@@ -893,52 +901,52 @@ cdef class VideoState(object):
             cdef int ret
 
             memset(str_flags, 0, sizeof(str_flags))
-            strcpy(str_flags, ":channel_layout=0x%")
+            strcpy(str_flags, b":channel_layout=0x%")
             strcat(str_flags, PRIx64)
             aresample_swr_opts[0] = 0
             avfilter_graph_free(&self.agraph)
             self.agraph = avfilter_graph_alloc()
             if self.agraph == NULL:
                 return AVERROR(ENOMEM)
-            e = av_dict_get(self.player.swr_opts, "", e, AV_DICT_IGNORE_SUFFIX)
+            e = av_dict_get(self.player.swr_opts, b"", e, AV_DICT_IGNORE_SUFFIX)
             while e != NULL:
-                av_strlcatf(aresample_swr_opts, sizeof(aresample_swr_opts), "%s=%s:", e.key, e.value)
-                e = av_dict_get(self.player.swr_opts, "", e, AV_DICT_IGNORE_SUFFIX)
+                av_strlcatf(aresample_swr_opts, sizeof(aresample_swr_opts), b"%s=%s:", e.key, e.value)
+                e = av_dict_get(self.player.swr_opts, b"", e, AV_DICT_IGNORE_SUFFIX)
             if strlen(aresample_swr_opts):
-                aresample_swr_opts[strlen(aresample_swr_opts)-1] = '\0'
-            av_opt_set(self.agraph, "aresample_swr_opts", aresample_swr_opts, 0)
+                aresample_swr_opts[strlen(aresample_swr_opts)-1] = b'\0'
+            av_opt_set(self.agraph, b"aresample_swr_opts", aresample_swr_opts, 0)
 
             ret = snprintf(asrc_args, sizeof(asrc_args),
-                           "sample_rate=%d:sample_fmt=%s:channels=%d:time_base=%d/%d",
+                           b"sample_rate=%d:sample_fmt=%s:channels=%d:time_base=%d/%d",
                            self.audio_filter_src.freq, av_get_sample_fmt_name(self.audio_filter_src.fmt),
                            self.audio_filter_src.channels, 1, self.audio_filter_src.freq)
             if self.audio_filter_src.channel_layout:
                 snprintf(asrc_args + ret, sizeof(asrc_args) - ret, str_flags,
                          self.audio_filter_src.channel_layout)
 
-            ret = avfilter_graph_create_filter(&filt_asrc, avfilter_get_by_name("abuffer"),
-                                               "ffpyplayer_abuffer", asrc_args, NULL, self.agraph)
+            ret = avfilter_graph_create_filter(&filt_asrc, avfilter_get_by_name(b"abuffer"),
+                                               b"ffpyplayer_abuffer", asrc_args, NULL, self.agraph)
             if ret >= 0:
-                ret = avfilter_graph_create_filter(&filt_asink, avfilter_get_by_name("abuffersink"),
-                                                   "ffpyplayer_abuffersink", NULL, NULL, self.agraph)
+                ret = avfilter_graph_create_filter(&filt_asink, avfilter_get_by_name(b"abuffersink"),
+                                                   b"ffpyplayer_abuffersink", NULL, NULL, self.agraph)
             if ret >= 0:
-                ret = av_opt_set_int_list(filt_asink, "sample_fmts", sample_fmts, sizeof(sample_fmts[0]),
+                ret = av_opt_set_int_list(filt_asink, b"sample_fmts", sample_fmts, sizeof(sample_fmts[0]),
                                           AV_SAMPLE_FMT_NONE, AV_OPT_SEARCH_CHILDREN)
             if ret >= 0:
-                ret = av_opt_set_int(filt_asink, "all_channel_counts", 1, AV_OPT_SEARCH_CHILDREN)
+                ret = av_opt_set_int(filt_asink, b"all_channel_counts", 1, AV_OPT_SEARCH_CHILDREN)
             if ret >= 0 and force_output_format:
                 channel_layouts[0] = self.audio_tgt.channel_layout
                 channels       [0] = self.audio_tgt.channels
                 sample_rates   [0] = self.audio_tgt.freq
-                ret = av_opt_set_int(filt_asink, "all_channel_counts", 0, AV_OPT_SEARCH_CHILDREN)
+                ret = av_opt_set_int(filt_asink, b"all_channel_counts", 0, AV_OPT_SEARCH_CHILDREN)
                 if ret >= 0:
-                    ret = av_opt_set_int_list(filt_asink, "channel_layouts", channel_layouts, sizeof(channel_layouts[0]),
+                    ret = av_opt_set_int_list(filt_asink, b"channel_layouts", channel_layouts, sizeof(channel_layouts[0]),
                                               -1, AV_OPT_SEARCH_CHILDREN)
                 if ret >= 0:
-                    ret = av_opt_set_int_list(filt_asink, "channel_counts", channels, sizeof(channels[0]),
+                    ret = av_opt_set_int_list(filt_asink, b"channel_counts", channels, sizeof(channels[0]),
                                               -1, AV_OPT_SEARCH_CHILDREN)
                 if ret >= 0:
-                    ret = av_opt_set_int_list(filt_asink, "sample_rates", sample_rates, sizeof(sample_rates[0]),
+                    ret = av_opt_set_int_list(filt_asink, b"sample_rates", sample_rates, sizeof(sample_rates[0]),
                                               -1, AV_OPT_SEARCH_CHILDREN)
             if ret >= 0:
                 ret = self.configure_filtergraph(self.agraph, afilters, filt_asrc, filt_asink)
@@ -965,8 +973,8 @@ cdef class VideoState(object):
             cdef char buf2[1024]
 
         if frame == NULL:
-            av_log(NULL, AV_LOG_ERROR, 'Memory error in audio thread\n')
-            self.request_thread('audio:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
+            av_log(NULL, AV_LOG_ERROR, b'Memory error in audio thread\n')
+            self.request_thread_s(b'audio:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
             return AVERROR(ENOMEM)
 
         while True:
@@ -993,7 +1001,7 @@ cdef class VideoState(object):
                         av_get_channel_layout_string(buf1, sizeof(buf1), -1, self.audio_filter_src.channel_layout)
                         av_get_channel_layout_string(buf2, sizeof(buf2), -1, dec_channel_layout)
                         av_log(NULL, AV_LOG_DEBUG,
-                               "Audio frame changed from rate:%d ch:%d fmt:%s layout:%s serial:%d to rate:%d ch:%d fmt:%s layout:%s serial:%d\n",
+                               b"Audio frame changed from rate:%d ch:%d fmt:%s layout:%s serial:%d to rate:%d ch:%d fmt:%s layout:%s serial:%d\n",
                                self.audio_filter_src.freq, self.audio_filter_src.channels,
                                av_get_sample_fmt_name(self.audio_filter_src.fmt), buf1, last_serial,
                                frame.sample_rate, av_frame_get_channels(frame),
@@ -1020,8 +1028,8 @@ cdef class VideoState(object):
                         if af == NULL:
                             avfilter_graph_free(&self.agraph)
                             av_frame_free(&frame)
-                            av_log(NULL, AV_LOG_ERROR, 'Error getting writable audio frame\n')
-                            self.request_thread('audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                            av_log(NULL, AV_LOG_ERROR, b'Error getting writable audio frame\n')
+                            self.request_thread_s(b'audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
                             return ret
 
                         af.pts = NAN if frame.pts == AV_NOPTS_VALUE else frame.pts * av_q2d(tb)
@@ -1063,13 +1071,13 @@ cdef class VideoState(object):
         av_frame_free(&frame)
         if ret:
             if ret != -1:
-                av_log(NULL, AV_LOG_ERROR, 'Audio thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
-                self.request_thread('audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                av_log(NULL, AV_LOG_ERROR, b'Audio thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
+                self.request_thread_s(b'audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                av_log(NULL, AV_LOG_ERROR, 'Audio thread error\n')
-                self.request_thread('audio:error', '')
+                av_log(NULL, AV_LOG_ERROR, b'Audio thread error\n')
+                self.request_thread_s(b'audio:error', b'')
         else:
-            self.request_thread('audio:exit', '')
+            self.request_thread_s(b'audio:exit', b'')
         return ret
 
     cdef int video_thread(VideoState self) nogil except? 1:
@@ -1094,22 +1102,22 @@ cdef class VideoState(object):
             cdef int last_vfilter_idx = self.vfilter_idx
             if graph == NULL:
                 av_frame_free(&frame)
-                av_log(NULL, AV_LOG_ERROR, 'Memory Error in video thread\n')
-                self.request_thread('video:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
+                av_log(NULL, AV_LOG_ERROR, b'Memory Error in video thread\n')
+                self.request_thread_s(b'video:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
                 return AVERROR(ENOMEM)
 
         if frame == NULL:
             IF CONFIG_AVFILTER:
                 avfilter_graph_free(&graph)
-            av_log(NULL, AV_LOG_ERROR, 'Memory Error in video thread\n')
-            self.request_thread('video:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
+            av_log(NULL, AV_LOG_ERROR, b'Memory Error in video thread\n')
+            self.request_thread_s(b'video:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
             return AVERROR(ENOMEM)
 
         while 1:
             av_frame_unref(frame)
             ret = self.get_video_frame(frame)
             if ret < 0:
-                av_log(NULL, AV_LOG_ERROR, 'Error getting frame: %s')
+                av_log(NULL, AV_LOG_ERROR, b'Error getting frame: %s')
                 break
             if not ret:
                 continue
@@ -1123,11 +1131,11 @@ cdef class VideoState(object):
                     or last_vfilter_idx != self.vfilter_idx
                     or last_out_fmt != last_out_fmt_temp):
                     av_log(NULL, AV_LOG_DEBUG,
-                           "Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
+                           b"Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
                            last_w, last_h,
-                           <const char *>av_x_if_null(av_get_pix_fmt_name(last_format), "none"), last_serial,
+                           <const char *>av_x_if_null(av_get_pix_fmt_name(last_format), b"none"), last_serial,
                            frame.width, frame.height,
-                           <const char *>av_x_if_null(av_get_pix_fmt_name(<AVPixelFormat>frame.format), "none"),
+                           <const char *>av_x_if_null(av_get_pix_fmt_name(<AVPixelFormat>frame.format), b"none"),
                            self.viddec.pkt_serial)
                     avfilter_graph_free(&graph)
                     graph = avfilter_graph_alloc()
@@ -1135,8 +1143,8 @@ cdef class VideoState(object):
                         graph, self.player.vfilters_list[self.vfilter_idx] if self.player.vfilters_list != NULL else NULL,
                         frame, last_out_fmt_temp)
                     if ret < 0:
-                        av_log(NULL, AV_LOG_FATAL, "%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
-                        self.request_thread('video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                        av_log(NULL, AV_LOG_FATAL, b"%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
+                        self.request_thread_s(b'video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
                         break
                     filt_in  = self.in_video_filter
                     filt_out = self.out_video_filter
@@ -1210,13 +1218,13 @@ cdef class VideoState(object):
 
         if ret:
             if ret != -1:
-                av_log(NULL, AV_LOG_ERROR, 'Video thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
-                self.request_thread('video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                av_log(NULL, AV_LOG_ERROR, b'Video thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
+                self.request_thread_s(b'video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                av_log(NULL, AV_LOG_ERROR, 'Video thread error\n')
-                self.request_thread('video:error', '')
+                av_log(NULL, AV_LOG_ERROR, b'Video thread error\n')
+                self.request_thread_s(b'video:error', b'')
         else:
-            self.request_thread('video:exit', '')
+            self.request_thread_s(b'video:exit', b'')
         return 0
 
     cdef int subtitle_thread(VideoState self) nogil except 1:
@@ -1257,13 +1265,13 @@ cdef class VideoState(object):
 
         if ret:
             if ret != -1:
-                av_log(NULL, AV_LOG_ERROR, 'Subtitle thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
-                self.request_thread('subtitle:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                av_log(NULL, AV_LOG_ERROR, b'Subtitle thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
+                self.request_thread_s(b'subtitle:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                av_log(NULL, AV_LOG_ERROR, 'Subtitle thread error\n')
-                self.request_thread('subtitle:error', '')
+                av_log(NULL, AV_LOG_ERROR, b'Subtitle thread error\n')
+                self.request_thread_s(b'subtitle:error', b'')
         else:
-            self.request_thread('subtitle:exit', '')
+            self.request_thread_s(b'subtitle:exit', b'')
         return 0
 
     cdef int subtitle_display(self, AVSubtitle *sub) nogil except 1:
@@ -1273,10 +1281,10 @@ cdef class VideoState(object):
         with gil:
             for i in range(sub.num_rects):
                 if sub.rects[i].type == SUBTITLE_ASS:
-                    buff = PyString_FromString(sub.rects[i].ass)
+                    buff = PyUnicode_FromString(sub.rects[i].ass)
                     sub_fmt = sub_ass
                 elif sub.rects[i].type == SUBTITLE_TEXT:
-                    buff = PyString_FromString(sub.rects[i].text)
+                    buff = PyUnicode_FromString(sub.rects[i].text)
                     sub_fmt = sub_text
                 else:
                     buff = NULL
@@ -1285,9 +1293,9 @@ cdef class VideoState(object):
                     pts = sub.pts / <double>AV_TIME_BASE
                 else:
                     pts = 0.0
-                self.request_thread('display_sub', (<object>buff, sub_fmt, pts,
-                                                sub.start_display_time / 1000.,
-                                                sub.end_display_time / 1000.))
+                self.request_thread(b'display_sub', (
+                    <object>buff, sub_fmt, pts, sub.start_display_time / 1000.,
+                    sub.end_display_time / 1000.))
                 if buff != NULL:
                     Py_DECREF(buff)
         return 0
@@ -1333,7 +1341,7 @@ cdef class VideoState(object):
                         min_nb_samples = nb_samples * (100 - SAMPLE_CORRECTION_PERCENT_MAX) / 100
                         max_nb_samples = nb_samples * (100 + SAMPLE_CORRECTION_PERCENT_MAX) / 100
                         wanted_nb_samples = av_clip(wanted_nb_samples, min_nb_samples, max_nb_samples)
-                    av_log(NULL, AV_LOG_TRACE, "diff=%f adiff=%f sample_diff=%d apts=%0.3f %f\n",
+                    av_log(NULL, AV_LOG_TRACE, b"diff=%f adiff=%f sample_diff=%d apts=%0.3f %f\n",
                            diff, avg_diff, wanted_nb_samples - nb_samples,
                            self.audio_clock, self.audio_diff_threshold)
             else:
@@ -1403,7 +1411,7 @@ cdef class VideoState(object):
                                               dec_channel_layout, <AVSampleFormat>af.frame.format,
                                               af.frame.sample_rate, 0, NULL)
             if self.swr_ctx == NULL or swr_init(self.swr_ctx) < 0:
-                av_log(NULL, AV_LOG_ERROR, "Cannot create sample rate converter for \
+                av_log(NULL, AV_LOG_ERROR, b"Cannot create sample rate converter for \
                 conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",\
                 af.frame.sample_rate, av_get_sample_fmt_name(<AVSampleFormat>af.frame.format),\
                 av_frame_get_channels(af.frame), self.audio_tgt.freq,\
@@ -1420,14 +1428,14 @@ cdef class VideoState(object):
             out_count = <int64_t>wanted_nb_samples * self.audio_tgt.freq / af.frame.sample_rate + 256
             out_size  = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, out_count, self.audio_tgt.fmt, 0)
             if out_size < 0:
-                av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n")
+                av_log(NULL, AV_LOG_ERROR, b"av_samples_get_buffer_size() failed\n")
                 return -1
 
             if wanted_nb_samples != af.frame.nb_samples:
                 if swr_set_compensation(self.swr_ctx, (wanted_nb_samples - af.frame.nb_samples)\
                 * self.audio_tgt.freq / af.frame.sample_rate, wanted_nb_samples *\
                 self.audio_tgt.freq / af.frame.sample_rate) < 0:
-                    av_log(NULL, AV_LOG_ERROR, "swr_set_compensation() failed\n")
+                    av_log(NULL, AV_LOG_ERROR, b"swr_set_compensation() failed\n")
                     return -1
 
             av_fast_malloc(&self.audio_buf1, &self.audio_buf1_size, out_size)
@@ -1435,11 +1443,11 @@ cdef class VideoState(object):
                 return AVERROR(ENOMEM)
             len2 = swr_convert(self.swr_ctx, out, out_count, input, af.frame.nb_samples)
             if len2 < 0:
-                av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n")
+                av_log(NULL, AV_LOG_ERROR, b"swr_convert() failed\n")
                 return -1
 
             if len2 == out_count:
-                av_log(NULL, AV_LOG_WARNING, "audio buffer is probably too small\n")
+                av_log(NULL, AV_LOG_WARNING, b"audio buffer is probably too small\n")
                 if swr_init(self.swr_ctx) < 0:
                     swr_free(&self.swr_ctx)
             self.audio_buf = self.audio_buf1
@@ -1456,7 +1464,7 @@ cdef class VideoState(object):
             self.audio_clock = NAN
         self.audio_clock_serial = af.serial
 #         IF DEBUG:
-#             printf("audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
+#             printf(b"audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
 #                    self.audio_clock - self.last_clock,
 #                    self.audio_clock, audio_clock0)
 #             self.last_clock = is->audio_clock;
@@ -1519,7 +1527,7 @@ cdef class VideoState(object):
         cdef int error
         cdef int next_sample_rate_idx = next_sample_rates_len - 1
 
-        env = SDL_getenv("SDL_AUDIO_CHANNELS")
+        env = SDL_getenv(b"SDL_AUDIO_CHANNELS")
         if env != NULL:
             wanted_nb_channels = atoi(env)
             wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels)
@@ -1532,7 +1540,7 @@ cdef class VideoState(object):
         wanted_spec.channels = wanted_nb_channels
         wanted_spec.freq = wanted_sample_rate
         if wanted_spec.freq <= 0 or wanted_spec.channels <= 0:
-            av_log(NULL, AV_LOG_ERROR, "Invalid sample rate or channel count!\n")
+            av_log(NULL, AV_LOG_ERROR, b"Invalid sample rate or channel count!\n")
             return -1
 
         while next_sample_rate_idx and next_sample_rates[next_sample_rate_idx] >= wanted_spec.freq:
@@ -1550,7 +1558,7 @@ cdef class VideoState(object):
         ELSE:
             error = SDL_OpenAudio(&wanted_spec, &spec) < 0
         while error:
-            av_log(NULL, AV_LOG_WARNING, "SDL_OpenAudio (%d channels, %d Hz): %s\n",
+            av_log(NULL, AV_LOG_WARNING, b"SDL_OpenAudio (%d channels, %d Hz): %s\n",
                wanted_spec.channels, wanted_spec.freq, SDL_GetError())
 
             wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)]
@@ -1560,7 +1568,7 @@ cdef class VideoState(object):
                 wanted_spec.channels = wanted_nb_channels
                 if not wanted_spec.freq:
                     av_log(NULL, AV_LOG_ERROR,
-                           "No more channel combinations to try, audio open failed\n")
+                           b"No more channel combinations to try, audio open failed\n")
                     return -1
             wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels)
 
@@ -1572,14 +1580,14 @@ cdef class VideoState(object):
 
         if spec.format != AUDIO_S16SYS:
             av_log(NULL, AV_LOG_ERROR,
-                   "SDL advised audio format %d is not supported!\n", spec.format)
+                   b"SDL advised audio format %d is not supported!\n", spec.format)
             return -1
 
         if spec.channels != wanted_spec.channels:
             wanted_channel_layout = av_get_default_channel_layout(spec.channels)
             if not wanted_channel_layout:
                 av_log(NULL, AV_LOG_ERROR,
-                       "SDL advised channel count %d is not supported!\n", spec.channels)
+                       b"SDL advised channel count %d is not supported!\n", spec.channels)
                 return -1
 
         audio_hw_params.fmt = AV_SAMPLE_FMT_S16
@@ -1592,10 +1600,10 @@ cdef class VideoState(object):
             NULL, audio_hw_params.channels, audio_hw_params.freq, audio_hw_params.fmt, 1)
 
         if audio_hw_params.bytes_per_sec <= 0 or audio_hw_params.frame_size <= 0:
-            av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size failed\n")
+            av_log(NULL, AV_LOG_ERROR, b"av_samples_get_buffer_size failed\n")
             return -1
         av_log(NULL, AV_LOG_DEBUG,
-               "openaudio with fmt=%u freq=%u channel_layout=%u channels=%hhu\n",
+               b"openaudio with fmt=%u freq=%u channel_layout=%u channels=%hhu\n",
                audio_hw_params.fmt, audio_hw_params.freq,
                audio_hw_params.channel_layout, audio_hw_params.channels)
 
@@ -1633,13 +1641,13 @@ cdef class VideoState(object):
             codec = avcodec_find_decoder_by_name(forced_codec_name)
         if codec == NULL:
             if forced_codec_name != NULL:
-                av_log(NULL, AV_LOG_WARNING, "No codec could be found with name '%s'\n", forced_codec_name)
+                av_log(NULL, AV_LOG_WARNING, b"No codec could be found with name '%s'\n", forced_codec_name)
             else:
-                av_log(NULL, AV_LOG_WARNING, "No codec could be found with id %d\n", avctx.codec_id)
+                av_log(NULL, AV_LOG_WARNING, b"No codec could be found with id %d\n", avctx.codec_id)
             return -1
         avctx.codec_id = codec.id
         if stream_lowres > av_codec_get_max_lowres(codec):
-            av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",
+            av_log(avctx, AV_LOG_WARNING, b"The maximum value for lowres supported by the decoder is %d\n",
                     av_codec_get_max_lowres(codec))
             stream_lowres = av_codec_get_max_lowres(codec)
         av_codec_set_lowres(avctx, stream_lowres)
@@ -1655,18 +1663,18 @@ cdef class VideoState(object):
 
         opts = filter_codec_opts(self.player.codec_opts, avctx.codec_id, ic,
                                  ic.streams[stream_index], codec)
-        if av_dict_get(opts, "threads", NULL, 0) == NULL:
-            av_dict_set(&opts, "threads", "auto", 0)
+        if av_dict_get(opts, b"threads", NULL, 0) == NULL:
+            av_dict_set(&opts, b"threads", b"auto", 0)
         if stream_lowres:
-            av_dict_set_int(&opts, "lowres", stream_lowres, 0)
+            av_dict_set_int(&opts, b"lowres", stream_lowres, 0)
         if avctx.codec_type == AVMEDIA_TYPE_VIDEO or avctx.codec_type == AVMEDIA_TYPE_AUDIO:
-            av_dict_set(&opts, "refcounted_frames", "1", 0)
+            av_dict_set(&opts, b"refcounted_frames", b"1", 0)
         if avcodec_open2(avctx, codec, &opts) < 0:
             av_dict_free(&opts)
             return -1
-        t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
+        t = av_dict_get(opts, b"", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
-            av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t.key)
+            av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
             av_dict_free(&opts)
             return AVERROR_OPTION_NOT_FOUND
         self.eof = 0
@@ -1807,26 +1815,26 @@ cdef class VideoState(object):
 
         ic = avformat_alloc_context()
         if ic == NULL:
-            av_log(NULL, AV_LOG_FATAL, "Could not allocate context.\n");
+            av_log(NULL, AV_LOG_FATAL, b"Could not allocate context.\n");
             return self.failed(AVERROR(ENOMEM), ic)
-        #av_opt_set_int(ic, "threads", 1, 0)
+        #av_opt_set_int(ic, b"threads", 1, 0)
         ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
 
-        if not av_dict_get(self.player.format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE):
-            av_dict_set(&self.player.format_opts, "scan_all_pmts", "1", AV_DICT_DONT_OVERWRITE)
+        if not av_dict_get(self.player.format_opts, b"scan_all_pmts", NULL, AV_DICT_MATCH_CASE):
+            av_dict_set(&self.player.format_opts, b"scan_all_pmts", b"1", AV_DICT_DONT_OVERWRITE)
             scan_all_pmts_set = 1
 
         err = avformat_open_input(&ic, self.player.input_filename, self.iformat, &self.player.format_opts)
         if err < 0:
-            av_log(NULL, AV_LOG_ERROR, "%s: %s\n", self.player.input_filename, fmt_err(err, err_msg, sizeof(err_msg)))
+            av_log(NULL, AV_LOG_ERROR, b"%s: %s\n", self.player.input_filename, fmt_err(err, err_msg, sizeof(err_msg)))
             return self.failed(-1, ic)
 
         if scan_all_pmts_set:
-            av_dict_set(&self.player.format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)
-        t = av_dict_get(self.player.format_opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
+            av_dict_set(&self.player.format_opts, b"scan_all_pmts", NULL, AV_DICT_MATCH_CASE)
+        t = av_dict_get(self.player.format_opts, b"", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
-            av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t.key)
+            av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
             return self.failed(AVERROR_OPTION_NOT_FOUND, ic)
         self.ic = ic
 
@@ -1842,7 +1850,7 @@ cdef class VideoState(object):
         av_freep(&opts)
 
         if err < 0:
-            av_log(NULL, AV_LOG_WARNING, "%s: could not find codec parameters\n", self.player.input_filename)
+            av_log(NULL, AV_LOG_WARNING, b"%s: could not find codec parameters\n", self.player.input_filename)
             return self.failed(-1, ic)
 
         if ic.pb != NULL:
@@ -1850,11 +1858,11 @@ cdef class VideoState(object):
 
         if self.player.seek_by_bytes < 0:
             self.player.seek_by_bytes = (not not ((ic.iformat.flags & AVFMT_TS_DISCONT) != 0))\
-            and strcmp("ogg", ic.iformat.name) != 0
+            and strcmp(b"ogg", ic.iformat.name) != 0
 
         self.max_frame_duration = 10.0 if ic.iformat.flags & AVFMT_TS_DISCONT else 3600.0
 
-        t = av_dict_get(ic.metadata, "title", NULL, 0)
+        t = av_dict_get(ic.metadata, b"title", NULL, 0)
         if t != NULL:
             with gil:
                 self.metadata['title'] = str(t.value)
@@ -1870,7 +1878,7 @@ cdef class VideoState(object):
                 timestamp += ic.start_time
             ret = avformat_seek_file(ic, -1, INT64_MIN, timestamp, INT64_MAX, 0)
             if ret < 0:
-                av_log(NULL, AV_LOG_WARNING, "%s: could not seek to position %0.3f\n",
+                av_log(NULL, AV_LOG_WARNING, b"%s: could not seek to position %0.3f\n",
                        self.player.input_filename, <double>timestamp / <double>AV_TIME_BASE)
 
         self.realtime = is_realtime(ic)
@@ -1889,7 +1897,7 @@ cdef class VideoState(object):
 
         for i in range(AVMEDIA_TYPE_NB):
             if self.player.wanted_stream_spec[i] != NULL and st_index[i] == -1:
-                av_log(NULL, AV_LOG_ERROR, "Stream specifier %s does not match any %s stream\n",
+                av_log(NULL, AV_LOG_ERROR, b"Stream specifier %s does not match any %s stream\n",
                        self.player.wanted_stream_spec[i], av_get_media_type_string(<AVMediaType>i))
                 st_index[i] = INT_MAX
 
@@ -1924,7 +1932,7 @@ cdef class VideoState(object):
             self.stream_component_open(st_index[<int>AVMEDIA_TYPE_SUBTITLE])
 
         if self.video_stream < 0 and self.audio_stream < 0:
-            av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
+            av_log(NULL, AV_LOG_FATAL, b"Failed to open file '%s' or configure filtergraph\n",
                    self.player.input_filename)
             return self.failed(-1, ic)
 
@@ -1941,8 +1949,8 @@ cdef class VideoState(object):
                 else:
                     av_read_play(ic)
             IF CONFIG_RTSP_DEMUXER or CONFIG_MMSH_PROTOCOL:
-                if self.paused and ((not strcmp(ic.iformat.name, "rtsp")) or\
-                ic.pb != NULL and not strncmp(self.player.input_filename, "mmsh:", 5)):
+                if self.paused and ((not strcmp(ic.iformat.name, b"rtsp")) or\
+                ic.pb != NULL and not strncmp(self.player.input_filename, b"mmsh:", 5)):
                     # wait 10 ms to avoid trying to get another packet
                     # XXX: horrible
                     self.pause_cond.lock()
@@ -1967,7 +1975,7 @@ cdef class VideoState(object):
                 ret = avformat_seek_file(self.ic, -1, seek_min, seek_target,
                                          seek_max, self.seek_flags)
                 if ret < 0:
-                    av_log(NULL, AV_LOG_ERROR, "%s: error while seeking\n",
+                    av_log(NULL, AV_LOG_ERROR, b"%s: error while seeking\n",
                            self.ic.filename)
                 else:
                     if self.audio_stream >= 0:
@@ -1991,7 +1999,7 @@ cdef class VideoState(object):
                 if self.video_st != NULL and self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC:
                     ret = av_copy_packet(&copy, &self.video_st.attached_pic)
                     if ret < 0:
-                        av_log(NULL, AV_LOG_ERROR, "Failed to copy packet%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
+                        av_log(NULL, AV_LOG_ERROR, b"Failed to copy packet%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
                         return self.failed(ret, ic)
                     self.videoq.packet_queue_put(&copy)
                     self.videoq.packet_queue_put_nullpacket(self.video_stream)
@@ -2019,7 +2027,7 @@ cdef class VideoState(object):
                 self.auddec.set_seek_pos(-1)
                 self.viddec.set_seek_pos(-1)
                 if self.player.loop != 1:
-                    self.request_thread('eof', '')
+                    self.request_thread_s(b'eof', b'')
                     if self.player.start_time != AV_NOPTS_VALUE:
                         temp64 = self.player.start_time
                     else:
@@ -2031,13 +2039,13 @@ cdef class VideoState(object):
                         if self.player.loop:
                             self.stream_seek(temp64, 0, 0, 0)
                 elif self.player.autoexit:
-                    av_log(NULL, AV_LOG_INFO, "Reached eof\n")
-                    self.request_thread('eof', '')
+                    av_log(NULL, AV_LOG_INFO, b"Reached eof\n")
+                    self.request_thread_s(b'eof', b'')
                     return self.failed(0, ic)
                 else:
                     if not self.reached_eof:
                         self.reached_eof = 1
-                        self.request_thread('eof', '')
+                        self.request_thread_s(b'eof', b'')
 
             ret = av_read_frame(ic, pkt)
             if ret < 0:
@@ -2086,7 +2094,7 @@ cdef class VideoState(object):
                 av_packet_unref(pkt)
 
         ret = 0
-        av_log(NULL, AV_LOG_INFO, "Exiting read thread\n")
+        av_log(NULL, AV_LOG_INFO, b"Exiting read thread\n")
         return self.failed(ret, ic)
 
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1:
@@ -2096,11 +2104,11 @@ cdef class VideoState(object):
 
         if ret != 0:
             if ret != -1:
-                self.request_thread('read:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                self.request_thread_s(b'read:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                self.request_thread('read:error', '')
+                self.request_thread_s(b'read:error', b'')
         else:
-            self.request_thread('read:exit', 'Done')
+            self.request_thread_s(b'read:exit', b'Done')
         return 0
 
     cdef int stream_cycle_channel(VideoState self, int codec_type,
@@ -2166,7 +2174,7 @@ cdef class VideoState(object):
 
         if p != NULL and stream_index != -1:
             stream_index = p.stream_index[stream_index]
-        av_log(NULL, AV_LOG_INFO, 'Switch %s stream from #%d to #%d\n',
+        av_log(NULL, AV_LOG_INFO, b'Switch %s stream from #%d to #%d\n',
             av_get_media_type_string(<AVMediaType>codec_type), old_index, stream_index)
         self.stream_component_close(old_index)
         self.stream_component_open(stream_index)

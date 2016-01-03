@@ -1,6 +1,7 @@
 
 import sys
 from os.path import join, isdir
+import platform
 
 __version__ = '4.0.dev0'
 
@@ -10,6 +11,9 @@ _ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
 
 
 try:
+    if platform.system() != 'Windows':
+        raise ImportError()
+
     import ctypes
     try:
         _AddDllDirectory = ctypes.windll.kernel32.AddDllDirectory

@@ -22,7 +22,7 @@ from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
 import ffpyplayer.tools  # required to init ffmpeg
-from ffpyplayer.tools import initialize_sdl_aud
+from ffpyplayer.tools import initialize_sdl_aud, encode_to_bytes
 from copy import deepcopy
 
 
@@ -53,6 +53,11 @@ cdef class MediaPlayer(object):
     using SDL. And subtitles are acquired either through the callback function
     (text subtitles only), or are overlaid directly using the subtitle filter.
 
+    .. note::
+
+        All strings that are passed to the program, e.g. ``filename`` will first be
+        internally encoded using utf-8 before handing off to FFmpeg.
+
     :Parameters:
 
         `filename`: str
@@ -74,7 +79,7 @@ cdef class MediaPlayer(object):
                 When a new subtitle string is available. ``value`` will be a
                 5-tuple of the form ``(text, fmt, pts, start, end)``. Where
 
-                `text`: is the text
+                `text`: is the unicode text
                 `fmt`: is the subtitle format e.g. 'ass'
                 `pts`: is the timestamp of the text
                 `start`: is the time in video time when to start displaying the text
@@ -261,13 +266,17 @@ cdef class MediaPlayer(object):
         cdef int res, paused
         cdef const char* cy_str
         kargs.pop('loglevel', None)
-        ff_opts = self.ff_opts = deepcopy(ff_opts)
+        ff_opts = self.ff_opts = encode_to_bytes(deepcopy(ff_opts))
+        lib_opts = encode_to_bytes(deepcopy(lib_opts))
+        kargs = encode_to_bytes(deepcopy(kargs))
+        filename = encode_to_bytes(filename)
+
         self.is_closed = 0
         memset(&self.settings, 0, sizeof(VideoSettings))
         self.ivs = None
         PyEval_InitThreads()
 
-        av_dict_set(&settings.sws_dict, "flags", "bicubic", 0)
+        av_dict_set(&settings.sws_dict, b"flags", b"bicubic", 0)
         # set x, or y to -1 to preserve pixel ratio
         settings.screen_width  = ff_opts['x'] if 'x' in ff_opts else 0
         settings.screen_height = ff_opts['y'] if 'y' in ff_opts else 0
@@ -343,24 +352,19 @@ cdef class MediaPlayer(object):
 
             settings.afilters = NULL
             if 'af' in ff_opts:
-                self.py_afilters = ff_opts['af']
-                settings.afilters = self.py_afilters
+                settings.afilters = ff_opts['af']
             settings.avfilters = NULL
             if 'avf' in ff_opts:
-                self.py_avfilters = ff_opts['avf']
-                settings.avfilters = self.py_avfilters
+                settings.avfilters = ff_opts['avf']
         settings.audio_codec_name = NULL
         if 'acodec' in ff_opts:
-            self.py_audio_codec_name = ff_opts['acodec']
-            settings.audio_codec_name = self.py_audio_codec_name
+            settings.audio_codec_name = ff_opts['acodec']
         settings.video_codec_name = NULL
         if 'vcodec' in ff_opts:
-            self.py_video_codec_name = ff_opts['vcodec']
-            settings.video_codec_name = self.py_video_codec_name
+            settings.video_codec_name = ff_opts['vcodec']
         settings.subtitle_codec_name = NULL
         if 'scodec' in ff_opts:
-            self.py_subtitle_codec_name = ff_opts['scodec']
-            settings.subtitle_codec_name = self.py_subtitle_codec_name
+            settings.subtitle_codec_name = ff_opts['scodec']
         if 'max_alloc' in ff_opts:
             av_max_alloc(ff_opts['max_alloc'])
         if 'cpuflags' in ff_opts:
@@ -398,7 +402,7 @@ cdef class MediaPlayer(object):
         if 'out_fmt' in ff_opts:
             out_fmt = av_get_pix_fmt(ff_opts['out_fmt'])
         else:
-            out_fmt = av_get_pix_fmt('rgb24')
+            out_fmt = av_get_pix_fmt(b'rgb24')
         if out_fmt == AV_PIX_FMT_NONE:
             raise Exception('Unrecognized output pixel format.')
 
@@ -422,7 +426,7 @@ cdef class MediaPlayer(object):
             After calling this method, calling any other class method on this instance may
             result in a crash or program corruption.
         '''
-        cdef const char *empty = ''
+        cdef const char *empty = b''
         if self.is_closed:
             return
         self.is_closed = 1
@@ -444,9 +448,9 @@ cdef class MediaPlayer(object):
         # avformat_network_deinit()
         av_free(self.settings.input_filename)
         if self.settings.show_status:
-            printf("\n")
+            av_log(NULL, AV_LOG_INFO, b"\n")
         #SDL_Quit()
-        av_log(NULL, AV_LOG_QUIET, "%s", empty)
+        av_log(NULL, AV_LOG_QUIET, b"%s", empty)
 
     def get_frame(self, force_refresh=False, show=True, *args):
         '''Retrieves the next available frame if ready.
@@ -810,10 +814,12 @@ cdef class MediaPlayer(object):
             an exception.
         '''
         cdef AVPixelFormat fmt
+        cdef bytes pix_fmt_b
         if not CONFIG_AVFILTER:
             raise Exception('You can only change the fmt when avfilter is enabled.')
 
-        fmt = av_get_pix_fmt(pix_fmt)
+        pix_fmt_b = pix_fmt.encode('utf8')
+        fmt = av_get_pix_fmt(pix_fmt_b)
         if fmt == AV_PIX_FMT_NONE:
             raise Exception('Unrecognized output pixel format {}.'.format(pix_fmt))
         self.ivs.set_out_pix_fmt(fmt)
