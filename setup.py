@@ -213,7 +213,7 @@ else:
 
 
 print('Generating ffconfig.h')
-with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'wb') as f:
+with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'w') as f:
     f.write('''
 #ifndef _FFCONFIG_H
 #define _FFCONFIG_H
@@ -247,7 +247,7 @@ with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'wb') as f:
 ''')
 
 print('Generating ffconfig.pxi')
-with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'wb') as f:
+with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'w') as f:
     for k, v in c_options.items():
         f.write('DEF %s = %d\n' % (k.upper(), int(v)))
 
