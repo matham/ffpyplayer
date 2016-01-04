@@ -283,7 +283,7 @@ setup(name='ffpyplayer',
                    'Operating System :: POSIX :: BSD :: FreeBSD',
                    'Operating System :: POSIX :: Linux',
                    'Intended Audience :: Developers'],
-      packages=['ffpyplayer', 'ffpyplayer.player'],
+      packages=['ffpyplayer', 'ffpyplayer.player', 'ffpyplayer.tests'],
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=['cython'])
