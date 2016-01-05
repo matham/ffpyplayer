@@ -1,0 +1,104 @@
+matrix:
+  fast_finish: true
+  include:
+    - language: python
+      python: 2.7
+      os: linux
+      dist: trusty
+    - language: python
+      python: 3.5
+      os: linux
+      dist: trusty
+    - language: generic
+      env: PY=2
+      os: osx
+    - language: generic
+      env: PY=3
+      os: osx
+
+install:
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+      echo pwd;
+      sudo apt-get -y install libsdl2-dev python-dev;
+      mkdir ~/ffmpeg_sources;
+
+      sudo apt-get -y install yasm;
+      cd ~/ffmpeg_sources;
+      wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
+      tar xzvf yasm-1.3.0.tar.gz;
+      cd yasm-1.3.0;
+      ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --bindir="$HOME/bin" --enable-pic;
+      make;
+      make install;
+      make distclean;
+
+      sudo apt-get -y install libx264-dev;
+      cd ~/ffmpeg_sources;
+      wget http://download.videolan.org/pub/x264/snapshots/last_x264.tar.bz2;
+      tar xjvf last_x264.tar.bz2;
+      cd x264-snapshot*;
+      PATH="$HOME/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/bin" --enable-shared --extra-cflags="-fPIC";
+      PATH="$HOME/bin:$PATH" make;
+      make install;
+      make distclean;
+
+      sudo apt-get -y install libmp3lame-dev;
+      sudo apt-get -y install nasm;
+      cd ~/ffmpeg_sources;
+      wget http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz;
+      tar xzvf lame-3.99.5.tar.gz;
+      cd lame-3.99.5;
+      ./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared --enable-pic;
+      make;
+      make install;
+      make distclean;
+
+      cd ~/ffmpeg_sources;
+      wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2;
+      tar xjvf ffmpeg-snapshot.tar.bz2;
+      cd ffmpeg;
+      PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libass --enable-libfreetype --enable-libmp3lame --enable-libtheora --enable-libvorbis --enable-libx264 --enable-shared;
+      PATH="$HOME/bin:$PATH" make;
+      make distclean;
+      hash -r;
+
+      pip install --upgrade cython nose;
+    fi;
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+      curl -O -L https://www.libsdl.org/release/SDL2-2.0.4.dmg;
+      hdiutil attach SDL2-2.0.4.dmg;
+      sudo cp -a /Volumes/SDL2/SDL2.framework /Library/Frameworks/;
+      if [ "${PY}" == "3" ]; then
+         curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
+         sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
+         pip3 install --upgrade --user cython nose;
+      else
+         pip install --upgrade --user cython nose;
+      fi;
+    fi;
+
+before_script:
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+      export PYTHONPATH=$PYTHONPATH:$(pwd);
+    fi;
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+      export CC=clang;
+      export CXX=clang;
+      export FFLAGS=-ff2c;
+    fi;
+
+script:
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        echo pwd;
+        PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
+        make test
+    fi;
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+      if [ "${PY}" == "3" ]; then
+         python3 setup.py build_ext --inplace;
+         echo -e "python3 -m nose.core kivy/tests";
+      else
+         make;
+         echo -e "make test";
+      fi;
+    fi;
