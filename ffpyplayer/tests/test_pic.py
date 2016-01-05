@@ -27,4 +27,4 @@ class PicTestCase(unittest.TestCase):
         img2 = sws.scale(img)
         self.assertEqual(img2.get_pixel_format(), 'yuv420p')
         planes = img2.to_bytearray()
-        self.assertEqual(map(len, planes), [w * h, w * h / 2, w * h / 2, 0])
+        self.assertEqual(map(len, planes), [w * h, w * h / 4, w * h / 4, 0])
