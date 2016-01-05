@@ -53,6 +53,7 @@ install:
       make install;
       make distclean;
 
+      sudo apt-get -y install libass-dev libfreetype6-dev libtheora-dev libvorbis-dev
       cd ~/ffmpeg_sources;
       wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2;
       tar xjvf ffmpeg-snapshot.tar.bz2;
@@ -91,7 +92,7 @@ script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         echo pwd;
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
-        make test
+        make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
       if [ "${PY}" == "3" ]; then
