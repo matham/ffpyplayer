@@ -203,7 +203,7 @@ def get_wheel_data():
 mods = [
     'pic', 'threading', 'tools', 'writer', 'player/clock', 'player/core',
     'player/decoder', 'player/frame_queue', 'player/player', 'player/queue']
-extra_compile_args = ["-O3", '-fno-strict-aliasing']
+extra_compile_args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
 c_options['has_sdl2'] = sdl == 'SDL2'
 
 if have_cython:
