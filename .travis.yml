@@ -18,7 +18,8 @@ matrix:
 
 install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-      echo pwd;
+      pwd;
+      sudo apt-get update
       sudo apt-get -y install libsdl2-dev python-dev;
       mkdir ~/ffmpeg_sources;
 
@@ -90,7 +91,8 @@ before_script:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        echo pwd;
+        cd $TRAVIS_BUILD_DIR;
+        pwd;
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
         make test;
     fi;
