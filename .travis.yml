@@ -53,7 +53,7 @@ install:
       make install;
       make distclean;
 
-      sudo apt-get -y install libass-dev libfreetype6-dev libtheora-dev libvorbis-dev
+      sudo apt-get -y install libass-dev libfreetype6-dev libtheora-dev libvorbis-dev;
       cd ~/ffmpeg_sources;
       wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2;
       tar xjvf ffmpeg-snapshot.tar.bz2;
