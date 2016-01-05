@@ -28,8 +28,8 @@ install:
       wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
       tar xzvf yasm-1.3.0.tar.gz;
       cd yasm-1.3.0;
-      ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --bindir="$HOME/bin" --enable-pic --enable-silent-rules;
-      make;
+      ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --bindir="$HOME/ffmpeg_build/bin" --enable-pic
+      make -s;
       make install;
       make distclean;
 
@@ -38,8 +38,8 @@ install:
       wget http://download.videolan.org/pub/x264/snapshots/last_x264.tar.bz2;
       tar xjvf last_x264.tar.bz2;
       cd x264-snapshot*;
-      PATH="$HOME/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/bin" --enable-silent-rules --enable-shared --extra-cflags="-fPIC";
-      PATH="$HOME/bin:$PATH" make;
+      PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --enable-shared --extra-cflags="-fPIC";
+      PATH="$HOME/ffmpeg_build/bin:$PATH" make -s;
       make install;
       make distclean;
 
@@ -49,8 +49,8 @@ install:
       wget http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz;
       tar xzvf lame-3.99.5.tar.gz;
       cd lame-3.99.5;
-      ./configure --prefix="$HOME/ffmpeg_build" --enable-silent-rules --enable-nasm --enable-shared --enable-pic;
-      make;
+      ./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared --enable-pic;
+      make -s;
       make install;
       make distclean;
 
@@ -59,8 +59,8 @@ install:
       wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2;
       tar xjvf ffmpeg-snapshot.tar.bz2;
       cd ffmpeg;
-      PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-silent-rules --enable-gpl --enable-libass --enable-libfreetype --enable-libmp3lame --enable-libtheora --enable-libvorbis --enable-libx264 --enable-shared;
-      PATH="$HOME/bin:$PATH" make;
+      PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libass --enable-libfreetype --enable-libmp3lame --enable-libtheora --enable-libvorbis --enable-libx264 --enable-shared;
+      PATH="$HOME/ffmpeg_build/bin:$PATH" make -s;
       make install;
       make distclean;
       hash -r;
@@ -82,6 +82,7 @@ install:
 
 before_script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+      cd "$TRAVIS_BUILD_DIR";
       export PYTHONPATH=$PYTHONPATH:$(pwd);
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
@@ -92,9 +93,7 @@ before_script:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        cd $TRAVIS_BUILD_DIR;
         pwd;
-        find $HOME/bin -type f;
         find $HOME/ffmpeg_build/lib -type f;
         find $HOME/ffmpeg_build/bin -type f;
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
