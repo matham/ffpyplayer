@@ -18,17 +18,19 @@ matrix:
 
 install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+      set -v
       pwd;
       sudo apt-get update;
       sudo apt-get -y install libsdl2-dev python-dev;
       mkdir ~/ffmpeg_sources;
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
       sudo apt-get -y install yasm;
       cd ~/ffmpeg_sources;
       wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
       tar xzf yasm-1.3.0.tar.gz;
       cd yasm-1.3.0;
-      ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --bindir="$HOME/ffmpeg_build/bin" --enable-pic
+      ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
       make;
       make install;
       make distclean;
@@ -49,7 +51,7 @@ install:
       wget http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz;
       tar xzf lame-3.99.5.tar.gz;
       cd lame-3.99.5;
-      ./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared --enable-pic;
+      ./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared;
       make;
       make install;
       make distclean;
@@ -93,9 +95,6 @@ before_script:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        pwd;
-        find $HOME/ffmpeg_build/lib -type f;
-        find $HOME/ffmpeg_build/bin -type f;
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
         make test;
     fi;
