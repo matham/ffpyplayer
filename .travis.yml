@@ -95,6 +95,6 @@ script:
          python3 -m nose.core kivy/tests;
       else
          make;
-         make test
+         make test;
       fi;
     fi;
