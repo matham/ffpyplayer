@@ -158,7 +158,7 @@ cdef class MediaWriter(object):
         self.fmt_ctx = NULL
         res = avformat_alloc_output_context2(&self.fmt_ctx, NULL, format_name, filename)
         if res < 0 or self.fmt_ctx == NULL:
-            raise Exception('Failed to create format context: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+            raise Exception('Failed to create format context: ' + tcode(emsg(res, msg, sizeof(msg))))
         self.streams = <MediaStream *>malloc(n * sizeof(MediaStream))
         if self.streams == NULL:
             self.clean_up()
@@ -236,7 +236,7 @@ cdef class MediaWriter(object):
                     av_dict_free(&s[r].av_stream.metadata)
                     self.clean_up()
                     raise Exception('Failed to set option %s: %s for stream %d; %s'\
-                                    % (k, v, r, <str><bytes>emsg(res, msg, sizeof(msg))))
+                                    % (k, v, r, tcode(emsg(res, msg, sizeof(msg)))))
             # Some formats want stream headers to be separate
             if self.fmt_ctx.oformat.flags & AVFMT_GLOBALHEADER:
                 s[r].codec_ctx.flags |= CODEC_FLAG_GLOBAL_HEADER
@@ -283,7 +283,7 @@ cdef class MediaWriter(object):
                 av_log(NULL, AV_LOG_ERROR, msg2)
             if res < 0:
                 self.clean_up()
-                raise Exception('Failed to open codec for stream %d; %s' % (r, <str><bytes>emsg(res, msg, sizeof(msg))))
+                raise Exception('Failed to open codec for stream %d; %s' % (r, tcode(emsg(res, msg, sizeof(msg)))))
 
             s[r].pts = 0
             if self.fmt_ctx.oformat.flags & AVFMT_VARIABLE_FPS:
@@ -301,11 +301,11 @@ cdef class MediaWriter(object):
                 raise Exception('File %s already exists.' % filename)
             elif res < 0 and res != AV_ENOENT:
                 self.clean_up()
-                raise Exception('File error: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('File error: ' + tcode(emsg(res, msg, sizeof(msg))))
             res = avio_open2(&self.fmt_ctx.pb, filename, AVIO_FLAG_WRITE, NULL, NULL)
             if res < 0:
                 self.clean_up()
-                raise Exception('File error: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('File error: ' + tcode(emsg(res, msg, sizeof(msg))))
         res = avformat_write_header(self.fmt_ctx, &self.format_opts)
         bad_vals = ''
         dict_temp = av_dict_get(self.format_opts, b"", dict_temp, AV_DICT_IGNORE_SUFFIX)
@@ -318,7 +318,7 @@ cdef class MediaWriter(object):
             av_log(NULL, AV_LOG_ERROR, msg2)
         if res < 0:
             self.clean_up()
-            raise Exception('Error writing header: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+            raise Exception('Error writing header: ' + tcode(emsg(res, msg, sizeof(msg))))
 
     def __dealloc__(self):
         self.close()
@@ -477,7 +477,7 @@ cdef class MediaWriter(object):
                     res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
                     if res < 0:
                         with gil:
-                            raise Exception('Error writing frame: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                            raise Exception('Error writing frame: ' + tcode(emsg(res, msg, sizeof(msg))))
                     self.total_size += sizeof(AVPicture)
                 else:
                     got_pkt = 0
@@ -489,7 +489,7 @@ cdef class MediaWriter(object):
                     res = avcodec_encode_video2(s.codec_ctx, &pkt, frame_out, &got_pkt)
                     if res < 0:
                         with gil:
-                            raise Exception('Error encoding frame: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                            raise Exception('Error encoding frame: ' + tcode(emsg(res, msg, sizeof(msg))))
 
                     if got_pkt:
                         if pkt.pts == AV_NOPTS_VALUE and not (s.codec_ctx.codec.capabilities & CODEC_CAP_DELAY):
@@ -505,7 +505,7 @@ cdef class MediaWriter(object):
                         res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
                         if res < 0:
                             with gil:
-                                raise Exception('Error writing frame: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                                raise Exception('Error writing frame: ' + tcode(emsg(res, msg, sizeof(msg))))
                     frame_out.pts = pts_src
                     frame_out.pict_type = pict_type_src
 

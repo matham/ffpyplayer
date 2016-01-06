@@ -76,7 +76,7 @@ cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 cdef int *next_sample_rates = [0, 44100, 48000, 96000, 192000]
 cdef int next_sample_rates_len = 5
 
-cdef object sub_ass = <str>b'ass', sub_text = <str>b'text', sub_fmt
+cdef object sub_ass = str(b'ass'), sub_text = str(b'text'), sub_fmt
 
 cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
@@ -263,7 +263,7 @@ cdef double get_rotation(AVStream *st) nogil:
 
     return theta
 
-cdef bytes py_pat = <bytes>("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" + PRId64 + "/%" + PRId64 + "   \r")
+cdef bytes py_pat = bytes("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" + PRId64 + "/%" + PRId64 + "   \r")
 cdef char *py_pat_str = py_pat
 cdef bytes av_str = b"A-V", mv_str = b"M-V", ma_str = b"M-A", empty_str = b"   "
 cdef char *str_av = av_str
@@ -371,13 +371,13 @@ cdef class VideoState(object):
         if self.callback is None:
             return 0
         with gil:
-            return self.request_thread_py(<str><bytes>name, <str><bytes>msg)
+            return self.request_thread_py(tcode(name), tcode(msg))
 
     cdef int request_thread(self, char *name, object msg) nogil except 1:
         if self.callback is None:
             return 0
         with gil:
-            return self.request_thread_py(<str><bytes>name, msg)
+            return self.request_thread_py(tcode(name), msg)
 
     cdef int request_thread_py(self, object name, object msg) except 1:
         cdef object f
@@ -390,7 +390,7 @@ cdef class VideoState(object):
         return 0
 
     cdef object get_out_pix_fmt(self):
-        return <str><bytes>av_get_pix_fmt_name(self.pix_fmt)
+        return tcode(av_get_pix_fmt_name(self.pix_fmt))
 
     cdef void set_out_pix_fmt(self, AVPixelFormat out_fmt):
         '''

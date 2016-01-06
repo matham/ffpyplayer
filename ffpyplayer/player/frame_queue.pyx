@@ -9,7 +9,7 @@ cdef extern from "string.h" nogil:
 
 cdef void raise_py_exception(msg) nogil except *:
     with gil:
-        raise Exception(msg)
+        raise Exception(tcode(msg))
 
 
 cdef class FrameQueue(object):

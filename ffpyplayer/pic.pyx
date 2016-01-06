@@ -92,7 +92,8 @@ def get_image_size(pix_fmt, width, height):
     cdef AVPixelFormat fmt
     cdef int res, w = width, h = height
     cdef int size[4]
-    cdef int ls[4], req[4]
+    cdef int ls[4]
+    cdef int req[4]
     cdef char msg[256]
     cdef bytes fmtb
 
@@ -105,11 +106,11 @@ def get_image_size(pix_fmt, width, height):
         raise Exception('Pixel format %s not found.' % pix_fmt)
     res = av_image_fill_linesizes(ls, fmt, w)
     if res < 0:
-        raise Exception('Failed to initialize linesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+        raise Exception('Failed to initialize linesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
 
     res = get_plane_sizes(size, req, fmt, h, ls)
     if res < 0:
-        raise Exception('Failed to get planesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+        raise Exception('Failed to get planesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
     return (size[0], size[1], size[2], size[3])
 
 
@@ -265,7 +266,6 @@ cdef class SWScale(object):
 cdef int raise_exec(object ecls) nogil except 1:
     with gil:
         raise ecls()
-    return 0
 
 
 cdef class Image(object):
@@ -352,7 +352,8 @@ cdef class Image(object):
         cdef char msg[256]
         cdef AVFrame *avframe
         cdef int buff_size[4]
-        cdef int ls[4], req[4]
+        cdef int ls[4]
+        cdef int req[4]
         cdef bytes fmt_b
 
         self.frame = NULL
@@ -379,7 +380,7 @@ cdef class Image(object):
         else:
             res = av_image_fill_linesizes(self.frame.linesize, self.pix_fmt, w)
             if res < 0:
-                raise Exception('Failed to initialize linesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('Failed to initialize linesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
         av_image_fill_linesizes(ls, self.pix_fmt, w)
         for i in range(4):
             if ls[i] and not self.frame.linesize[i]:
@@ -389,7 +390,7 @@ cdef class Image(object):
             self.byte_planes = []
             res = get_plane_sizes(buff_size, req, self.pix_fmt, self.frame.height, self.frame.linesize)
             if res < 0:
-                raise Exception('Failed to get plane sizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('Failed to get plane sizes: ' + tcode(emsg(res, msg, sizeof(msg))))
             for i in range(4):
                 if req[i] and buff_size[i] and (len(plane_buffers) <= i or not plane_buffers[i]):
                     raise Exception('Required plane %d not provided for %s' % (i, pix_fmt))
@@ -411,7 +412,7 @@ cdef class Image(object):
                 res = av_frame_get_buffer(self.frame, 32)
             if res < 0:
                 raise Exception('Could not allocate avframe buffer of size %dx%d: %s'\
-                                % (w, h, <str><bytes>emsg(res, msg, sizeof(msg))))
+                                % (w, h, tcode(emsg(res, msg, sizeof(msg)))))
 
     def __dealloc__(self):
         av_frame_free(&self.frame)
@@ -585,7 +586,7 @@ cdef class Image(object):
             >>> img.get_pixel_format()
             'rgb24'
         '''
-        return <str><bytes>av_get_pix_fmt_name(self.pix_fmt)
+        return tcode(av_get_pix_fmt_name(self.pix_fmt))
 
     cpdef get_buffer_size(Image self, keep_align=False):
         '''Returns the size of the buffers of each plane.
@@ -628,7 +629,8 @@ cdef class Image(object):
         '''
         cdef int res
         cdef int size[4]
-        cdef int ls[4], req[4]
+        cdef int ls[4]
+        cdef int req[4]
         cdef char msg[256]
 
         if keep_align:
@@ -636,11 +638,11 @@ cdef class Image(object):
         else:
             res = av_image_fill_linesizes(ls, self.pix_fmt, self.frame.width)
             if res < 0:
-                raise Exception('Failed to initialize linesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('Failed to initialize linesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
 
         res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
-            raise Exception('Failed to get planesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+            raise Exception('Failed to get planesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
         return (size[0], size[1], size[2], size[3])
 
     cpdef get_required_buffers(Image self):
@@ -650,13 +652,14 @@ cdef class Image(object):
         '''
         cdef int res
         cdef int size[4]
-        cdef int ls[4], req[4]
+        cdef int ls[4]
+        cdef int req[4]
         cdef char msg[256]
 
         memcpy(ls, self.frame.linesize, sizeof(ls))
         res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
-            raise Exception('Failed to get planesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+            raise Exception('Failed to get planesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
         return (req[0], req[1], req[2], req[3])
 
     cpdef to_bytearray(Image self, keep_align=False):
@@ -719,7 +722,8 @@ cdef class Image(object):
         cdef int i, res
         cdef uint8_t *data[4]
         cdef int size[4]
-        cdef int ls[4], req[4]
+        cdef int ls[4]
+        cdef int req[4]
         cdef char msg[256]
         memset(data, 0, sizeof(data))
 
@@ -728,11 +732,11 @@ cdef class Image(object):
         else:
             res = av_image_fill_linesizes(ls, self.pix_fmt, self.frame.width)
             if res < 0:
-                raise Exception('Failed to initialize linesizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('Failed to initialize linesizes: ' + tcode(emsg(res, msg, sizeof(msg))))
 
         res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
-            raise Exception('Failed to get plane sizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+            raise Exception('Failed to get plane sizes: ' + tcode(emsg(res, msg, sizeof(msg))))
         for i in range(4):
             planes[i] = bytearray(b'\0') * size[i]
             if size[i]:
@@ -793,7 +797,8 @@ cdef class Image(object):
         cdef int i, res
         cdef int size[4]
         cdef char *data[4]
-        cdef int ls[4], req[4]
+        cdef int ls[4]
+        cdef int req[4]
         cdef int *cls = self.frame.linesize
         cdef char msg[256]
         memset(data, 0, sizeof(data))
@@ -801,14 +806,14 @@ cdef class Image(object):
         res = av_image_fill_linesizes(ls, self.pix_fmt, self.frame.width)
         if res < 0:
             raise Exception('Failed to initialize linesizes: ' +
-                            <str><bytes>emsg(res, msg, sizeof(msg)))
+                            tcode(emsg(res, msg, sizeof(msg))))
 
         if keep_align or (cls[0] == ls[0] and cls[1] == ls[1] and
                           cls[2] == ls[2] and cls[3] == ls[3]):
             res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format,
                                   self.frame.height, self.frame.linesize)
             if res < 0:
-                raise Exception('Failed to get plane sizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+                raise Exception('Failed to get plane sizes: ' + tcode(emsg(res, msg, sizeof(msg))))
 
             for i in range(4):
                 if not size[i]:
@@ -820,7 +825,7 @@ cdef class Image(object):
 
         res = get_plane_sizes(size, req, <AVPixelFormat>self.frame.format, self.frame.height, ls)
         if res < 0:
-            raise Exception('Failed to get plane sizes: ' + <str><bytes>emsg(res, msg, sizeof(msg)))
+            raise Exception('Failed to get plane sizes: ' + tcode(emsg(res, msg, sizeof(msg))))
         for i in range(4):
             if not size[i]:
                 continue
@@ -908,7 +913,7 @@ cdef class ImageLoader(object):
             ret = avformat_open_input(&self.format_ctx, fname, NULL, NULL)
         if ret < 0:
             raise Exception("Failed to open input file {}: {}".format(filename,
-                            <str><bytes>emsg(ret, self.msg, sizeof(self.msg))))
+                            tcode(emsg(ret, self.msg, sizeof(self.msg)))))
 
         self.codec_ctx = self.format_ctx.streams[0].codec
         self.codec = avcodec_find_decoder(self.codec_ctx.codec_id)
@@ -923,7 +928,7 @@ cdef class ImageLoader(object):
             ret = avcodec_open2(self.codec_ctx, self.codec, &opts)
         if ret < 0:
             raise Exception("Failed to open codec for {}: {}".format(filename,
-                            <str><bytes>emsg(ret, self.msg, sizeof(self.msg))))
+                            tcode(emsg(ret, self.msg, sizeof(self.msg)))))
         t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
             raise Exception("Option {} not found.".format(t.key))
@@ -977,7 +982,7 @@ cdef class ImageLoader(object):
                 self.pkt.data = NULL
                 return self.eof_frame()
             raise Exception("Failed to read frame: {}",
-                            <str><bytes>emsg(ret, self.msg, sizeof(self.msg)))
+                            tcode(emsg(ret, self.msg, sizeof(self.msg))))
 
         with nogil:
             self.frame = av_frame_alloc()

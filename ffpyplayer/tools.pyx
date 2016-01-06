@@ -13,14 +13,13 @@ __all__ = ('initialize_sdl_aud', 'loglevels', 'codecs_enc',
            'convert_to_str')
 
 include "includes/ffmpeg.pxi"
+include "includes/inline_funcs.pxi"
 
 from ffpyplayer.threading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
 import ffpyplayer.threading  # for sdl init
 import re
 import sys
 from functools import partial
-
-cdef int PY3 = sys.version_info > (3, )
 
 cdef int sdl_aud_initialized = 0
 def initialize_sdl_aud():
@@ -94,16 +93,11 @@ cdef MTMutex _log_mutex= MTMutex(SDL_MT)
 
 
 cdef void call_callback(char *line, int level):
-    cdef bytes l
     cdef object callback = _log_callback
     if callback is None:
         return
 
-    l = line
-    if PY3:
-        _log_callback(l.decode('utf8'), _loglevel_inverse[level])
-    else:
-        _log_callback(l, _loglevel_inverse[level])
+    _log_callback(tcode(line), _loglevel_inverse[level])
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
@@ -222,7 +216,7 @@ cpdef get_codecs(
              subtitle and codec.type == AVMEDIA_TYPE_SUBTITLE or
              attachment and codec.type == AVMEDIA_TYPE_ATTACHMENT or
              other)):
-            codecs.append(<str><bytes>codec.name)
+            codecs.append(tcode(codec.name))
         codec = av_codec_next(codec)
     return sorted(codecs)
 
@@ -232,7 +226,7 @@ cdef list list_pixfmts():
     desc = av_pix_fmt_desc_next(desc)
 
     while desc != NULL:
-        fmts.append(<str><bytes>desc.name)
+        fmts.append(tcode(desc.name))
         desc = av_pix_fmt_desc_next(desc)
     return sorted(fmts)
 
@@ -269,9 +263,9 @@ cpdef get_fmts(int input=False, int output=False):
         ofmt = av_oformat_next(ofmt)
         while ofmt != NULL:
             if ofmt.name != NULL:
-                names = (<str><bytes>ofmt.name).split(',')
-                full_name = <str><bytes>ofmt.long_name if ofmt.long_name != NULL else ''
-                ext = (<str><bytes>ofmt.extensions).split(',') if ofmt.extensions != NULL else []
+                names = tcode(ofmt.name).split(',')
+                full_name = tcode(ofmt.long_name) if ofmt.long_name != NULL else ''
+                ext = tcode(ofmt.extensions).split(',') if ofmt.extensions != NULL else []
 
                 fmts.extend(names)
                 full_names.extend([full_name, ] * len(names))
@@ -282,9 +276,9 @@ cpdef get_fmts(int input=False, int output=False):
         ifmt = av_iformat_next(ifmt)
         while ifmt != NULL:
             if ifmt.name != NULL:
-                names = (<str><bytes>ifmt.name).split(',')
-                full_name = <str><bytes>ifmt.long_name if ifmt.long_name != NULL else ''
-                ext = (<str><bytes>ifmt.extensions).split(',') if ifmt.extensions != NULL else []
+                names = tcode(ifmt.name).split(',')
+                full_name = tcode(ifmt.long_name) if ifmt.long_name != NULL else ''
+                ext = tcode(ifmt.extensions).split(',') if ifmt.extensions != NULL else []
 
                 fmts.extend(names)
                 full_names.extend([full_name, ] * len(names))
@@ -394,14 +388,14 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
         return fmt_list
 
     while codec.pix_fmts[i] != AV_PIX_FMT_NONE:
-        fmt_list.append(<str><bytes>av_get_pix_fmt_name(codec.pix_fmts[i]))
+        fmt_list.append(tcode(av_get_pix_fmt_name(codec.pix_fmts[i])))
         i += 1
     if pix_fmt:
         # XXX: fix this to check if NULL (although kinda already checked above)
         has_alpha = av_pix_fmt_desc_get(av_get_pix_fmt(fmt_b)).nb_components % 2 == 0
         fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, av_get_pix_fmt(fmt_b),
                                                 has_alpha, &loss)
-        i = fmt_list.index(<str><bytes>av_get_pix_fmt_name(fmt))
+        i = fmt_list.index(tcode(av_get_pix_fmt_name(fmt)))
         pix = fmt_list[i]
         del fmt_list[i]
         fmt_list.insert(0, pix)

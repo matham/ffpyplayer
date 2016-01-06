@@ -9,6 +9,9 @@ cdef extern from "errno.h" nogil:
 cdef extern from "limits.h" nogil:
     int INT_MAX
 
+import sys
+
+cdef int PY3 = sys.version_info > (3, )
 
 cdef inline int FFMAX(int a, int b) nogil:
     if a > b:
@@ -99,3 +102,8 @@ cdef inline int insert_filt(
 
     last_filter[0] = filt_ctx
     return 0
+
+cdef inline object tcode(bytes s):
+    if PY3:
+        return s.decode('utf8')
+    return s
