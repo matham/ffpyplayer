@@ -71,10 +71,6 @@ install:
       brew update;
       brew install sdl2;
       brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
-      pkg-config --libs --cflags sdl2 libavcodec;
-      curl -O -L https://www.libsdl.org/release/SDL2-2.0.4.dmg;
-      hdiutil attach SDL2-2.0.4.dmg;
-      sudo cp -a /Volumes/SDL2/SDL2.framework /Library/Frameworks/;
       if [ "${PY}" == "3" ]; then
          curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
          sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
@@ -85,15 +81,8 @@ install:
     fi;
 
 before_script:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-      cd "$TRAVIS_BUILD_DIR";
-      export PYTHONPATH=$PYTHONPATH:$(pwd);
-    fi;
-  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-      export CC=clang;
-      export CXX=clang;
-      export FFLAGS=-ff2c;
-    fi;
+    cd "$TRAVIS_BUILD_DIR";
+    export PYTHONPATH=$PYTHONPATH:$(pwd);
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
@@ -103,9 +92,9 @@ script:
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
       if [ "${PY}" == "3" ]; then
          python3 setup.py build_ext --inplace;
-         echo -e "python3 -m nose.core kivy/tests";
+         python3 -m nose.core kivy/tests;
       else
          make;
-         echo -e "make test";
+         make test
       fi;
     fi;
