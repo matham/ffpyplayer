@@ -32,8 +32,25 @@ sys.path.insert(0, os.path.abspath('../../'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
-    'sphinx.ext.coverage',
+    'sphinx.ext.coverage'
 ]
+
+html_sidebars = {
+    '**': [
+        'about.html',
+        'navigation.html',
+        'relations.html',
+        'searchbox.html',
+        'sourcelink.html'
+    ]
+}
+
+html_theme_options = {
+    'github_button': 'true',
+    'github_banner': 'true',
+    'github_user': 'matham',
+    'github_repo': 'ffpyplayer'
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -103,7 +120,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

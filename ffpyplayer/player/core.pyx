@@ -492,7 +492,8 @@ cdef class VideoState(object):
         if i >= self.ic.nb_chapters:
             return 0
 
-        av_log(NULL, AV_LOG_VERBOSE, b"Seeking to chapter %d.\n", i)
+        if self.player.loglevel >= AV_LOG_VERBOSE:
+            av_log(NULL, AV_LOG_VERBOSE, b"Seeking to chapter %d.\n", i)
         self.stream_seek(av_rescale_q(self.ic.chapters[i].start, self.ic.chapters[i].time_base, AV_TIME_BASE_Q),
                          0, 0, flush)
         return 0
@@ -531,7 +532,8 @@ cdef class VideoState(object):
                 elif diff >= sync_threshold:
                     delay = 2 * delay
 
-        av_log(NULL, AV_LOG_TRACE, b"video: delay=%0.3f A-V=%f\n", delay, -diff)
+        if self.player.loglevel >= AV_LOG_TRACE:
+            av_log(NULL, AV_LOG_TRACE, b"video: delay=%0.3f A-V=%f\n", delay, -diff)
         return delay
 
     cdef double vp_duration(VideoState self, Frame *vp, Frame *nextvp) nogil except? 0.0:
@@ -691,7 +693,8 @@ cdef class VideoState(object):
                 m2 = self.video_st.codec.pts_correction_num_faulty_dts if self.video_st != NULL else 0
                 m3 = self.video_st.codec.pts_correction_num_faulty_pts if self.video_st != NULL else 0
 
-                av_log(NULL, AV_LOG_INFO,
+                if self.player.loglevel >= AV_LOG_INFO:
+                    av_log(NULL, AV_LOG_INFO,
                        py_pat_str,
                        self.get_master_clock(),
                        m,
@@ -973,7 +976,8 @@ cdef class VideoState(object):
             cdef char buf2[1024]
 
         if frame == NULL:
-            av_log(NULL, AV_LOG_ERROR, b'Memory error in audio thread\n')
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b'Memory error in audio thread\n')
             self.request_thread_s(b'audio:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
             return AVERROR(ENOMEM)
 
@@ -1000,7 +1004,8 @@ cdef class VideoState(object):
                     if reconfigure:
                         av_get_channel_layout_string(buf1, sizeof(buf1), -1, self.audio_filter_src.channel_layout)
                         av_get_channel_layout_string(buf2, sizeof(buf2), -1, dec_channel_layout)
-                        av_log(NULL, AV_LOG_DEBUG,
+                        if self.player.loglevel >= AV_LOG_DEBUG:
+                            av_log(NULL, AV_LOG_DEBUG,
                                b"Audio frame changed from rate:%d ch:%d fmt:%s layout:%s serial:%d to rate:%d ch:%d fmt:%s layout:%s serial:%d\n",
                                self.audio_filter_src.freq, self.audio_filter_src.channels,
                                av_get_sample_fmt_name(self.audio_filter_src.fmt), buf1, last_serial,
@@ -1028,8 +1033,12 @@ cdef class VideoState(object):
                         if af == NULL:
                             avfilter_graph_free(&self.agraph)
                             av_frame_free(&frame)
-                            av_log(NULL, AV_LOG_ERROR, b'Error getting writable audio frame\n')
-                            self.request_thread_s(b'audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
+                            if self.audioq.abort_request:
+                                self.request_thread_s(b'audio:exit', b'')
+                            else:
+                                if self.player.loglevel >= AV_LOG_ERROR:
+                                    av_log(NULL, AV_LOG_ERROR, b'Error getting writable audio frame\n')
+                                self.request_thread_s(b'audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
                             return ret
 
                         af.pts = NAN if frame.pts == AV_NOPTS_VALUE else frame.pts * av_q2d(tb)
@@ -1069,12 +1078,14 @@ cdef class VideoState(object):
         IF CONFIG_AVFILTER:
             avfilter_graph_free(&self.agraph)
         av_frame_free(&frame)
-        if ret:
+        if ret and not self.audioq.abort_request:
             if ret != -1:
-                av_log(NULL, AV_LOG_ERROR, b'Audio thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Audio thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
                 self.request_thread_s(b'audio:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                av_log(NULL, AV_LOG_ERROR, b'Audio thread error\n')
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Audio thread error\n')
                 self.request_thread_s(b'audio:error', b'')
         else:
             self.request_thread_s(b'audio:exit', b'')
@@ -1102,14 +1113,16 @@ cdef class VideoState(object):
             cdef int last_vfilter_idx = self.vfilter_idx
             if graph == NULL:
                 av_frame_free(&frame)
-                av_log(NULL, AV_LOG_ERROR, b'Memory Error in video thread\n')
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Memory Error in video thread\n')
                 self.request_thread_s(b'video:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
                 return AVERROR(ENOMEM)
 
         if frame == NULL:
             IF CONFIG_AVFILTER:
                 avfilter_graph_free(&graph)
-            av_log(NULL, AV_LOG_ERROR, b'Memory Error in video thread\n')
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b'Memory Error in video thread\n')
             self.request_thread_s(b'video:error', fmt_err(AVERROR(ENOMEM), err_msg, sizeof(err_msg)))
             return AVERROR(ENOMEM)
 
@@ -1117,7 +1130,8 @@ cdef class VideoState(object):
             av_frame_unref(frame)
             ret = self.get_video_frame(frame)
             if ret < 0:
-                av_log(NULL, AV_LOG_ERROR, b'Error getting frame: %s')
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Error getting frame: %s')
                 break
             if not ret:
                 continue
@@ -1130,7 +1144,8 @@ cdef class VideoState(object):
                     or last_format != frame.format or last_serial != self.viddec.pkt_serial
                     or last_vfilter_idx != self.vfilter_idx
                     or last_out_fmt != last_out_fmt_temp):
-                    av_log(NULL, AV_LOG_DEBUG,
+                    if self.player.loglevel >= AV_LOG_DEBUG:
+                        av_log(NULL, AV_LOG_DEBUG,
                            b"Video frame changed from size:%dx%d format:%s serial:%d to size:%dx%d format:%s serial:%d\n",
                            last_w, last_h,
                            <const char *>av_x_if_null(av_get_pix_fmt_name(last_format), b"none"), last_serial,
@@ -1143,7 +1158,8 @@ cdef class VideoState(object):
                         graph, self.player.vfilters_list[self.vfilter_idx] if self.player.vfilters_list != NULL else NULL,
                         frame, last_out_fmt_temp)
                     if ret < 0:
-                        av_log(NULL, AV_LOG_FATAL, b"%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
+                        if self.player.loglevel >= AV_LOG_FATAL:
+                            av_log(NULL, AV_LOG_FATAL, b"%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
                         self.request_thread_s(b'video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
                         break
                     filt_in  = self.in_video_filter
@@ -1216,12 +1232,14 @@ cdef class VideoState(object):
             avfilter_graph_free(&graph)
         av_frame_free(&frame)
 
-        if ret:
+        if ret and not self.videoq.abort_request:
             if ret != -1:
-                av_log(NULL, AV_LOG_ERROR, b'Video thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Video thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
                 self.request_thread_s(b'video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                av_log(NULL, AV_LOG_ERROR, b'Video thread error\n')
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Video thread error\n')
                 self.request_thread_s(b'video:error', b'')
         else:
             self.request_thread_s(b'video:exit', b'')
@@ -1263,12 +1281,14 @@ cdef class VideoState(object):
                     self.subtitle_display(&sp.sub)
                 avsubtitle_free(&sp.sub)
 
-        if ret:
+        if ret and not self.subtitleq.abort_request:
             if ret != -1:
-                av_log(NULL, AV_LOG_ERROR, b'Subtitle thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Subtitle thread error: %s\n', fmt_err(ret, err_msg, sizeof(err_msg)))
                 self.request_thread_s(b'subtitle:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
-                av_log(NULL, AV_LOG_ERROR, b'Subtitle thread error\n')
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b'Subtitle thread error\n')
                 self.request_thread_s(b'subtitle:error', b'')
         else:
             self.request_thread_s(b'subtitle:exit', b'')
@@ -1341,7 +1361,8 @@ cdef class VideoState(object):
                         min_nb_samples = nb_samples * (100 - SAMPLE_CORRECTION_PERCENT_MAX) / 100
                         max_nb_samples = nb_samples * (100 + SAMPLE_CORRECTION_PERCENT_MAX) / 100
                         wanted_nb_samples = av_clip(wanted_nb_samples, min_nb_samples, max_nb_samples)
-                    av_log(NULL, AV_LOG_TRACE, b"diff=%f adiff=%f sample_diff=%d apts=%0.3f %f\n",
+                    if self.player.loglevel >= AV_LOG_TRACE:
+                        av_log(NULL, AV_LOG_TRACE, b"diff=%f adiff=%f sample_diff=%d apts=%0.3f %f\n",
                            diff, avg_diff, wanted_nb_samples - nb_samples,
                            self.audio_clock, self.audio_diff_threshold)
             else:
@@ -1411,7 +1432,8 @@ cdef class VideoState(object):
                                               dec_channel_layout, <AVSampleFormat>af.frame.format,
                                               af.frame.sample_rate, 0, NULL)
             if self.swr_ctx == NULL or swr_init(self.swr_ctx) < 0:
-                av_log(NULL, AV_LOG_ERROR, b"Cannot create sample rate converter for \
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b"Cannot create sample rate converter for \
                 conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",\
                 af.frame.sample_rate, av_get_sample_fmt_name(<AVSampleFormat>af.frame.format),\
                 av_frame_get_channels(af.frame), self.audio_tgt.freq,\
@@ -1428,14 +1450,16 @@ cdef class VideoState(object):
             out_count = <int64_t>wanted_nb_samples * self.audio_tgt.freq / af.frame.sample_rate + 256
             out_size  = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, out_count, self.audio_tgt.fmt, 0)
             if out_size < 0:
-                av_log(NULL, AV_LOG_ERROR, b"av_samples_get_buffer_size() failed\n")
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b"av_samples_get_buffer_size() failed\n")
                 return -1
 
             if wanted_nb_samples != af.frame.nb_samples:
                 if swr_set_compensation(self.swr_ctx, (wanted_nb_samples - af.frame.nb_samples)\
                 * self.audio_tgt.freq / af.frame.sample_rate, wanted_nb_samples *\
                 self.audio_tgt.freq / af.frame.sample_rate) < 0:
-                    av_log(NULL, AV_LOG_ERROR, b"swr_set_compensation() failed\n")
+                    if self.player.loglevel >= AV_LOG_ERROR:
+                        av_log(NULL, AV_LOG_ERROR, b"swr_set_compensation() failed\n")
                     return -1
 
             av_fast_malloc(&self.audio_buf1, &self.audio_buf1_size, out_size)
@@ -1443,11 +1467,13 @@ cdef class VideoState(object):
                 return AVERROR(ENOMEM)
             len2 = swr_convert(self.swr_ctx, out, out_count, input, af.frame.nb_samples)
             if len2 < 0:
-                av_log(NULL, AV_LOG_ERROR, b"swr_convert() failed\n")
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b"swr_convert() failed\n")
                 return -1
 
             if len2 == out_count:
-                av_log(NULL, AV_LOG_WARNING, b"audio buffer is probably too small\n")
+                if self.player.loglevel >= AV_LOG_WARNING:
+                    av_log(NULL, AV_LOG_WARNING, b"audio buffer is probably too small\n")
                 if swr_init(self.swr_ctx) < 0:
                     swr_free(&self.swr_ctx)
             self.audio_buf = self.audio_buf1
@@ -1505,7 +1531,12 @@ cdef class VideoState(object):
             else:
                 memset(stream, self.silence_buf[0], len1)
                 if not self.player.muted:
-                    SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1, self.player.audio_volume)
+                    IF HAS_SDL2:
+                        SDL_MixAudioFormat(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, 
+                                           AUDIO_S16SYS, len1, self.player.audio_volume)
+                    ELSE:
+                        SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, 
+                                     len1, self.player.audio_volume)
 
             len -= len1
             stream += len1
@@ -1540,7 +1571,8 @@ cdef class VideoState(object):
         wanted_spec.channels = wanted_nb_channels
         wanted_spec.freq = wanted_sample_rate
         if wanted_spec.freq <= 0 or wanted_spec.channels <= 0:
-            av_log(NULL, AV_LOG_ERROR, b"Invalid sample rate or channel count!\n")
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b"Invalid sample rate or channel count!\n")
             return -1
 
         while next_sample_rate_idx and next_sample_rates[next_sample_rate_idx] >= wanted_spec.freq:
@@ -1558,8 +1590,9 @@ cdef class VideoState(object):
         ELSE:
             error = SDL_OpenAudio(&wanted_spec, &spec) < 0
         while error:
-            av_log(NULL, AV_LOG_WARNING, b"SDL_OpenAudio (%d channels, %d Hz): %s\n",
-               wanted_spec.channels, wanted_spec.freq, SDL_GetError())
+            if self.player.loglevel >= AV_LOG_WARNING:
+                av_log(NULL, AV_LOG_WARNING, b"SDL_OpenAudio (%d channels, %d Hz): %s\n",
+                    wanted_spec.channels, wanted_spec.freq, SDL_GetError())
 
             wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)]
             if not wanted_spec.channels:
@@ -1567,7 +1600,8 @@ cdef class VideoState(object):
                 next_sample_rate_idx -= 1
                 wanted_spec.channels = wanted_nb_channels
                 if not wanted_spec.freq:
-                    av_log(NULL, AV_LOG_ERROR,
+                    if self.player.loglevel >= AV_LOG_ERROR:
+                        av_log(NULL, AV_LOG_ERROR,
                            b"No more channel combinations to try, audio open failed\n")
                     return -1
             wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels)
@@ -1579,14 +1613,16 @@ cdef class VideoState(object):
                 error = SDL_OpenAudio(&wanted_spec, &spec) < 0
 
         if spec.format != AUDIO_S16SYS:
-            av_log(NULL, AV_LOG_ERROR,
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR,
                    b"SDL advised audio format %d is not supported!\n", spec.format)
             return -1
 
         if spec.channels != wanted_spec.channels:
             wanted_channel_layout = av_get_default_channel_layout(spec.channels)
             if not wanted_channel_layout:
-                av_log(NULL, AV_LOG_ERROR,
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR,
                        b"SDL advised channel count %d is not supported!\n", spec.channels)
                 return -1
 
@@ -1600,9 +1636,11 @@ cdef class VideoState(object):
             NULL, audio_hw_params.channels, audio_hw_params.freq, audio_hw_params.fmt, 1)
 
         if audio_hw_params.bytes_per_sec <= 0 or audio_hw_params.frame_size <= 0:
-            av_log(NULL, AV_LOG_ERROR, b"av_samples_get_buffer_size failed\n")
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b"av_samples_get_buffer_size failed\n")
             return -1
-        av_log(NULL, AV_LOG_DEBUG,
+        if self.player.loglevel >= AV_LOG_DEBUG:
+            av_log(NULL, AV_LOG_DEBUG,
                b"openaudio with fmt=%u freq=%u channel_layout=%u channels=%hhu\n",
                audio_hw_params.fmt, audio_hw_params.freq,
                audio_hw_params.channel_layout, audio_hw_params.channels)
@@ -1641,9 +1679,11 @@ cdef class VideoState(object):
             codec = avcodec_find_decoder_by_name(forced_codec_name)
         if codec == NULL:
             if forced_codec_name != NULL:
-                av_log(NULL, AV_LOG_WARNING, b"No codec could be found with name '%s'\n", forced_codec_name)
+                if self.player.loglevel >= AV_LOG_WARNING:
+                    av_log(NULL, AV_LOG_WARNING, b"No codec could be found with name '%s'\n", forced_codec_name)
             else:
-                av_log(NULL, AV_LOG_WARNING, b"No codec could be found with id %d\n", avctx.codec_id)
+                if self.player.loglevel >= AV_LOG_WARNING:
+                    av_log(NULL, AV_LOG_WARNING, b"No codec could be found with id %d\n", avctx.codec_id)
             return -1
         avctx.codec_id = codec.id
         if stream_lowres > av_codec_get_max_lowres(codec):
@@ -1674,7 +1714,8 @@ cdef class VideoState(object):
             return -1
         t = av_dict_get(opts, b"", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
-            av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
             av_dict_free(&opts)
             return AVERROR_OPTION_NOT_FOUND
         self.eof = 0
@@ -1815,7 +1856,8 @@ cdef class VideoState(object):
 
         ic = avformat_alloc_context()
         if ic == NULL:
-            av_log(NULL, AV_LOG_FATAL, b"Could not allocate context.\n");
+            if self.player.loglevel >= AV_LOG_FATAL:
+                av_log(NULL, AV_LOG_FATAL, b"Could not allocate context.\n");
             return self.failed(AVERROR(ENOMEM), ic)
         #av_opt_set_int(ic, b"threads", 1, 0)
         ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
@@ -1827,14 +1869,16 @@ cdef class VideoState(object):
 
         err = avformat_open_input(&ic, self.player.input_filename, self.iformat, &self.player.format_opts)
         if err < 0:
-            av_log(NULL, AV_LOG_ERROR, b"%s: %s\n", self.player.input_filename, fmt_err(err, err_msg, sizeof(err_msg)))
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b"%s: %s\n", self.player.input_filename, fmt_err(err, err_msg, sizeof(err_msg)))
             return self.failed(-1, ic)
 
         if scan_all_pmts_set:
             av_dict_set(&self.player.format_opts, b"scan_all_pmts", NULL, AV_DICT_MATCH_CASE)
         t = av_dict_get(self.player.format_opts, b"", NULL, AV_DICT_IGNORE_SUFFIX)
         if t != NULL:
-            av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
+            if self.player.loglevel >= AV_LOG_ERROR:
+                av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
             return self.failed(AVERROR_OPTION_NOT_FOUND, ic)
         self.ic = ic
 
@@ -1850,7 +1894,8 @@ cdef class VideoState(object):
         av_freep(&opts)
 
         if err < 0:
-            av_log(NULL, AV_LOG_WARNING, b"%s: could not find codec parameters\n", self.player.input_filename)
+            if self.player.loglevel >= AV_LOG_WARNING:
+                av_log(NULL, AV_LOG_WARNING, b"%s: could not find codec parameters\n", self.player.input_filename)
             return self.failed(-1, ic)
 
         if ic.pb != NULL:
@@ -1878,7 +1923,8 @@ cdef class VideoState(object):
                 timestamp += ic.start_time
             ret = avformat_seek_file(ic, -1, INT64_MIN, timestamp, INT64_MAX, 0)
             if ret < 0:
-                av_log(NULL, AV_LOG_WARNING, b"%s: could not seek to position %0.3f\n",
+                if self.player.loglevel >= AV_LOG_WARNING:
+                    av_log(NULL, AV_LOG_WARNING, b"%s: could not seek to position %0.3f\n",
                        self.player.input_filename, <double>timestamp / <double>AV_TIME_BASE)
 
         self.realtime = is_realtime(ic)
@@ -1897,7 +1943,8 @@ cdef class VideoState(object):
 
         for i in range(AVMEDIA_TYPE_NB):
             if self.player.wanted_stream_spec[i] != NULL and st_index[i] == -1:
-                av_log(NULL, AV_LOG_ERROR, b"Stream specifier %s does not match any %s stream\n",
+                if self.player.loglevel >= AV_LOG_ERROR:
+                    av_log(NULL, AV_LOG_ERROR, b"Stream specifier %s does not match any %s stream\n",
                        self.player.wanted_stream_spec[i], av_get_media_type_string(<AVMediaType>i))
                 st_index[i] = INT_MAX
 
@@ -1932,7 +1979,8 @@ cdef class VideoState(object):
             self.stream_component_open(st_index[<int>AVMEDIA_TYPE_SUBTITLE])
 
         if self.video_stream < 0 and self.audio_stream < 0:
-            av_log(NULL, AV_LOG_FATAL, b"Failed to open file '%s' or configure filtergraph\n",
+            if self.player.loglevel >= AV_LOG_FATAL:
+                av_log(NULL, AV_LOG_FATAL, b"Failed to open file '%s' or configure filtergraph\n",
                    self.player.input_filename)
             return self.failed(-1, ic)
 
@@ -1975,7 +2023,8 @@ cdef class VideoState(object):
                 ret = avformat_seek_file(self.ic, -1, seek_min, seek_target,
                                          seek_max, self.seek_flags)
                 if ret < 0:
-                    av_log(NULL, AV_LOG_ERROR, b"%s: error while seeking\n",
+                    if self.player.loglevel >= AV_LOG_ERROR:
+                        av_log(NULL, AV_LOG_ERROR, b"%s: error while seeking\n",
                            self.ic.filename)
                 else:
                     if self.audio_stream >= 0:
@@ -1999,7 +2048,8 @@ cdef class VideoState(object):
                 if self.video_st != NULL and self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC:
                     ret = av_copy_packet(&copy, &self.video_st.attached_pic)
                     if ret < 0:
-                        av_log(NULL, AV_LOG_ERROR, b"Failed to copy packet%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
+                        if self.player.loglevel >= AV_LOG_ERROR:
+                            av_log(NULL, AV_LOG_ERROR, b"Failed to copy packet%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
                         return self.failed(ret, ic)
                     self.videoq.packet_queue_put(&copy)
                     self.videoq.packet_queue_put_nullpacket(self.video_stream)
@@ -2039,7 +2089,8 @@ cdef class VideoState(object):
                         if self.player.loop:
                             self.stream_seek(temp64, 0, 0, 0)
                 elif self.player.autoexit:
-                    av_log(NULL, AV_LOG_INFO, b"Reached eof\n")
+                    if self.player.loglevel >= AV_LOG_INFO:
+                        av_log(NULL, AV_LOG_INFO, b"Reached eof\n")
                     self.request_thread_s(b'eof', b'')
                     return self.failed(0, ic)
                 else:
@@ -2094,7 +2145,8 @@ cdef class VideoState(object):
                 av_packet_unref(pkt)
 
         ret = 0
-        av_log(NULL, AV_LOG_INFO, b"Exiting read thread\n")
+        if self.player.loglevel >= AV_LOG_INFO:
+            av_log(NULL, AV_LOG_INFO, b"Exiting read thread\n")
         return self.failed(ret, ic)
 
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1:
@@ -2102,7 +2154,7 @@ cdef class VideoState(object):
         if ic != NULL and self.ic == NULL:
             avformat_close_input(&self.ic)
 
-        if ret != 0:
+        if ret and not self.abort_request:
             if ret != -1:
                 self.request_thread_s(b'read:error', fmt_err(ret, err_msg, sizeof(err_msg)))
             else:
@@ -2174,7 +2226,8 @@ cdef class VideoState(object):
 
         if p != NULL and stream_index != -1:
             stream_index = p.stream_index[stream_index]
-        av_log(NULL, AV_LOG_INFO, b'Switch %s stream from #%d to #%d\n',
+        if self.player.loglevel >= AV_LOG_INFO:
+            av_log(NULL, AV_LOG_INFO, b'Switch %s stream from #%d to #%d\n',
             av_get_media_type_string(<AVMediaType>codec_type), old_index, stream_index)
         self.stream_component_close(old_index)
         self.stream_component_open(stream_index)

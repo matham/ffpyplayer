@@ -1,6 +1,6 @@
 PYTHON = python
 
-.PHONY: build force test
+.PHONY: build force test html
 
 build:
 	$(PYTHON) setup.py build_ext --inplace
@@ -10,3 +10,6 @@ force:
 
 test:
 	$(PYTHON) -m nose.core ffpyplayer/tests
+
+html:
+	@cd doc && make html

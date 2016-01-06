@@ -524,7 +524,9 @@ cdef class MediaWriter(object):
 
             list: List of dicts for each stream.
 
-        For example::
+        For example:
+
+        .. code-block:: python
 
             from ffpyplayer.writer import MediaWriter
 

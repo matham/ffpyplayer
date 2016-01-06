@@ -26,7 +26,7 @@ Converting Image formats
     map(len, planes)
     [50000, 12500, 12500, 0]
 
-.. _dshow-example
+.. _dshow-example:
 
 Playing a webcam with DirectShow on windows
 -------------------------------------------

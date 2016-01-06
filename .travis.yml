@@ -92,7 +92,7 @@ script:
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
       if [ "${PY}" == "3" ]; then
          python3 setup.py build_ext --inplace;
-         python3 -m nose.core kivy/tests;
+         python3 -m nose.core ffpyplayer/tests;
       else
          make;
          make test;

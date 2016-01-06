@@ -2,6 +2,7 @@
 import sys
 import os
 from os.path import join, isdir
+import platform
 
 __version__ = '4.0.dev0'
 
@@ -17,3 +18,6 @@ if isdir(_ffmpeg):
 _sdl = join(sys.prefix, 'share', 'ffpyplayer', 'sdl', 'bin')
 if isdir(_sdl):
     os.environ["PATH"] += os.pathsep + _sdl
+
+if 'SDL_AUDIODRIVER' not in os.environ and platform.system() == 'Windows':
+    os.environ['SDL_AUDIODRIVER'] = 'DirectSound'

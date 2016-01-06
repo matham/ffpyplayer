@@ -168,6 +168,7 @@ cdef class VideoState(object):
 
 cdef struct VideoSettings:
     unsigned sws_flags
+    int loglevel
 
     AVInputFormat *file_iformat
     char *input_filename

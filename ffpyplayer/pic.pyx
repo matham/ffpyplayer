@@ -5,7 +5,9 @@ FFmpeg based image storage and conversion tools
 FFmpeg based classes to store and convert images from / to many different pixel
 formats. See :class:`Image` and :class:`SWScale` for details.
 
-Create an image in rgb24 format::
+Create an image in rgb24 format:
+
+.. code-block:: python
 
     >>> w, h = 500, 100
     >>> size = w * h * 3
@@ -13,14 +15,18 @@ Create an image in rgb24 format::
     >>> buf = ''.join(map(chr, buf))
     >>> img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
-Convert the image to a different size::
+Convert the image to a different size:
+
+.. code-block:: python
 
     >>> sws = SWScale(w, h, img.get_pixel_format(), ow=w/2, oh=h/3)
     >>> img2 = sws.scale(img)
     >>> img2.get_size()
     (250, 33)
 
-Convert the image to YUV420P and get the resulting plane buffers as bytearrays::
+Convert the image to YUV420P and get the resulting plane buffers as bytearrays:
+
+.. code-block:: python
 
     >>> sws = SWScale(w, h, img.get_pixel_format(), ofmt='yuv420p')
     >>> img2 = sws.scale(img)
@@ -30,11 +36,15 @@ Convert the image to YUV420P and get the resulting plane buffers as bytearrays::
     >>> map(len, planes)
     [50000, 12500, 12500, 0]
 
-Create an Image using default FFmpeg buffers::
+Create an Image using default FFmpeg buffers:
+
+.. code-block:: python
 
     >>> img = Image(pix_fmt='rgb24', size=(w, h))
 
-Copy the image::
+Copy the image:
+
+.. code-block:: python
 
     >>> import copy
     >>> # copy reference without actually copying the buffers
@@ -80,7 +90,9 @@ def get_image_size(pix_fmt, width, height):
             A tuple of buffer sizes in bytes for each plane of this pixel format
             required to store the image. Unused planes are zero.
 
-    ::
+    :
+
+    .. code-block:: python
 
         >>> print get_image_size('rgb24', 100, 100)
         (30000, 0, 0, 0)
@@ -139,7 +151,9 @@ cdef class SWScale(object):
             :attr:`ffpyplayer.tools.pix_fmts`. If empty, the source pixel format
             will be used. Defaults to empty string.
 
-    ::
+    :
+
+    .. code-block:: python
 
         >>> w, h = 500, 100
         >>> size = w * h * 3
@@ -338,7 +352,9 @@ cdef class Image(object):
     The function :meth:`is_ref` indicates whether the image buffer is such a
     FFmpeg referenced buffer.
 
-    ::
+    :
+
+    .. code-block:: python
 
         >>> w, h = 640, 480
         >>> size = w * h * 3
@@ -467,7 +483,9 @@ cdef class Image(object):
 
             bool: True if the buffer is FFmpeg referenced.
 
-        For example::
+        For example:
+
+        .. code-block:: python
 
             >>> w, h = 640, 480
             >>> img = Image(plane_buffers=[bytes(' ') * (w * h * 3)], pix_fmt='rgb24', size=(w, h))
@@ -478,7 +496,9 @@ cdef class Image(object):
             >>> img2.is_ref()
             True
 
-        Or if directly allocated internally::
+        Or if directly allocated internally:
+
+        .. code-block:: python
 
             >>> img = Image(pix_fmt='rgb24', size=(w, h))
             >>> img.is_ref()
@@ -510,7 +530,9 @@ cdef class Image(object):
                 A 4 tuple with the linesizes of each plane. If the plane isn't used
                 it'll be 0.
 
-        By defaults there's no alignment::
+        By defaults there's no alignment:
+
+        .. code-block:: python
 
             >>> w, h = 100, 10
             >>> img = Image(plane_buffers=[bytes(' ') * (w * h * 3)],
@@ -518,7 +540,9 @@ cdef class Image(object):
             >>> img.get_linesizes(keep_align=True)
             (300, 0, 0, 0)
 
-        You can force alignment e.g. 32 bits alignment::
+        You can force alignment e.g. 32 bits alignment:
+
+        .. code-block:: python
 
             >>> import math
             >>> linesize = [int(math.ceil(w * 3 / 32.) * 32)]
@@ -531,7 +555,9 @@ cdef class Image(object):
             >>> img.get_size()
             (100, 10)
 
-        The linesizes of an unaligned and 32 bit aligned yuv420p image::
+        The linesizes of an unaligned and 32 bit aligned yuv420p image:
+
+        .. code-block:: python
 
             >>> img = Image(pix_fmt='yuv420p', size=(w, h))
             >>> img.get_linesizes(keep_align=True)
@@ -606,7 +632,9 @@ cdef class Image(object):
             4-tuple of ints:
                 A list of buffer sizes for each plane of this pixel format.
 
-        A (unaligned) yuv420p image has 3 planes::
+        A (unaligned) yuv420p image has 3 planes:
+
+        .. code-block:: python
 
             >>> w, h = 100, 10
             >>> img = Image(pix_fmt='yuv420p', size=(w, h))
@@ -680,7 +708,9 @@ cdef class Image(object):
             4-element list: A list of bytearray buffers for each plane of this
             pixel format. An empty bytearray is returned for unused planes.
 
-        Get the buffer of an RGB image::
+        Get the buffer of an RGB image:
+
+        .. code-block:: python
 
             >>> w, h = 100, 10
             >>> img = Image(pix_fmt='rgb24', size=(w, h))
@@ -689,7 +719,9 @@ cdef class Image(object):
             >>> map(len, img.to_bytearray())
             [3000, 0, 0, 0]
 
-        Get the buffers of a YUV420P image::
+        Get the buffers of a YUV420P image:
+
+        .. code-block:: python
 
             >>> img = Image(pix_fmt='yuv420p', size=(w, h))
             >>> linesize = img.get_linesizes(keep_align=True)
@@ -779,7 +811,9 @@ cdef class Image(object):
             the :class:`Image` goes out of memory, the original data will become
             invalid and usage of the returned memoryviews of them will crash python.
 
-        Get the buffer of an RGB image::
+        Get the buffer of an RGB image:
+
+        .. code-block:: python
 
             >>> w, h = 100, 10
             >>> img = Image(pix_fmt='rgb24', size=(w, h))
@@ -850,14 +884,18 @@ cdef class ImageLoader(object):
             The full path to the image file. The string will first be encoded
             using utf8 before passing to FFmpeg.
 
-    For example, reading a simple png using the iterator syntax::
+    For example, reading a simple png using the iterator syntax:
+
+    .. code-block:: python
 
         >>> img = ImageLoader('file.png')
         >>> images = [m for m in img]
         >>> images
         [(<ffpyplayer.pic.Image object at 0x02B5F5D0>, 0.0)]
 
-    Or reading it directly::
+    Or reading it directly:
+
+    .. code-block:: python
 
         >>> img = ImageLoader('file.png')
         >>> img.next_frame()
@@ -867,7 +905,9 @@ cdef class ImageLoader(object):
         >>> img.next_frame()
         (None, 0)
 
-    Or reading a gif using the iterator syntax::
+    Or reading a gif using the iterator syntax:
+
+    .. code-block:: python
 
         >>> img = ImageLoader('sapo11.gif')
         >>> images = [m for m in img]
@@ -880,7 +920,9 @@ cdef class ImageLoader(object):
         (<ffpyplayer.pic.Image object at 0x02B74A30>, 0.46),
         (<ffpyplayer.pic.Image object at 0x02B74A58>, 0.51)]
 
-    Or reading it directly::
+    Or reading it directly:
+
+    .. code-block:: python
 
         >>> img = ImageLoader('sapo11.gif')
         >>> img.next_frame()

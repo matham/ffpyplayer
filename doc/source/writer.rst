@@ -1,7 +1,7 @@
 .. _writer-api:
 
 ******
-writer
+Writer
 ******
 
 :mod:`ffpyplayer.writer`

@@ -22,7 +22,7 @@ from libc.stdio cimport printf
 from cpython.ref cimport PyObject
 
 import ffpyplayer.tools  # required to init ffmpeg
-from ffpyplayer.tools import initialize_sdl_aud, encode_to_bytes
+from ffpyplayer.tools import initialize_sdl_aud, encode_to_bytes, loglevels
 from copy import deepcopy
 
 
@@ -99,6 +99,13 @@ cdef class MediaPlayer(object):
 
                 This functions gets called from a second internal thread.
 
+        `loglevel`: str
+            The level of logs to emit. Defaults to ``'warning'``. Its value is one of the keys
+            defined in :attr:`ffpyplayer.tools.loglevels`. This loglevel is
+            used to filter logs for this player instance only. Although the default ffmpeg logger or the
+            logger set with :attr:`ffpyplayer.tools.set_log_callback` also filter logs, this is
+            applied first and allows us to discard log quickly without having to aquire the gil
+            in performant areas of code. However, it doesn't affect internal ffmpeg logs.
         `thread_lib`: str
             The threading library to use internally. Can be one of 'SDL' or 'python'.
 
@@ -227,7 +234,9 @@ cdef class MediaPlayer(object):
                 Whether to automatically rotate the video according to presentation metadata.
                 Defaults to True.
 
-    For example, a simple player::
+    For example, a simple player:
+
+    .. code-block:: python
 
         from ffpyplayer.player import MediaPlayer
         player = MediaPlayer(filename)
@@ -258,14 +267,13 @@ cdef class MediaPlayer(object):
         without protecting them.
     '''
 
-    def __cinit__(self, filename, callback=None, ff_opts={},
+    def __cinit__(self, filename, callback=None, loglevel='warning', ff_opts={},
                   thread_lib='SDL', audio_sink='SDL', lib_opts={}, **kargs):
         cdef unsigned flags
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
         cdef int res, paused
         cdef const char* cy_str
-        kargs.pop('loglevel', None)
         ff_opts = self.ff_opts = encode_to_bytes(deepcopy(ff_opts))
         lib_opts = encode_to_bytes(deepcopy(lib_opts))
         kargs = encode_to_bytes(deepcopy(kargs))
@@ -276,6 +284,7 @@ cdef class MediaPlayer(object):
         self.ivs = None
         PyEval_InitThreads()
 
+        settings.loglevel = loglevels[loglevel]
         av_dict_set(&settings.sws_dict, b"flags", b"bicubic", 0)
         # set x, or y to -1 to preserve pixel ratio
         settings.screen_width  = ff_opts['x'] if 'x' in ff_opts else 0
@@ -502,7 +511,9 @@ cdef class MediaPlayer(object):
             audio is disabled or sync is set to video). I.e. a None frame will
             be sent after all the frames have been read until eof.
 
-        For example, playing as soon as frames are read::
+        For example, playing as soon as frames are read:
+
+        .. code-block:: python
 
             >>> while 1:
             ...     frame, val = player.get_frame()
@@ -522,7 +533,9 @@ cdef class MediaPlayer(object):
             not ready
             0.208511352539 0.1833852 <ffpyplayer.pic.Image object at 0x02411B70>
 
-        vs displaying frames at their proper times::
+        vs displaying frames at their proper times:
+
+        .. code-block:: python
 
             >>> while 1:
             ...     frame, val = player.get_frame()
@@ -547,9 +560,10 @@ cdef class MediaPlayer(object):
             0.0610010623932 1.3448248 <ffpyplayer.pic.Image object at 0x02411BC0>
             0.0611264705658 1.4059532 <ffpyplayer.pic.Image object at 0x02411BE8>
 
-        Or when the output format is yuv420p::
+        Or when the output format is yuv420p:
 
-            ...
+        .. code-block:: python
+
             >>> player = MediaPlayer(filename, callback=weakref.ref(callback),
             ... ff_opts={'out_fmt':'yuv420p'})
             >>> while 1:
@@ -604,7 +618,9 @@ cdef class MediaPlayer(object):
                 of the original input stream. Duration is the file duration and
                 defaults to None until updated.
 
-        ::
+        :
+
+        .. code-block:: python
 
             >>> print player.get_metadata()
             {'duration': 71.972, 'sink_vid_size': (0, 0), 'src_vid_size':
@@ -738,7 +754,9 @@ cdef class MediaPlayer(object):
                 A value of -1 for one of the parameters, will result in a value of that
                 parameter that maintains the original aspect ratio.
 
-        For example ::
+        For example:
+
+        .. code-block:: python
 
             >>> print player.get_frame()[0][0].get_size()
             (704, 480)
@@ -888,7 +906,9 @@ cdef class MediaPlayer(object):
                 we have to walk through the frames until the requested frame is
                 reached. If paused or we reached eof this is ignored. Defaults to True.
 
-        For example::
+        For example:
+
+        .. code-block:: python
 
             >>> print player.get_frame()[0][1]
             1016.392

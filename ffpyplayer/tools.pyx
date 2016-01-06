@@ -107,7 +107,12 @@ cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) 
     with gil:
         call_callback(line, level)
 
-def set_log_callback(object callback, int default_only=False):
+def _logger_callback(logger_dict, message, level):
+    message = message.strip()
+    if message:
+        logger_dict[level]('FFPyPlayer: {}'.format(message))
+
+def set_log_callback(object callback=None, logger=None, int default_only=False):
     '''Sets a callback to be used by ffmpeg when emitting logs. It is thread safe.
 
     :Parameters:
@@ -116,11 +121,22 @@ def set_log_callback(object callback, int default_only=False):
             A function which will be called with strings to be printed. It takes
             two parameters: ``message`` and ``level``. ``message`` is the string
             to be printed. ``level`` is the log level of the string and is one
-            of the keys of the :attr:`loglevels` dict. If None, the default ffmpeg
-            log callback will be set, which prints to stderr.
+            of the keys of the :attr:`loglevels` dict. If ``callback`` and ``logger``
+            are None, the default ffmpeg log callback will be set, which prints to stderr.
+            Defaults to None.
+        `logger`: a python logger object or None
+            If ``callback`` is None and this is not None, this logger object's
+            ``critical``, ``error``, ``warning``, ``info``, ``debug``, and ``trace``
+            methods will be called directly to forward ffmpeg's log outputs.
+
+            .. note::
+
+                If the logger doesn't have a trace method, the trace output will be
+                redirected to debug. However, the trace level outputs a lot of logs.
+
         `default_only`: bool
-            If True, when not ``None``, ``callback`` will only be set if a
-            callback has not already been set.
+            If True, when ``callback`` or ``logger`` are not ``None``, they
+            will only be set if a callback or logger has not already been set.
 
     :returns:
 
@@ -139,6 +155,15 @@ def set_log_callback(object callback, int default_only=False):
     global _log_callback
     if callback is not None and not callable(callback):
         raise Exception('Log callback needs to be callable.')
+
+    if callback is None and logger is not None:
+        logger_dict = {
+            'quiet': logger.critical, 'panic': logger.critical,
+            'fatal': logger.critical, 'error': logger.error, 'warning': logger.warning,
+            'info': logger.info, 'verbose': logger.debug, 'debug': logger.debug,
+            'trace': getattr(logger, 'trace', logger.debug)}
+        callback = partial(_logger_callback, logger_dict)
+
     _log_mutex.lock()
     old_callback = _log_callback
     if callback is None:
@@ -164,11 +189,9 @@ def set_default_loglevel(loglevel):
     '''This sets the FFmpeg log level to be used when no log :func:`set_log_callback`
     is set and ffmpeg itself handles the log and prints it to stderr.
     '''
-    cdef bytes level
     if loglevel not in loglevels:
         raise ValueError('Invalid loglevel {}'.format(loglevel))
-    level = loglevels[loglevel].encode('utf8')
-    av_log_set_level(level)
+    av_log_set_level(loglevels[loglevel])
 
 
 cpdef get_codecs(
@@ -312,7 +335,9 @@ def get_supported_framerates(codec_name, rate=()):
             frame rates. If `rate` is provided and there are restrictions on the frame
             rates, the closest frame rate is the zero'th element in the list.
 
-    For example::
+    For example:
+
+    .. code-block:: python
 
         >>> print get_supported_framerates('mpeg1video')
         [(24000, 1001), (24, 1), (25, 1), (30000, 1001), (30, 1), (50, 1),
@@ -365,7 +390,9 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
             formats, the closest format which results in the minimum loss when converting
             will be returned as the zero'th element in the list.
 
-    For example::
+    For example:
+
+    .. code-block:: python
 
         >>> print get_supported_pixfmts('ffv1')
         ['yuv420p', 'yuva420p', 'yuva422p', 'yuv444p', 'yuva444p', 'yuv440p', ...
@@ -457,7 +484,9 @@ def list_dshow_devices():
                 name, it's not guarenteed which of the devices sharing the name will be opened.
 
 
-    For example::
+    For example:
+
+    .. code-block:: python
 
         >>> from ffpyplayer.player import MediaPlayer
         >>> from ffpyplayer.tools import list_dshow_devices

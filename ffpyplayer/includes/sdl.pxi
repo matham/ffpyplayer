@@ -64,6 +64,8 @@ cdef extern from * nogil:
             const char*, int, const SDL_AudioSpec*, SDL_AudioSpec*, int)
         void SDL_PauseAudioDevice(SDL_AudioDeviceID, int)
         void SDL_CloseAudioDevice(SDL_AudioDeviceID)
+        void SDL_MixAudioFormat(
+            uint8_t*, const uint8_t*, uint16_t, uint32_t, int)
 
     void SDL_PauseAudio(int)
     void SDL_CloseAudio()
