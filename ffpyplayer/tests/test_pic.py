@@ -9,8 +9,7 @@ class PicTestCase(unittest.TestCase):
 
         w, h = size
         size = w * h * 3
-        buf = [int(x * 255 / size) for x in range(size)]
-        buf = b''.join(map(chr, buf))
+        buf = bytearray([int(x * 255 / size) for x in range(size)])
         return Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
     def test_pic(self):
@@ -27,4 +26,4 @@ class PicTestCase(unittest.TestCase):
         img2 = sws.scale(img)
         self.assertEqual(img2.get_pixel_format(), 'yuv420p')
         planes = img2.to_bytearray()
-        self.assertEqual(map(len, planes), [w * h, w * h / 4, w * h / 4, 0])
+        self.assertEqual(list(map(len, planes)), [w * h, w * h / 4, w * h / 4, 0])

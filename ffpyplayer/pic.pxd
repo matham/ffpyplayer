@@ -4,6 +4,7 @@ include 'includes/ffmpeg.pxi'
 cdef class SWScale(object):
     cdef SwsContext *sws_ctx
     cdef bytes dst_pix_fmt
+    cdef str dst_pix_fmt_s
     cdef int dst_h
     cdef int dst_w
     cdef AVPixelFormat src_pix_fmt

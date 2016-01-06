@@ -193,6 +193,7 @@ cdef class SWScale(object):
     def __cinit__(self, int iw, int ih, ifmt, int ow=-1, int oh=-1, ofmt='', **kargs):
         cdef AVPixelFormat src_pix_fmt, dst_pix_fmt
         self.dst_pix_fmt = ifmt.encode('utf8')
+        self.dst_pix_fmt_s = ifmt
 
         self.sws_ctx = NULL
         src_pix_fmt = av_get_pix_fmt(self.dst_pix_fmt)
@@ -201,6 +202,7 @@ cdef class SWScale(object):
         dst_pix_fmt = src_pix_fmt
         if ofmt:
             self.dst_pix_fmt = ofmt.encode('utf8')
+            self.dst_pix_fmt_s = ofmt
             dst_pix_fmt = av_get_pix_fmt(self.dst_pix_fmt)
             if dst_pix_fmt == AV_PIX_FMT_NONE:
                 raise Exception('Pixel format %s not found.' % ofmt)
@@ -255,7 +257,7 @@ cdef class SWScale(object):
             self.src_w != src.frame.width or self.src_h != src.frame.height):
             raise Exception("Source image doesn't match the specified input parameters.")
         if not dst:
-            dst = Image.__new__(Image, pix_fmt=self.dst_pix_fmt,
+            dst = Image.__new__(Image, pix_fmt=self.dst_pix_fmt_s,
                                 size=(self.dst_w, self.dst_h))
         with nogil:
             sws_scale(self.sws_ctx, <const uint8_t *const *>src.frame.data, src.frame.linesize,
