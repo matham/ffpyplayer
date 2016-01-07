@@ -330,8 +330,7 @@ cdef class Image(object):
             and not initialize anything. All other parameters are ignored when True.
             This is useful when instantiating later from cython with the ``cython_init`` method.
 
-    Copying
-    -------
+    **Copying**
 
     FFmpeg has an internal ref counting system where when used, it frees buffers
     it allocated only when there's no reference to it remaining thereby allowing
@@ -521,8 +520,8 @@ cdef class Image(object):
             `keep_align`: bool
                 If True, the original linesize alignments of the image will be returned for
                 every plane. If False, linesize with an alignment of 1 (i.e. no alignment)
-                 will be used, returning the minimal linesize required to for the image.
-                 Defaults to False.
+                will be used, returning the minimal linesize required to for the image.
+                Defaults to False.
 
         :returns:
 
