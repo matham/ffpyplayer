@@ -8,7 +8,9 @@ Examples
 Converting Image formats
 ------------------------
 
-::
+:
+
+.. code-block:: python
 
     from ffpyplayer.pic import Image, SWScale
     w, h = 500, 100
@@ -32,7 +34,9 @@ Playing a webcam with DirectShow on windows
 -------------------------------------------
 
 One can use :meth:`~ffpyplayer.tools.list_dshow_devices` to get a list of the
-devices and their option for playing. For example::
+devices and their option for playing. For example:
+
+.. code-block:: python
 
     def callback(selector, value):
         if selector == 'quit':
@@ -73,7 +77,9 @@ devices and their option for playing. For example::
 Simple transcoding example
 --------------------------
 
-::
+:
+
+.. code-block:: python
 
     from ffpyplayer.player import MediaPlayer
     from ffpyplayer.writer import MediaWriter
@@ -111,7 +117,9 @@ Simple transcoding example
 More complex transcoding example
 --------------------------------
 
-::
+:
+
+.. code-block:: python
 
     from ffpyplayer.player import MediaPlayer
     from ffpyplayer.tools import free_frame_ref
@@ -153,7 +161,9 @@ More complex transcoding example
 Writing video to file
 ---------------------
 
-::
+:
+
+.. code-block:: python
 
     from ffpyplayer.writer import MediaWriter
     from ffpyplayer.pic import Image
@@ -181,7 +191,9 @@ Writing video to file
         writer.write_frame(img=img, pts=i / 5., stream=0)  # stream 1
         writer.write_frame(img=img2, pts=i / 5., stream=1)  # stream 2
 
-Or force an output format of avi, even though the filename is .mp4.::
+Or force an output format of avi, even though the filename is .mp4.:
+
+.. code-block:: python
 
     writer = MediaWriter('output.mp4', [out_opts] * 2, fmt='avi',
                           width_out=w/2, height_out=h/2)
@@ -192,7 +204,9 @@ Compressing video to h264
 -------------------------
 
 Or writing compressed h264 files (notice the file is now only 5KB, while
-the above results in a 10MB file)::
+the above results in a 10MB file):
+
+.. code-block:: python
 
     from ffpyplayer.writer import MediaWriter
     from ffpyplayer.tools import get_supported_pixfmts, get_supported_framerates
