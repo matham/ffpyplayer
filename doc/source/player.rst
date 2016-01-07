@@ -1,7 +1,7 @@
 .. _player-api:
 
 ******
-player
+Player
 ******
 
 :mod:`ffpyplayer.player`

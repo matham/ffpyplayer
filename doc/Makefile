@@ -50,7 +50,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 html:
-	@cd ../; python setup.py build_ext --inplace; @cd doc
+	@cd .. && python setup.py build_ext --inplace && cd doc
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

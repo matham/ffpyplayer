@@ -9,6 +9,9 @@ cdef extern from "errno.h" nogil:
 cdef extern from "limits.h" nogil:
     int INT_MAX
 
+import sys
+
+cdef int PY3 = sys.version_info > (3, )
 
 cdef inline int FFMAX(int a, int b) nogil:
     if a > b:
@@ -74,3 +77,33 @@ cdef inline char * emsg(int code, char *msg, int buff_size) except NULL:
             code = -code
         return strerror(code)
     return msg
+
+cdef inline char * fmt_err(int code, char *msg, int buff_size) nogil:
+    if av_strerror(code, msg, buff_size) < 0:
+        if EDOM > 0:
+            code = -code
+        return strerror(code)
+    return msg
+
+cdef inline int insert_filt(
+        const char *name, const char *arg, AVFilterGraph *graph,
+        AVFilterContext **last_filter) nogil:
+    cdef int ret
+    cdef AVFilterContext *filt_ctx
+
+    ret = avfilter_graph_create_filter(
+        &filt_ctx, avfilter_get_by_name(name), name, arg, NULL, graph)
+    if ret < 0:
+        return ret
+
+    ret = avfilter_link(filt_ctx, 0, last_filter[0], 0)
+    if ret < 0:
+        return ret
+
+    last_filter[0] = filt_ctx
+    return 0
+
+cdef inline object tcode(bytes s):
+    if PY3:
+        return s.decode('utf8')
+    return s

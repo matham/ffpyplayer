@@ -1,10 +1,11 @@
 
-include 'ff_defs.pxi'
+include '../includes/ffmpeg.pxi'
 
-from ffpyplayer.ffqueue cimport FFPacketQueue
-from ffpyplayer.ffthreading cimport MTGenerator, MTThread, MTMutex, MTCond
-from ffpyplayer.ffclock cimport Clock
-from ffpyplayer.sink cimport VideoSettings, VideoSink, VideoPicture, SubPicture
+from ffpyplayer.player.queue cimport FFPacketQueue
+from ffpyplayer.player.frame_queue cimport FrameQueue, Frame
+from ffpyplayer.player.decoder cimport Decoder
+from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond
+from ffpyplayer.player.clock cimport Clock
 from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
 
@@ -14,11 +15,13 @@ cdef struct AudioParams:
     int channels
     int64_t channel_layout
     AVSampleFormat fmt
+    int frame_size
+    int bytes_per_sec
+
 
 cdef class VideoState(object):
     cdef:
         MTThread read_tid
-        MTThread video_tid
         AVInputFormat *iformat
         int abort_request
         int paused
@@ -31,16 +34,21 @@ cdef class VideoState(object):
         int read_pause_return
         AVFormatContext *ic
         int realtime
-        int audio_finished
-        int video_finished
         int reached_eof
-        double seek_req_pos
-        int audio_seeking
-        int video_seeking
+        int eof
+        int audio_dev
 
         Clock audclk
         Clock vidclk
         Clock extclk
+
+        FrameQueue pictq
+        FrameQueue subpq
+        FrameQueue sampq
+
+        Decoder auddec
+        Decoder viddec
+        Decoder subdec
 
         int audio_stream
 
@@ -55,18 +63,13 @@ cdef class VideoState(object):
         AVStream *audio_st
         FFPacketQueue audioq
         int audio_hw_buf_size
-        uint8_t silence_buf[AUDIO_BUFFER_SIZE]
+        uint8_t silence_buf[AUDIO_MIN_BUFFER_SIZE]
         uint8_t *audio_buf
         uint8_t *audio_buf1
         unsigned int audio_buf_size # in bytes
         unsigned int audio_buf1_size
         int audio_buf_index # in bytes
         int audio_write_buf_size
-        int audio_buf_frames_pending
-        AVPacket audio_pkt_temp
-        AVPacket audio_pkt
-        int audio_pkt_temp_serial
-        int audio_last_serial
         AudioParams audio_src
         IF CONFIG_AVFILTER:
             AudioParams audio_filter_src
@@ -74,19 +77,13 @@ cdef class VideoState(object):
         SwrContext *swr_ctx
         int frame_drops_early
         int frame_drops_late
-        AVFrame *frame
-        int64_t audio_frame_next_pts
 
         int16_t sample_array[SAMPLE_ARRAY_SIZE]
         int sample_array_index
 
-        MTThread subtitle_tid
         int subtitle_stream
         AVStream *subtitle_st
         FFPacketQueue subtitleq
-        SubPicture subpq[SUBPICTURE_QUEUE_SIZE]
-        int subpq_size, subpq_rindex, subpq_windex
-        MTCond subpq_cond
 
         double frame_timer
         double frame_last_returned_time
@@ -94,13 +91,10 @@ cdef class VideoState(object):
         int video_stream
         AVStream *video_st
         FFPacketQueue videoq
-        int64_t video_current_pos      # current displayed file pos
         double max_frame_duration      # maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
-        VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE]
-        int pictq_size, pictq_rindex, pictq_windex
-        MTCond pictq_cond
 
         IF CONFIG_AVFILTER:
+            int vfilter_idx
             AVFilterContext *in_video_filter   # the first filter in the video chain
             AVFilterContext *out_video_filter  # the last filter in the video chain
             AVFilterContext *in_audio_filter   # the first filter in the audio chain
@@ -112,7 +106,6 @@ cdef class VideoState(object):
 
         MTCond continue_read_thread
         MTGenerator mt_gen
-        VideoSink vid_sink
         VideoSettings *player
         int64_t last_time
 
@@ -120,31 +113,33 @@ cdef class VideoState(object):
         double last_clock
         PyObject *self_id
 
-        bytes py_pat
-        bytes py_m
         dict metadata
 
+        object callback
+        int is_ref
+        AVPixelFormat pix_fmt
 
-    cdef int cInit(VideoState self, MTGenerator mt_gen, VideoSink vid_sink,
-                   VideoSettings *player, int paused) nogil except 1
+
+    cdef int cInit(self, MTGenerator mt_gen, VideoSettings *player, int paused,
+                   AVPixelFormat out_fmt) nogil except 1
     cdef int cquit(VideoState self) nogil except 1
+    cdef int request_thread_s(self, char *name, char *msg) nogil except 1
+    cdef int request_thread(self, char *name, object msg) nogil except 1
+    cdef int request_thread_py(self, object name, object msg) except 1
+    cdef object get_out_pix_fmt(self)
+    cdef void set_out_pix_fmt(self, AVPixelFormat out_fmt)
     cdef int get_master_sync_type(VideoState self) nogil
     cdef double get_master_clock(VideoState self) nogil except? 0.0
     cdef int check_external_clock_speed(VideoState self) nogil except 1
     cdef int stream_seek(VideoState self, int64_t pos, int64_t rel, int seek_by_bytes, int flush) nogil except 1
+    cdef int seek_chapter(VideoState self, int incr, int flush) nogil except 1
     cdef int toggle_pause(VideoState self) nogil except 1
     cdef double compute_target_delay(VideoState self, double delay) nogil except? 0.0
-    cdef double vp_duration(VideoState self, VideoPicture *vp, VideoPicture *nextvp) nogil except? 0.0
-    cdef int pictq_next_picture(VideoState self) nogil except 1
-    cdef int pictq_prev_picture(VideoState self) nogil except -1
+    cdef double vp_duration(VideoState self, Frame *vp, Frame *nextvp) nogil except? 0.0
     cdef void update_video_pts(VideoState self, double pts, int64_t pos, int serial) nogil
     cdef int video_refresh(VideoState self, Image next_image, double *pts, double *remaining_time,
                            int force_refresh) nogil except -1
-    cdef int alloc_picture(VideoState self) nogil except 1
-    cdef int queue_picture(VideoState self, AVFrame *src_frame, double pts,
-                           double duration, int64_t pos, int serial,
-                           AVPixelFormat out_fmt) nogil except 1
-    cdef int get_video_frame(VideoState self, AVFrame *frame, AVPacket *pkt, int *serial) nogil except 2
+    cdef int get_video_frame(VideoState self, AVFrame *frame) nogil except 2
     IF CONFIG_AVFILTER:
         cdef int configure_filtergraph(VideoState self, AVFilterGraph *graph, const char *filtergraph,
                                        AVFilterContext *source_ctx, AVFilterContext *sink_ctx) nogil except? 1
@@ -153,8 +148,10 @@ cdef class VideoState(object):
                                          AVPixelFormat pix_fmt) nogil except? 1
         cdef int configure_audio_filters(VideoState self, const char *afilters,
                                          int force_output_format) nogil except? 1
-    cdef int video_thread(VideoState self) nogil except 1
+    cdef int audio_thread(self) nogil except? 1
+    cdef int video_thread(VideoState self) nogil except? 1
     cdef int subtitle_thread(VideoState self) nogil except 1
+    cdef int subtitle_display(self, AVSubtitle *sub) nogil except 1
     cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1
     cdef int synchronize_audio(VideoState self, int nb_samples) nogil except -1
     cdef int audio_decode_frame(VideoState self) nogil except? 1
@@ -164,6 +161,55 @@ cdef class VideoState(object):
     cdef int stream_component_open(VideoState self, int stream_index) nogil except 1
     cdef int stream_component_close(VideoState self, int stream_index) nogil except 1
     cdef int read_thread(VideoState self) nogil except 1
-    cdef inline int failed(VideoState self, int ret) nogil except 1
+    cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1
     cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1
     cdef int decode_interrupt_cb(VideoState self) nogil
+
+
+cdef struct VideoSettings:
+    unsigned sws_flags
+    int loglevel
+
+    AVInputFormat *file_iformat
+    char *input_filename
+    int screen_width
+    int screen_height
+    uint8_t audio_volume
+    int muted
+    int audio_sdl
+    int audio_disable
+    int video_disable
+    int subtitle_disable
+    const char* wanted_stream_spec[<int>AVMEDIA_TYPE_NB]
+    int seek_by_bytes
+    int show_status
+    int av_sync_type
+    int64_t start_time
+    int64_t duration
+    int fast
+    int genpts
+    int lowres
+    int decoder_reorder_pts
+    int autoexit
+    int loop
+    int framedrop
+    int infinite_buffer
+    char *audio_codec_name
+    char *subtitle_codec_name
+    char *video_codec_name
+    const char **vfilters_list
+    int nb_vfilters
+    char *afilters
+    char *avfilters
+
+    int autorotate
+
+    #/* current context */
+    int64_t audio_callback_time
+
+    SwsContext *img_convert_ctx
+    AVDictionary *format_opts
+    AVDictionary *codec_opts
+    AVDictionary *resample_opts
+    AVDictionary *sws_dict
+    AVDictionary *swr_opts

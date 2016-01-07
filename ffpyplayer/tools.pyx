@@ -6,28 +6,42 @@ Module for manipulating and finding information of FFmpeg formats, codecs,
 devices, pixel formats and more.
 '''
 
+__all__ = ('initialize_sdl_aud', 'loglevels', 'codecs_enc',
+           'codecs_dec', 'pix_fmts', 'formats_in', 'formats_out',
+           'set_log_callback', 'get_log_callback', 'set_default_loglevel',
+           'get_codecs', 'encode_to_bytes', 'decode_to_unicode',
+           'convert_to_str')
 
-__all__ = ('loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts', 'formats_in',
-           'formats_out', 'set_log_callback', 'get_log_callback',
-           'get_supported_framerates', 'get_supported_pixfmts',
-           'list_dshow_devices', 'emit_library_info')
+include "includes/ffmpeg.pxi"
+include "includes/inline_funcs.pxi"
 
-
-include 'ff_defs.pxi'
-
-from ffpyplayer.ffthreading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
+from ffpyplayer.threading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
+import ffpyplayer.threading  # for sdl init
 import re
+import sys
 from functools import partial
+
+cdef int sdl_aud_initialized = 0
+def initialize_sdl_aud():
+    '''Initializes sdl audio subsystem. Must be called before audio can be used.
+    It is automatically called by the modules that use SDL audio.
+    '''
+    global sdl_aud_initialized
+    if sdl_aud_initialized:
+        return
+    if SDL_InitSubSystem(SDL_INIT_AUDIO):
+        raise ValueError('Could not initialize SDL audio - %s' % SDL_GetError())
+    sdl_aud_initialized = 1
 
 
 cdef int ffmpeg_initialized = 0
 def _initialize_ffmpeg():
-    '''
-    Initializes ffmpeg libraries. Must be called before anything can be used.
+    '''Initializes ffmpeg libraries. Must be called before anything can be used.
+    Called automatically when importing this module.
     '''
     global ffmpeg_initialized
     if not ffmpeg_initialized:
-        avcodec_register_all() # register all codecs, demux and protocols
+        av_log_set_flags(AV_LOG_SKIP_REPEATED)
         IF CONFIG_AVDEVICE:
             avdevice_register_all()
         IF CONFIG_AVFILTER:
@@ -38,59 +52,95 @@ def _initialize_ffmpeg():
 _initialize_ffmpeg()
 
 
-def set_ffmpeg_lockmagr():
+def _set_ffmpeg_lockmagr():
+    '''Sets the default lockmanager for ffmpeg.
+    Called automatically when importing this module.
+    '''
     cdef int res
     with nogil:
         res = av_lockmgr_register(get_lib_lockmgr(SDL_MT))
     if res:
         raise ValueError('Could not initialize lock manager.')
-set_ffmpeg_lockmagr()
+_set_ffmpeg_lockmagr()
 
-
+def _get_item0(x):
+    return x[0]
 
 'see http://ffmpeg.org/ffmpeg.html for log levels'
-loglevels = {"quiet":AV_LOG_QUIET, "panic":AV_LOG_PANIC, "fatal":AV_LOG_FATAL,
-             "error":AV_LOG_ERROR, "warning":AV_LOG_WARNING, "info":AV_LOG_INFO,
-             "verbose":AV_LOG_VERBOSE, "debug":AV_LOG_DEBUG, "trace":AV_LOG_TRACE}
+loglevels = {
+    "quiet": AV_LOG_QUIET, "panic": AV_LOG_PANIC, "fatal": AV_LOG_FATAL,
+    "error": AV_LOG_ERROR, "warning": AV_LOG_WARNING, "info": AV_LOG_INFO,
+    "verbose": AV_LOG_VERBOSE, "debug": AV_LOG_DEBUG, "trace": AV_LOG_TRACE}
+'''A dictionary with all the available ffmpeg log levels. The keys are the loglevels
+and the values are their ffmpeg values. The lower the value, the more important
+the log.
+'''
 _loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
-codecs_enc = sorted(list_enc_codecs())
-codecs_dec = sorted(list_dec_codecs())
-pix_fmts = sorted(list_pixfmts())
-formats_in = sorted(list_fmt_in())
-formats_out = sorted(list_fmt_out())
-
+codecs_enc = get_codecs(encode=True, video=True)
+'''A list of all the codecs available for encoding video. '''
+codecs_dec = get_codecs(decode=True)
+'''A list of all the codecs available for decoding video and audio. '''
+pix_fmts = list_pixfmts()
+'''A list of all the pixel formats available to ffmpeg. '''
+formats_in = get_fmts(input=True)[0]
+'''A list of all the formats (e.g. file formats) available for reading. '''
+formats_out = get_fmts(output=True)[0]
+'''A list of all the formats (e.g. file formats) available for writing. '''
 
 cdef object _log_callback = None
-cdef int _print_prefix
-cdef MTMutex _log_mutex= MTMutex(Py_MT)
+cdef MTMutex _log_mutex= MTMutex(SDL_MT)
+
+
+cdef void call_callback(char *line, int level):
+    cdef object callback = _log_callback
+    if callback is None:
+        return
+
+    _log_callback(tcode(line), _loglevel_inverse[level])
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
-    if level == AV_LOG_TRACE:
-        return
-    global _print_prefix
-    _log_mutex.lock()
-    _print_prefix = 1
-    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &_print_prefix)
-    if _log_callback is not None:
-        with gil:
-            _log_callback(str(line), _loglevel_inverse[level])
-    _log_mutex.unlock()
+    cdef int print_prefix = 1
+    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &print_prefix)
 
-def set_log_callback(object callback):
-    '''
-    Sets a callback to be used for printing ffmpeg logs.
+    with gil:
+        call_callback(line, level)
 
-    **Args**:
-        *callback* (callable, or None): A function which will be called with strings to
-        be printed. Takes two parameters: *message* and *level*. *message* is the
-        string to be printed. *level* is the log level of the string and is one
-        of the keys of the :attr:`loglevels` dict. If None, the default ffmpeg
-        log callback will be set, which prints to stderr.
+def _logger_callback(logger_dict, message, level):
+    message = message.strip()
+    if message:
+        logger_dict[level]('FFPyPlayer: {}'.format(message))
 
-    **Returns**:
-        The last callback set, or None.
+def set_log_callback(object callback=None, logger=None, int default_only=False):
+    '''Sets a callback to be used by ffmpeg when emitting logs. It is thread safe.
+
+    :Parameters:
+
+        `callback`: callable or None
+            A function which will be called with strings to be printed. It takes
+            two parameters: ``message`` and ``level``. ``message`` is the string
+            to be printed. ``level`` is the log level of the string and is one
+            of the keys of the :attr:`loglevels` dict. If ``callback`` and ``logger``
+            are None, the default ffmpeg log callback will be set, which prints to stderr.
+            Defaults to None.
+        `logger`: a python logger object or None
+            If ``callback`` is None and this is not None, this logger object's
+            ``critical``, ``error``, ``warning``, ``info``, ``debug``, and ``trace``
+            methods will be called directly to forward ffmpeg's log outputs.
+
+            .. note::
+
+                If the logger doesn't have a trace method, the trace output will be
+                redirected to debug. However, the trace level outputs a lot of logs.
+
+        `default_only`: bool
+            If True, when ``callback`` or ``logger`` are not ``None``, they
+            will only be set if a callback or logger has not already been set.
+
+    :returns:
+
+        The previous callback set (None, if it has not been set).
 
     >>> from ffpyplayer.tools import set_log_callback, loglevels
     >>> loglevel_emit = 'error' # This and worse errors will be emitted.
@@ -105,22 +155,29 @@ def set_log_callback(object callback):
     global _log_callback
     if callback is not None and not callable(callback):
         raise Exception('Log callback needs to be callable.')
+
+    if callback is None and logger is not None:
+        logger_dict = {
+            'quiet': logger.critical, 'panic': logger.critical,
+            'fatal': logger.critical, 'error': logger.error, 'warning': logger.warning,
+            'info': logger.info, 'verbose': logger.debug, 'debug': logger.debug,
+            'trace': getattr(logger, 'trace', logger.debug)}
+        callback = partial(_logger_callback, logger_dict)
+
     _log_mutex.lock()
     old_callback = _log_callback
     if callback is None:
         av_log_set_callback(&av_log_default_callback)
-    else:
+        _log_callback = None
+    elif not default_only or old_callback is None:
         av_log_set_callback(&_log_callback_func)
-    _log_callback = callback
+        _log_callback = callback
     _log_mutex.unlock()
     return old_callback
 
 def get_log_callback():
-    '''
-    Returns the last log callback set, or None. See :func:`set_log_callback`
-
-    **Returns**:
-        (callable) The last log callback set, or None.
+    '''Returns the last log callback set, or None if it has not been set.
+    See :func:`set_log_callback`.
     '''
     _log_mutex.lock()
     old_callback = _log_callback
@@ -128,27 +185,63 @@ def get_log_callback():
     return old_callback
 
 
-cdef list list_enc_codecs():
+def set_default_loglevel(loglevel):
+    '''This sets the FFmpeg log level to be used when no log :func:`set_log_callback`
+    is set and ffmpeg itself handles the log and prints it to stderr.
+    '''
+    if loglevel not in loglevels:
+        raise ValueError('Invalid loglevel {}'.format(loglevel))
+    av_log_set_level(loglevels[loglevel])
+
+
+cpdef get_codecs(
+        int encode=False, int decode=False, int video=False, int audio=False,
+        int data=False, int subtitle=False, int attachment=False, other=False):
+    '''Returns a list of codecs (e.g. h264) that is available by ffpyplayer for
+    encoding or decoding and matches the media types, e.g. video or audio.
+
+    The parameters determine which codecs is included in the result. The parameters
+    all default to False.
+
+    :Parameters:
+
+        `encode`: bool
+            If True, includes the encoding codecs in the result. Defaults to False.
+        `decode`: bool
+            If True, includes the decoding codecs in the result. Defaults to False.
+        `video`: bool
+            If True, includes the video codecs in the result. Defaults to False.
+        `audio`: bool
+            If True, includes the audio codecs in the result. Defaults to False.
+        `data`: bool
+            If True, includes the (continuous) side data codecs in the result. Defaults to False.
+        `subtitle`: bool
+            If True, includes the subtitle codecs in the result. Defaults to False.
+        `attachment`: bool
+            If True, includes the (sparse) data attachment codecs in the result. Defaults to False.
+        `other`: bool
+            If True, returns all the codec media types.
+
+    :returns:
+
+        A sorted list of the matching codec names.
+    '''
     cdef list codecs = []
     cdef AVCodec *codec = NULL
     codec = av_codec_next(codec)
 
     while codec != NULL:
-        if av_codec_is_encoder(codec) and codec.type == AVMEDIA_TYPE_VIDEO:
-            codecs.append(codec.name)
+        if ((encode and av_codec_is_encoder(codec) or
+             decode and av_codec_is_decoder(codec)) and
+            (video and codec.type == AVMEDIA_TYPE_VIDEO or
+             audio and codec.type == AVMEDIA_TYPE_AUDIO or
+             data and codec.type == AVMEDIA_TYPE_DATA or
+             subtitle and codec.type == AVMEDIA_TYPE_SUBTITLE or
+             attachment and codec.type == AVMEDIA_TYPE_ATTACHMENT or
+             other)):
+            codecs.append(tcode(codec.name))
         codec = av_codec_next(codec)
-    return codecs
-
-cdef list list_dec_codecs():
-    cdef list codecs = []
-    cdef AVCodec *codec = NULL
-    codec = av_codec_next(codec)
-
-    while codec != NULL:
-        if av_codec_is_decoder(codec):
-            codecs.append(codec.name)
-        codec = av_codec_next(codec)
-    return codecs
+    return sorted(codecs)
 
 cdef list list_pixfmts():
     cdef list fmts = []
@@ -156,51 +249,97 @@ cdef list list_pixfmts():
     desc = av_pix_fmt_desc_next(desc)
 
     while desc != NULL:
-        fmts.append(desc.name)
+        fmts.append(tcode(desc.name))
         desc = av_pix_fmt_desc_next(desc)
-    return fmts
+    return sorted(fmts)
 
-cdef list list_fmt_out():
-    cdef list fmts = []
-    cdef AVOutputFormat *fmt = NULL
-    fmt = av_oformat_next(fmt)
+cpdef get_fmts(int input=False, int output=False):
+    '''Returns the formats available in FFmpeg.
 
-    while fmt != NULL:
-        fmts.extend(fmt.name.split(','))
-        fmt = av_oformat_next(fmt)
-    return fmts
+    :Parameters:
 
-cdef list list_fmt_in():
-    cdef list fmts = []
-    cdef AVInputFormat *fmt = NULL
-    fmt = av_iformat_next(fmt)
+        `input`: bool
+            If True, also includes input formats in the result. Defaults to False
+        `output`: bool
+            If True, also includes output formats in the result. Defaults to False
 
-    while fmt != NULL:
-        fmts.extend(fmt.name.split(','))
-        fmt = av_iformat_next(fmt)
-    return fmts
+    :returns:
+
+        A 3-tuple of 3 lists, ``formats``, ``full_names``, and ``extensions``.
+        Each of the three lists are of identical length.
+
+        `formats`: list
+            A list of the names of the formats.
+        `full_names`: list
+            A list of the corresponding human readable names for each of the
+            formats. Can be the empty string if none is available.
+        `extensions`: list
+            A list of the extensions associated with the corresponding formats.
+            Each item is a (possibly empty) list of extensions names.
+    '''
+    cdef list fmts = [], full_names = [], exts = []
+    cdef AVOutputFormat *ofmt = NULL
+    cdef AVInputFormat *ifmt = NULL
+    cdef object names, full_name, ext
+
+    if output:
+        ofmt = av_oformat_next(ofmt)
+        while ofmt != NULL:
+            if ofmt.name != NULL:
+                names = tcode(ofmt.name).split(',')
+                full_name = tcode(ofmt.long_name) if ofmt.long_name != NULL else ''
+                ext = tcode(ofmt.extensions).split(',') if ofmt.extensions != NULL else []
+
+                fmts.extend(names)
+                full_names.extend([full_name, ] * len(names))
+                exts.extend([ext, ] * len(names))
+            ofmt = av_oformat_next(ofmt)
+
+    if input:
+        ifmt = av_iformat_next(ifmt)
+        while ifmt != NULL:
+            if ifmt.name != NULL:
+                names = tcode(ifmt.name).split(',')
+                full_name = tcode(ifmt.long_name) if ifmt.long_name != NULL else ''
+                ext = tcode(ifmt.extensions).split(',') if ifmt.extensions != NULL else []
+
+                fmts.extend(names)
+                full_names.extend([full_name, ] * len(names))
+                exts.extend([ext, ] * len(names))
+            ifmt = av_iformat_next(ifmt)
+
+    exts = [x for (y, x) in sorted(zip(fmts, exts), key=_get_item0)]
+    full_names = [x for (y, x) in sorted(zip(fmts, full_names), key=_get_item0)]
+    fmts = sorted(fmts)
+    return fmts, full_names, exts
+
 
 def get_supported_framerates(codec_name, rate=()):
-    '''
-    Returns the supported frame rates for encoding codecs. If a desired rate is
+    '''Returns the supported frame rates for encoding codecs. If a desired rate is
     provided, it also returns the closest valid rate.
 
-    **Args**:
-        *codec_name* (str): The name of a encoding codec.
+    :Parameters:
 
-        *rate* (2-tuple of ints, or empty tuple): If provided, a 2-tuple where the
-        first element is the numerator, and the second the denominator of the frame
-        rate we wish to use. E.g. (2997, 100) means a frame rate of 29.97.
+        `codec_name`: str
+            The name of a encoding codec.
+        `rate`: 2-tuple of ints, or empty tuple.
+            If provided, a 2-tuple where the first element is the numerator,
+            and the second the denominator of the frame rate we wish to use. E.g.
+            (2997, 100) means a frame rate of 29.97.
 
-    **Returns**:
-        (list of 2-tuples, or empty list): If there are no restrictions on the frame
-        rate it returns a empty list, otherwise it returns a list with the valid
-        frame rates. If rate is provided and there are restrictions to the frame
-        rates, the closest frame rate is the zero'th element in the list.
+    :returns:
 
-    ::
+        (list of 2-tuples, or empty list):
+            If there are no restrictions on the frame rate (i.e. all rates are valid)
+            it returns a empty list, otherwise it returns a list with the valid
+            frame rates. If `rate` is provided and there are restrictions on the frame
+            rates, the closest frame rate is the zero'th element in the list.
 
-        >>> print get_supported_framerates('mpeg1video', ())
+    For example:
+
+    .. code-block:: python
+
+        >>> print get_supported_framerates('mpeg1video')
         [(24000, 1001), (24, 1), (25, 1), (30000, 1001), (30, 1), (50, 1),
         (60000, 1001), (60, 1), (15, 1), (5, 1), (10, 1), (12, 1), (15, 1)]
 
@@ -211,7 +350,8 @@ def get_supported_framerates(codec_name, rate=()):
     cdef AVRational rate_struct
     cdef list rate_list = []
     cdef int i = 0
-    cdef AVCodec *codec = avcodec_find_encoder_by_name(codec_name)
+    cdef bytes name = codec_name.encode('utf8')
+    cdef AVCodec *codec = avcodec_find_encoder_by_name(name)
     if codec == NULL:
         raise Exception('Encoder codec %s not available.' % codec_name)
     if codec.supported_framerates == NULL:
@@ -229,27 +369,32 @@ def get_supported_framerates(codec_name, rate=()):
     return rate_list
 
 def get_supported_pixfmts(codec_name, pix_fmt=''):
-    '''
-    Returns the supported pixel formats for encoding codecs. If a desired format
+    '''Returns the supported pixel formats for encoding codecs. If a desired format
     is provided, it also returns the closest format (i.e. the format with minimum
     conversion loss).
 
-    **Args**:
-        *codec_name* (str): The name of a encoding codec.
+    :Parameters:
 
-        *pix_fmt* (str): If not empty, the name of a pixel format we wish to use
-        with this codec, e.g. 'rgb24'.
+        `codec_name`: str
+            The name of a encoding codec.
+        `pix_fmt`: str
+            If not empty, the name of a pixel format we wish to use with this codec,
+            e.g. 'rgb24'.
 
-    **Returns**:
-        (list of pixel formats, or empty list): If there are no restrictions on the
-        pixel formats it returns a empty list, otherwise it returns a list with the
-        valid formats. If pix_fmt is not empty and there are restrictions to the
-        formats, the closest format which results in the minimum loss when converting
-        will be returned as the zero'th element in the list.
+    :returns:
 
-    ::
+        (list of pixel formats, or empty list):
+            If there are no restrictions on the pixel formats (i.e. all the formats
+            are valid) it returns a empty list, otherwise it returns a list with the
+            valid formats. If pix_fmt is not empty and there are restrictions to the
+            formats, the closest format which results in the minimum loss when converting
+            will be returned as the zero'th element in the list.
 
-        >>> print get_supported_pixfmts('ffv1', '')
+    For example:
+
+    .. code-block:: python
+
+        >>> print get_supported_pixfmts('ffv1')
         ['yuv420p', 'yuva420p', 'yuva422p', 'yuv444p', 'yuva444p', 'yuv440p', ...
         'gray16le', 'gray', 'gbrp9le', 'gbrp10le', 'gbrp12le', 'gbrp14le']
 
@@ -258,151 +403,174 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
         'gray16le', 'gbrp9le', 'gbrp10le', 'gbrp12le', 'gbrp14le']
     '''
     cdef AVPixelFormat fmt
+    cdef bytes name = codec_name.encode('utf8'), fmt_b = pix_fmt.encode('utf8')
     cdef list fmt_list = []
     cdef int i = 0, loss = 0, has_alpha = 0
-    cdef AVCodec *codec = avcodec_find_encoder_by_name(codec_name)
+    cdef AVCodec *codec = avcodec_find_encoder_by_name(name)
     if codec == NULL:
         raise Exception('Encoder codec %s not available.' % codec_name)
-    if pix_fmt and av_get_pix_fmt(pix_fmt) == AV_PIX_FMT_NONE:
+    if pix_fmt and av_get_pix_fmt(fmt_b) == AV_PIX_FMT_NONE:
         raise Exception('Pixel format not recognized.')
     if codec.pix_fmts == NULL:
         return fmt_list
 
     while codec.pix_fmts[i] != AV_PIX_FMT_NONE:
-        fmt_list.append(av_get_pix_fmt_name(codec.pix_fmts[i]))
+        fmt_list.append(tcode(av_get_pix_fmt_name(codec.pix_fmts[i])))
         i += 1
     if pix_fmt:
-        has_alpha = av_pix_fmt_desc_get(av_get_pix_fmt(pix_fmt)).nb_components % 2 == 0
-        fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, av_get_pix_fmt(pix_fmt),
+        # XXX: fix this to check if NULL (although kinda already checked above)
+        has_alpha = av_pix_fmt_desc_get(av_get_pix_fmt(fmt_b)).nb_components % 2 == 0
+        fmt = avcodec_find_best_pix_fmt_of_list(codec.pix_fmts, av_get_pix_fmt(fmt_b),
                                                 has_alpha, &loss)
-        i = fmt_list.index(av_get_pix_fmt_name(fmt))
+        i = fmt_list.index(tcode(av_get_pix_fmt_name(fmt)))
         pix = fmt_list[i]
         del fmt_list[i]
         fmt_list.insert(0, pix)
     return fmt_list
 
 def emit_library_info():
-    '''
-    Prints to the ffmpeg log all the ffmpeg library's versions and configure
+    '''Prints to the ffmpeg log all the ffmpeg library's versions and configure
     options.
     '''
     print_all_libs_info(INDENT|SHOW_CONFIG,  AV_LOG_INFO)
     print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
 
 def _dshow_log_callback(log, message, level):
-    log.append((message, level))
+    log.append((<bytes>message, level))
 
-cdef int list_dshow_opts(list log, str stream, str option) except 1:
+cdef int list_dshow_opts(list log, bytes stream, bytes option) except 1:
     cdef AVFormatContext *fmt = NULL
     cdef AVDictionary* opts = NULL
     cdef AVInputFormat *ifmt
     cdef object old_callback
 
-    ifmt = av_find_input_format("dshow")
+    ifmt = av_find_input_format(b"dshow")
     if ifmt == NULL:
         raise Exception('Direct show not found.')
 
-    av_dict_set(&opts, option, "true", 0)
+    av_dict_set(&opts, option, b"true", 0)
+    _log_mutex.lock()
     old_callback = set_log_callback(partial(_dshow_log_callback, log))
     avformat_open_input(&fmt, stream, ifmt, &opts)
     set_log_callback(old_callback)
+    _log_mutex.unlock()
     avformat_close_input(&fmt)
     av_dict_free(&opts)
     return 0
 
 def list_dshow_devices():
-    '''
-    Returns a list of the dshow devices available.
+    '''Returns a list of the dshow devices available.
 
-    **Returns**:
+    :returns:
 
-        *(2-tuple)*: A 2-tuple, of (`video`, `audio`)
-            `video` is a dict all the direct show **video** devices. The keys
-            of the dict are the names of the available direct show devices. The values
-            are a list of the available configurations for that device. Each
-            element in the list has the following format:
-            ``(pix_fmt, codec_fmt, (frame_width, frame_height), (min_framerate, max_framerate))``
-            `audio` is a dict all the direct show **audio** devices. The keys
-            of the dict are the names of the available direct show devices. The values
-            are a list of the available configurations for that device. Each
-            element in the list has the following format:
-            ``((min_num_channels, min_num_channels), (min_bits, max_bits), (min_rate, max_rate))``.
+        `3-tuple`: A 3-tuple, of (`video`, `audio`, `names`)
 
-    For example::
+            `video`: dict
+                A dict of all the direct show **video** devices. The keys
+                of the dict are the unique names of the available direct show devices. The values
+                are a list of the available configurations for that device. Each
+                element in the list has the following format:
+                ``(pix_fmt, codec_fmt, (frame_width, frame_height), (min_framerate, max_framerate))``
+            `audio`: dict
+                A dict of all the direct show **audio** devices. The keys
+                of the dict are the unique names of the available direct show devices. The values
+                are a list of the available configurations for that device. Each
+                element in the list has the following format:
+                ``((min_num_channels, min_num_channels), (min_bits, max_bits), (min_rate, max_rate))``.
+            `names`: dict
+                A dict mapping the unique names of the video and audio devices to
+                a more human friendly (possibly non-unique) name. Either of these
+                names can be used when opening the device. However, if using the non-unique
+                name, it's not guarenteed which of the devices sharing the name will be opened.
+
+
+    For example:
+
+    .. code-block:: python
 
         >>> from ffpyplayer.player import MediaPlayer
         >>> from ffpyplayer.tools import list_dshow_devices
         >>> import time, weakref
         >>> dev = list_dshow_devices()
         >>> print dev
-        ({'Logitech HD Webcam C525': [('bgr24', '', (160, 120), (5, 30)),
+        ({'@device_pnp_...223196\\global': [('bgr24', '', (160, 120), (5, 30)),
         ('bgr24', '', (176, 144), (5, 30)), ('bgr24', '', (320, 176), (5, 30)),
         ('bgr24', '', (320, 240), (5, 30)), ('bgr24', '', (352, 288), (5, 30)),
         ...
         ('yuv420p', '', (320, 240), (5, 30)), ('yuv420p', '', (352, 288), (5, 30))],
-        'Laptop Integrated Webcam': [('bgr24', '', (160, 120), (30, 30)),
+        '@device_pnp_...223196\\global': [('bgr24', '', (160, 120), (30, 30)),
         ...
         ('yuyv422', '', (352, 288), (30, 30)),
         ('yuyv422', '', (640, 480), (30, 30))]},
-        {'Microphone (Plantronics .Audio ': [((1, 2), (8, 16), (11025, 44100))],
-        'Microphone Array (2- SigmaTel H': [((1, 2), (8, 16), (11025, 44100))],
-        'Microphone (HD Webcam C525)': [((1, 2), (8, 16), (11025, 44100))]})
-
-        >>> def callback(selector, value):
-        ...     if selector == 'quit':
-        ...         print 'quitting'
-        >>> # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
-        >>> # lets use the yuv420p, 320x240, 30fps
-        >>> # 27648000 = 320*240*3 at 30fps, for 4 seconds.
-        >>> # see http://ffmpeg.org/ffmpeg-devices.html#dshow for video_size, and framerate
-        >>> lib_opts = {'framerate':'30', 'video_size':'320x240',
-        ... 'pixel_format': 'yuv420p', 'rtbufsize':'27648000'}
-        >>> ff_opts = {'f':'dshow'}
-        >>> player = MediaPlayer('video=Logitech HD Webcam C525:audio=Microphone (HD Webcam C525)',
-        ...                      callback=weakref.ref(callback), ff_opts=ff_opts,
-        ...                      lib_opts=lib_opts)
-
-        >>> while 1:
-        ...     frame, val = player.get_frame()
-        ...     if val == 'eof':
-        ...         break
-        ...     elif frame is None:
-        ...         time.sleep(0.01)
-        ...     else:
-        ...         img, t = frame
-        ...         print val, t, img.get_pixel_format(), img.get_buffer_size()
-        ...         time.sleep(val)
-        0.0 264107.429 rgb24 (230400, 0, 0, 0)
-        0.0 264108.364 rgb24 (230400, 0, 0, 0)
-        0.0790016651154 264108.628 rgb24 (230400, 0, 0, 0)
-        0.135997533798 264108.764 rgb24 (230400, 0, 0, 0)
-        0.274529457092 264108.897 rgb24 (230400, 0, 0, 0)
-        0.272421836853 264109.028 rgb24 (230400, 0, 0, 0)
-        0.132406949997 264109.164 rgb24 (230400, 0, 0, 0)
+        {'@device_cm_...2- HD Webcam C615)': [((1, 2), (8, 16), (11025, 44100))],
+        '@device_cm_...HD Webcam C615)': [((1, 2), (8, 16), (11025, 44100))]},
+        {'@device_cm_...- HD Webcam C615)': 'Microphone (2- HD Webcam C615)',
+         '@device_cm_...2- HD Webcam C615)': 'Microphone (3- HD Webcam C615)',
         ...
-        # NOTE, by default the output is rgb24, that's why the output above is
-        # rgb24. To keep the output format the same as the input, do ff_opts['out_fmt'] = 'yuv420p'
+         '@device_pnp...223196\\global': 'HD Webcam C615',
+         '@device_pnp...223196\\global': 'Laptop Integrated Webcam'})
+
+    See :ref:`dshow-example` for a full example.
     '''
     cdef list res = []
     cdef dict video = {}, audio = {}, curr = None
     cdef object last
+    cdef bytes msg
+    cdef dict name_map = {}
 
     # list devices
-    list_dshow_opts(res, 'dummy', 'list_devices')
+    list_dshow_opts(res, b'dummy', b'list_devices')
     pvid = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow video devices.*')
     paud = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow audio devices.*')
-    pname = re.compile(' *\[dshow *@ *[\w]+\] *\"(.+)\"\\n.*')
-    for message, level in res:
+    pname = re.compile(' *\[dshow *@ *[\w]+\] *"(.+)"\\n.*')
+    apname = re.compile(' *\[dshow *@ *[\w]+\] *Alternative name *"(.+)"\\n.*')
+    m = m2 = None
+    for msg, level in res:
+        message = msg.decode('utf8') if PY3 else msg
+
+        switched = False
+        # check whether we switch to audio/video opts
         if pvid.match(message):
+            switched = True
             curr = video
         elif paud.match(message):
+            switched = True
             curr = audio
+
+        m_temp = pname.match(message)
+        # add the previous cams if exist
+        if curr is None or switched or m_temp:
+            assert not (m and m2)
+            if m:
+                curr[m.group(1)] = []
+                name_map[m.group(1)] = m.group(1)
+            elif m2:
+                curr[m2.group(1)] = []
+                name_map[m2.group(1)] = m2.group(1)
+            m = m2 = None
+
         if curr is None:
-            av_log(NULL, loglevels[level], message)
+            av_log(NULL, loglevels[level], msg)
             continue
-        m = pname.match(message)
-        if m:
-            curr[m.group(1)] = []
+        elif switched:
+            continue
+
+        m2 = apname.match(message)
+        if m2:
+            if m:
+                curr[m2.group(1)] = []
+                name_map[m2.group(1)] = m.group(1)
+            else:
+                curr[m2.group(1)] = []
+                name_map[m2.group(1)] = m2.group(1)
+            m = m2 = None
+        else:
+            m = m_temp
+            if not m:
+                av_log(NULL, loglevels[level], message)
+    if m:
+        curr[m.group(1)] = []
+        name_map[m.group(1)] = m.group(1)
 
     # list video devices options
     pvid_pix = re.compile(' *\[dshow *@ *[\w]+\] *pixel_format=([\w]+).*')
@@ -410,29 +578,36 @@ def list_dshow_devices():
     pvid_opts = re.compile(' *\[dshow *@ *[\w]+\] *min +s=\d+x\d+ +fps=(\d+)\
  +max +s=(\d+)x(\d+) +fps=(\d+).*')
     pheader1 = re.compile(' *\[dshow *@ *[\w]+\] *Pin "(?:Capture|Output)".*')
-    pheader2 = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow (?:video|audio) device options.*')
+    pheader2 = re.compile(' *\[dshow *@ *[\w]+\] *DirectShow (?:video|audio) (?:only )?device options.*')
     for video_stream in video:
         res = []
         last = ()
-        list_dshow_opts(res, "video=%s" % video_stream, 'list_options')
-        for message, level in res:
+        list_dshow_opts(res, ("video=%s" % video_stream).encode('utf8'), b'list_options')
+
+        for msg, level in res:
+            message = msg.decode('utf8') if PY3 else msg
             mpix = pvid_pix.match(message)
             mcodec = pvid_codec.match(message)
             mopts = pvid_opts.match(message)
+
             if mpix:
                 last = (mpix.group(1), '')
             if mcodec:
                 last = ('', mcodec.group(1))
             if mopts and not last:
-                av_log(NULL, loglevels[level], message)
+                av_log(NULL, loglevels[level], msg)
                 continue
+
             if mopts:
-                video[video_stream].append((last[0], last[1], (int(mopts.group(2)), int(mopts.group(3))),
-                                            (int(mopts.group(1)), int(mopts.group(4)))))
+                opts = (last[0], last[1], (int(mopts.group(2)), int(mopts.group(3))),
+                        (int(mopts.group(1)), int(mopts.group(4))))
+                if opts not in video[video_stream]:
+                    video[video_stream].append(opts)
                 last = ()
             if (not mpix) and (not mcodec) and (not mopts) and\
             (not pheader1.match(message)) and (not pheader2.match(message)):
-                av_log(NULL, loglevels[level], message)
+                av_log(NULL, loglevels[level], msg)
+
         video[video_stream] = sorted(list(set(video[video_stream])))
 
     # list audio devices options
@@ -440,15 +615,83 @@ def list_dshow_devices():
  +rate= *(\d+) +max +ch= *(\d+) +bits= *(\d+) +rate= *(\d+).*')
     for audio_stream in audio:
         res = []
-        list_dshow_opts(res, "audio=%s" % audio_stream, 'list_options')
-        for message, level in res:
+        list_dshow_opts(res, ("audio=%s" % audio_stream).encode('utf8'), b'list_options')
+        for msg, level in res:
+            message = msg.decode('utf8') if PY3 else msg
             mopts = paud_opts.match(message)
+
             if mopts:
-                audio[audio_stream].append(((int(mopts.group(1)), int(mopts.group(4))),
-                                            (int(mopts.group(2)), int(mopts.group(5))),
-                                            (int(mopts.group(3)), int(mopts.group(6)))))
+                opts = ((int(mopts.group(1)), int(mopts.group(4))),
+                        (int(mopts.group(2)), int(mopts.group(5))),
+                        (int(mopts.group(3)), int(mopts.group(6))))
+                if opts not in audio[audio_stream]:
+                    audio[audio_stream].append(opts)
             elif (not pheader1.match(message)) and (not pheader2.match(message)):
-                av_log(NULL, loglevels[level], message)
+                av_log(NULL, loglevels[level], msg)
         audio[audio_stream] = sorted(list(set(audio[audio_stream])))
 
-    return video, audio
+    return video, audio, name_map
+
+
+cdef object encode_text(object item, int encode):
+    if isinstance(item, basestring):
+        if encode:
+            return item.encode('utf8')
+        return item.decode('utf8')
+
+    if isinstance(item, dict):
+        for k, v in item.items():
+            item[k] = encode_text(v, encode)
+        return item
+
+    try:
+        iter(item)
+    except TypeError:
+        return item
+
+    return item.__class__((encode_text(i, encode) for i in item))
+
+def encode_to_bytes(item):
+    '''Takes the item and walks it recursively whether it's a string, int, iterable,
+    etc. and encodes all the strings to utf-8.
+
+    :Parameters:
+
+        `item`: anything
+            The object to be walked and encoded.
+
+    :returns:
+
+        An object identical to the ``item``, but with all strings encoded to utf-8.
+    '''
+    return encode_text(item, 1)
+
+def decode_to_unicode(item):
+    '''Takes the item and walks it recursively whether it's a string, int, iterable,
+    etc. and encodes all the strings to utf-8.
+
+    :Parameters:
+
+        `item`: anything
+            The object to be walked and encoded.
+
+    :returns:
+
+        An object identical to the ``item``, but with all strings encoded to utf-8.
+    '''
+    return encode_text(item, 0)
+
+def convert_to_str(item):
+    '''Takes the item and walks it recursively whether it's a string, int, iterable,
+    etc. and encodes all the strings to utf-8.
+
+    :Parameters:
+
+        `item`: anything
+            The object to be walked and encoded.
+
+    :returns:
+
+        An object identical to the ``item``, but with all strings encoded to utf-8.
+    '''
+    return encode_text(item, not PY3)

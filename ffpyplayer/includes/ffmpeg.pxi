@@ -1,16 +1,17 @@
 
+from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
+int16_t, uint8_t, int8_t, uintptr_t
+
 cdef extern from "stdarg.h":
     ctypedef struct va_list:
         pass
-from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
-int16_t, uint8_t, int8_t, uintptr_t
 
 ctypedef int (*lockmgr_func)(void **, AVLockOp)
 ctypedef int (*int_void_func)(void *) except? 1
 
 ctypedef float FFTSample
 
-include "ff_defs_comp.pxi"
+include "ff_consts.pxi"
 include "sdl.pxi"
 
 
@@ -34,6 +35,10 @@ cdef:
             AVMEDIA_TYPE_NB,
         struct AVBufferRef:
             pass
+        int av_compare_ts(int64_t, AVRational, int64_t, AVRational)
+        const char* av_get_media_type_string(AVMediaType)
+        inline const int av_log2(unsigned int)
+        void av_packet_unref(AVPacket *)
 
     extern from "libavformat/avio.h" nogil:
         int AVIO_FLAG_WRITE
@@ -47,13 +52,19 @@ cdef:
         struct AVIOInterruptCB:
             int (*callback)(void*)
             void *opaque
-        int url_feof(AVIOContext *)
+        int avio_feof(AVIOContext *)
         inline int64_t avio_tell(AVIOContext *)
+
+    extern from "libavutil/eval.h" nogil:
+        double av_strtod(const char *, char **)
 
     extern from "libavutil/avstring.h" nogil:
          size_t av_strlcpy(char *, const char *, size_t)
          size_t av_strlcatf(char *, size_t, const char *, ...)
          char *av_asprintf(const char *, ...)
+
+    extern from "libavutil/display.h" nogil:
+        double av_display_rotation_get (const int32_t [])
 
     extern from "libavutil/mathematics.h" nogil:
         int64_t av_rescale_q(int64_t, AVRational, AVRational)
@@ -79,6 +90,8 @@ cdef:
                                  AVPixelFormat, int, int, int)
 
     extern from "libavutil/dict.h" nogil:
+        int AV_DICT_MATCH_CASE
+        int AV_DICT_DONT_OVERWRITE
         int AV_DICT_IGNORE_SUFFIX
         int AV_DICT_DONT_STRDUP_VAL
         struct AVDictionaryEntry:
@@ -98,13 +111,14 @@ cdef:
         int av_get_bytes_per_sample(AVSampleFormat)
 
     extern from "libavutil/time.h" nogil:
-        int64_t av_gettime()
         int av_usleep(unsigned)
+        int64_t av_gettime_relative()
 
     extern from * nogil:
         void av_free(void *)
         void av_freep(void *)
         void *av_malloc(size_t)
+        void *av_realloc_array(void *, size_t, size_t)
         char *av_strdup(const char *)
         int av_get_channel_layout_nb_channels(uint64_t)
         void av_get_channel_layout_string(char *, int, int, uint64_t)
@@ -145,6 +159,7 @@ cdef:
         struct AVDictionary:
             pass
         int av_dict_set(AVDictionary **, const char *, const char *, int)
+        int av_dict_set_int(AVDictionary **, const char *, int64_t, int)
 
         void av_max_alloc(size_t)
 
@@ -179,6 +194,7 @@ cdef:
         inline void *av_x_if_null(const void *p, const void *x)
 
         int64_t AV_TIME_BASE
+        AVRational AV_TIME_BASE_Q
 
         struct AVClass:
             pass
@@ -196,12 +212,24 @@ cdef:
         int AVFMT_NOTIMESTAMPS
         int AVFMT_NOFILE
         int AVFMT_RAWPICTURE
+        struct AVChapter:
+            int id
+            AVRational time_base
+            int64_t start
+            int64_t end
+            AVDictionary *metadata
         struct AVInputFormat:
             int (*read_seek)(AVFormatContext *, int, int64_t, int)
+            int (*get_device_list)(AVFormatContext *, AVDeviceInfoList *)
+            int (*create_device_capabilities)(AVFormatContext *, AVDeviceCapabilitiesQuery *)
             int flags
             const char *name
+            const char *long_name
+            const char *extensions
         struct AVOutputFormat:
             const char *name
+            const char *long_name
+            const char *extensions
             int flags
         struct AVFormatContext:
             AVInputFormat *iformat
@@ -216,6 +244,8 @@ cdef:
             int64_t start_time
             int bit_rate
             int64_t duration
+            unsigned int nb_chapters
+            AVChapter **chapters
         struct AVStream:
             int index
             AVCodecContext *codec
@@ -230,6 +260,9 @@ cdef:
         struct AVProgram:
             unsigned int nb_stream_indexes
             unsigned int *stream_index
+        enum  AVPacketSideDataType:
+            AV_PKT_DATA_DISPLAYMATRIX
+        void av_format_inject_global_side_data(AVFormatContext *)
         void av_register_all()
         int avformat_network_init()
         int avformat_network_deinit()
@@ -256,11 +289,21 @@ cdef:
         AVStream *avformat_new_stream(AVFormatContext *, const AVCodec *)
         int av_interleaved_write_frame(AVFormatContext *, AVPacket *)
         void avformat_free_context(AVFormatContext *)
+        uint8_t *av_stream_get_side_data (AVStream *, AVPacketSideDataType, int *)
         AVOutputFormat *av_oformat_next(AVOutputFormat *)
         AVInputFormat *av_iformat_next(AVInputFormat  *)
 
     extern from "libavdevice/avdevice.h" nogil:
         void avdevice_register_all()
+        struct AVDeviceInfo:
+            char *device_name
+            char *device_description
+        struct AVDeviceInfoList:
+            AVDeviceInfo **devices
+            int nb_devices
+            int default_device
+        struct AVDeviceCapabilitiesQuery:
+            pass
 
     extern from "libswscale/swscale.h" nogil:
         int SWS_BICUBIC
@@ -268,6 +311,7 @@ cdef:
             pass
         struct SwsFilter:
             pass
+        const AVClass *sws_get_class()
         SwsContext *sws_getContext(int, int, AVPixelFormat, int, int, AVPixelFormat,
                                    int, SwsFilter *, SwsFilter *, const double *)
         SwsContext *sws_getCachedContext(SwsContext *, int, int, AVPixelFormat,
@@ -287,6 +331,7 @@ cdef:
         int AV_OPT_SEARCH_FAKE_OBJ
         struct AVOption:
             pass
+        int av_opt_eval_flags(void *, const AVOption *, const char *, int *)
         int av_opt_get_int(void *, const char *, int, int64_t *)
         int av_opt_set_int(void *, const char *, int64_t, int)
         int av_opt_set_image_size(void *, const char *, int, int, int)
@@ -305,6 +350,9 @@ cdef:
         RDFTContext *av_rdft_init(int, RDFTransformType)
         void av_rdft_calc(RDFTContext *, FFTSample *)
 
+    extern from "libavcodec/version.h" nogil:
+        int FF_API_EMU_EDGE
+
     extern from "libswresample/swresample.h" nogil:
         struct SwrContext:
             pass
@@ -315,10 +363,10 @@ cdef:
         int swr_set_compensation(SwrContext *, int, int)
         int swr_convert(SwrContext *, uint8_t **, int, const uint8_t ** , int)
 
-    extern from "libavfilter/avcodec.h" nogil:
+    extern from "libavcodec/avcodec.h" nogil:
         int CODEC_FLAG_EMU_EDGE
-        int CODEC_FLAG2_FAST
-        int CODEC_CAP_DR1
+        int AV_CODEC_FLAG2_FAST
+        int AV_CODEC_CAP_DR1
         int CODEC_FLAG_GLOBAL_HEADER
         int AV_PKT_FLAG_KEY
         int CODEC_CAP_DELAY
@@ -353,6 +401,7 @@ cdef:
             AVPixelFormat pix_fmt
             AVFrame *coded_frame
             int me_threshold
+            AVRational pkt_timebase
         struct AVSubtitle:
             uint16_t format
             uint32_t start_display_time # relative to packet pts, in ms
@@ -395,12 +444,12 @@ cdef:
             SUBTITLE_BITMAP
             SUBTITLE_TEXT
             SUBTITLE_ASS
+        AVRational av_codec_get_pkt_timebase(const AVCodecContext *)
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
         int av_codec_get_max_lowres(const AVCodec *)
         void av_codec_set_lowres(AVCodecContext *, int)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)
-        void avcodec_free_frame(AVFrame **)
         void avsubtitle_free(AVSubtitle *)
         void av_fast_malloc(void *, unsigned int *, size_t)
         void avcodec_register_all()
@@ -416,9 +465,7 @@ cdef:
             AV_LOCK_DESTROY,
         void av_picture_copy(AVPicture *, const AVPicture *,
                              AVPixelFormat, int, int)
-        AVFrame *avcodec_alloc_frame()
         AVFrame* av_frame_alloc()
-        void avcodec_get_frame_defaults(AVFrame *)
         int avcodec_decode_subtitle2(AVCodecContext *, AVSubtitle *,
                                      int *, AVPacket *)
         int avcodec_decode_audio4(AVCodecContext *, AVFrame *, int *, const AVPacket *)
@@ -461,6 +508,8 @@ cdef:
             AVRational frame_rate
         struct AVFilterGraph:
             char *scale_sws_opts
+            unsigned nb_filters
+            AVFilterContext **filters
         struct AVFilterInOut:
             char *name
             AVFilterContext *filter_ctx
@@ -490,13 +539,14 @@ cdef:
     extern from "libavfilter/buffersrc.h" nogil:
         int av_buffersrc_add_frame(AVFilterContext *, AVFrame *)
 
-    extern from "ffinfo.h" nogil:
+    extern from "clib/misc.h" nogil:
         uint8_t INDENT
         uint8_t SHOW_VERSION
         uint8_t SHOW_CONFIG
         void print_all_libs_info(int, int)
-        int opt_default(const char *, const char *, SwsContext *, AVDictionary **,
-                        AVDictionary **, AVDictionary **)
+        int opt_default(
+            const char *, const char *, SwsContext *, AVDictionary **, AVDictionary **,
+            AVDictionary **, AVDictionary **, AVDictionary **)
         int get_plane_sizes(int *, int *, AVPixelFormat, int, const int *)
 
 cdef enum:

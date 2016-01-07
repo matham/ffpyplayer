@@ -1,8 +1,8 @@
 .. _tools-api:
 
-************
-FFmpeg tools
-************
+*****
+Tools
+*****
 
 :mod:`ffpyplayer.tools`
 =============================
@@ -11,13 +11,6 @@ FFmpeg tools
    :members:
    :undoc-members:
    :show-inheritance:
-   :exclude-members: _initialize_ffmpeg
-
-.. autoattribute:: ffpyplayer.tools.loglevels
-
-    A dictionary with all the available ffmpeg log levels. The keys are the loglevels
-    and the values are their ffmpeg values. The lower the value, the more important
-    the log.
 
 .. autoattribute:: ffpyplayer.tools.codecs_enc
 
@@ -25,7 +18,7 @@ FFmpeg tools
 
 .. autoattribute:: ffpyplayer.tools.codecs_dec
 
-    A list of all the codecs available for decoding (including non-video).
+    A list of all the codecs available for decoding video and audio.
 
 .. autoattribute:: ffpyplayer.tools.pix_fmts
 

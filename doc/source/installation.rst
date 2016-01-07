@@ -9,8 +9,8 @@ Requirements
 
 Before installing ffpyplayer you need the following software:
 
-    * A recent version of cython.
-    * A c compiler e.g. MinGW, or visual studio.
+    * A recent version of cython `pip install cython`.
+    * A c compiler e.g. MinGW, or visual studio (`pip install mingwpy`).
     * SDL1.2 or SDL2. There must be a directory containing
       a lib and include directory. The lib directory contains the .a files, while
       the include directory contains a folder called either SDL or SDL2 which in turn

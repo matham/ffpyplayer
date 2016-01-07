@@ -1,21 +1,26 @@
-
-__all__ = ('version', )
-version = '4.0.0.dev0'
-# The ffmpeg src git version tested with. Nov, 18, 2013
-_ffmpeg_git = '1f7b7d54471711b89f8a64bef1c6636b6aa08c12'
-
-import os
+'''
+FFPyPlayer library
+==================
+'''
 import sys
-from os.path import join
-from os import environ
-# needed for windows so dlls are found
-ffmpeg_root = environ.get('FFMPEG_ROOT')
-sdl_root = environ.get('SDL_ROOT')
-if ffmpeg_root and os.path.exists(join(ffmpeg_root, 'bin')):
-    bin_path = join(ffmpeg_root, 'bin')
-    if bin_path not in os.pathsep.split(os.environ['PATH']):
-        os.environ['PATH'] = bin_path + os.pathsep + os.environ['PATH']
-if sdl_root and os.path.exists(join(sdl_root, 'bin')):
-    bin_path = join(sdl_root, 'bin')
-    if bin_path not in os.pathsep.split(os.environ['PATH']):
-        os.environ['PATH'] = bin_path + os.pathsep + os.environ['PATH']
+import os
+from os.path import join, isdir
+import platform
+
+__version__ = '4.0.0.dev0'
+
+# Dec 2015, the ffmpeg src git version tested and upto date with, including this commit
+_ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
+# skipped all show modes and subtitle display related functionality commits
+
+
+_ffmpeg = join(sys.prefix, 'share', 'ffpyplayer', 'ffmpeg', 'bin')
+if isdir(_ffmpeg):
+    os.environ["PATH"] += os.pathsep + _ffmpeg
+
+_sdl = join(sys.prefix, 'share', 'ffpyplayer', 'sdl', 'bin')
+if isdir(_sdl):
+    os.environ["PATH"] += os.pathsep + _sdl
+
+if 'SDL_AUDIODRIVER' not in os.environ and platform.system() == 'Windows':
+    os.environ['SDL_AUDIODRIVER'] = 'DirectSound'

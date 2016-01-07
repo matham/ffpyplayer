@@ -1,9 +1,10 @@
-include 'ff_defs.pxi'
+include 'includes/ffmpeg.pxi'
 
 
 cdef class SWScale(object):
     cdef SwsContext *sws_ctx
     cdef bytes dst_pix_fmt
+    cdef str dst_pix_fmt_s
     cdef int dst_h
     cdef int dst_w
     cdef AVPixelFormat src_pix_fmt
@@ -17,7 +18,7 @@ cdef class Image(object):
     cdef list byte_planes
     cdef AVPixelFormat pix_fmt
 
-    cdef int cython_init(self, AVFrame *frame) nogil
+    cdef int cython_init(self, AVFrame *frame) nogil except 1
     cpdef is_ref(Image self)
     cpdef get_linesizes(Image self, keep_align=*)
     cpdef get_size(Image self)

@@ -1,3 +1,6 @@
+from libc.stdint cimport int64_t, uint64_t, int32_t, uint32_t, uint16_t,\
+int16_t, uint8_t, int8_t, uintptr_t
+
 cdef extern from "SDL.h" nogil:
     int SDL_INIT_VIDEO
     int SDL_INIT_AUDIO
@@ -22,7 +25,8 @@ cdef extern from "SDL.h" nogil:
     int SDL_CondWait(SDL_cond *, SDL_mutex *)
 
     void SDL_Quit()
-    int SDL_Init(int) with gil
+    int SDL_Init(uint32_t) with gil
+    int SDL_InitSubSystem(uint32_t) with gil
 
     struct SDL_AudioSpec:
         int freq
@@ -53,6 +57,16 @@ cdef extern from * nogil:
 
     uint16_t AUDIO_S16SYS
     int SDL_OpenAudio(SDL_AudioSpec *, SDL_AudioSpec *)
+    IF HAS_SDL2:
+        int SDL_AUDIO_ALLOW_ANY_CHANGE
+        ctypedef uint32_t SDL_AudioDeviceID
+        SDL_AudioDeviceID SDL_OpenAudioDevice(
+            const char*, int, const SDL_AudioSpec*, SDL_AudioSpec*, int)
+        void SDL_PauseAudioDevice(SDL_AudioDeviceID, int)
+        void SDL_CloseAudioDevice(SDL_AudioDeviceID)
+        void SDL_MixAudioFormat(
+            uint8_t*, const uint8_t*, uint16_t, uint32_t, int)
+
     void SDL_PauseAudio(int)
     void SDL_CloseAudio()
     void SDL_MixAudio(uint8_t *, const uint8_t *, uint32_t, int)

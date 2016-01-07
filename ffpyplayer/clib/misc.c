@@ -1,54 +1,8 @@
 
-#ifndef _FFINFO_H
-#define _FFINFO_H
-
-#include "ffconfig.h"
-#include "libavfilter/avcodec.h"
-#include "libavformat/avformat.h"
-#include "libavdevice/avdevice.h"
-#include "libswscale/swscale.h"
-#include "libswresample/swresample.h"
-#include "libavutil/opt.h"
-#include "libavutil/avstring.h"
-#include "libavutil/pixdesc.h"
-
-
-#if CONFIG_POSTPROC
-#include "libpostproc/postprocess.h"
-#endif
-
-#ifndef AV_LOG_TRACE
-#define AV_LOG_TRACE    56
-#endif
-
-
-#define INDENT        1
-#define SHOW_VERSION  2
-#define SHOW_CONFIG   4
-
-#define PRINT_LIB_INFO(libname, LIBNAME, flags, level)                  \
-    if (CONFIG_##LIBNAME) {                                             \
-        const char *indent = flags & INDENT? "  " : "";                 \
-        if (flags & SHOW_VERSION) {                                     \
-            unsigned int version = libname##_version();                 \
-            av_log(NULL, level,                                         \
-                   "%slib%-11s %2d.%3d.%3d / %2d.%3d.%3d\n",            \
-                   indent, #libname,                                    \
-                   LIB##LIBNAME##_VERSION_MAJOR,                        \
-                   LIB##LIBNAME##_VERSION_MINOR,                        \
-                   LIB##LIBNAME##_VERSION_MICRO,                        \
-                   version >> 16, version >> 8 & 0xff, version & 0xff); \
-        }                                                               \
-        if (flags & SHOW_CONFIG) {                                      \
-            const char *cfg = libname##_configuration();                \
-            av_log(NULL, level, "%s%-11s configuration: %s\n",   	   	\
-                    indent, #libname, cfg);                         	\
-        }                                                               \
-    }
+#include "misc.h"
 
 #define FLAGS (o->type == AV_OPT_TYPE_FLAGS) ? AV_DICT_APPEND : 0
-
-static void print_all_libs_info(int flags, int level)
+void print_all_libs_info(int flags, int level)
 {
 #if CONFIG_AVUTIL
     PRINT_LIB_INFO(avutil,   AVUTIL,   flags, level);
@@ -76,10 +30,8 @@ static void print_all_libs_info(int flags, int level)
 #endif
 }
 
-
-
-static const AVOption *opt_find(void *obj, const char *name, const char *unit,
-                            int opt_flags, int search_flags)
+const AVOption *opt_find(void *obj, const char *name, const char *unit,
+    int opt_flags, int search_flags)
 {
     const AVOption *o = av_opt_find(obj, name, unit, opt_flags, search_flags);
     if(o && !o->flags)
@@ -88,20 +40,27 @@ static const AVOption *opt_find(void *obj, const char *name, const char *unit,
 }
 
 #define FLAGS (o->type == AV_OPT_TYPE_FLAGS) ? AV_DICT_APPEND : 0
-static int opt_default(const char *opt, const char *arg,
-        struct SwsContext *sws_opts, AVDictionary **swr_opts,
-        AVDictionary **format_opts, AVDictionary **codec_opts)
+int opt_default(const char *opt, const char *arg,
+    struct SwsContext *sws_opts, AVDictionary **sws_dict, AVDictionary **swr_opts,
+    AVDictionary **resample_opts, AVDictionary **format_opts, AVDictionary **codec_opts)
 {
     const AVOption *o;
     int consumed = 0;
     char opt_stripped[128];
     const char *p;
     const AVClass *cc = avcodec_get_class(), *fc = avformat_get_class();
+#if CONFIG_AVRESAMPLE
+    const AVClass *rc = avresample_get_class();
+#endif
 #if CONFIG_SWRESAMPLE
     struct SwrContext *swr;
 #endif
     const AVClass *sc, *swr_class;
     int ret;
+#if CONFIG_SWSCALE
+    struct SwsContext *sws;
+#endif
+
 
     if (!strcmp(opt, "debug") || !strcmp(opt, "fdebug"))
         av_log_set_level(AV_LOG_DEBUG);
@@ -126,14 +85,30 @@ static int opt_default(const char *opt, const char *arg,
     }
 #if CONFIG_SWSCALE
     sc = sws_get_class();
-    if (sws_opts && !consumed && opt_find(&sc, opt, NULL, 0,
-                         AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ)) {
-        // XXX we only support sws_flags, not arbitrary sws options
-        ret = av_opt_set(sws_opts, opt, arg, 0);
+    if (sws_dict && !consumed && (o = opt_find(&sc, opt, NULL, 0,
+                         AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
+        sws = sws_alloc_context();
+        ret = av_opt_set(sws, opt, arg, 0);
+        sws_freeContext(sws);
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "Error setting option %s.\n", opt);
             return ret;
         }
+        if (sws_opts){
+            ret = av_opt_set(sws_opts, opt, arg, 0);
+            if (ret < 0) {
+                av_log(NULL, AV_LOG_ERROR, "Error setting option %s for sws_opts.\n", opt);
+                return ret;
+            }
+        }
+
+        av_dict_set(sws_dict, opt, arg, FLAGS);
+
+        consumed = 1;
+    }
+#else
+    if (!consumed && !strcmp(opt, "sws_flags")) {
+        av_log(NULL, AV_LOG_WARNING, "Ignoring %s %s, due to disabled swscale\n", opt, arg);
         consumed = 1;
     }
 #endif
@@ -152,14 +127,21 @@ static int opt_default(const char *opt, const char *arg,
         consumed = 1;
     }
 #endif
+#if CONFIG_AVRESAMPLE
+    if (resample_opts && (o=opt_find(&rc, opt, NULL, 0,
+                       AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
+        av_dict_set(resample_opts, opt, arg, FLAGS);
+        consumed = 1;
+    }
+#endif
 
     if (consumed)
         return 0;
     return AVERROR_OPTION_NOT_FOUND;
 }
 
-static int get_plane_sizes(int size[4], int required_plane[4], enum AVPixelFormat pix_fmt,
-        int height, const int linesizes[4])
+int get_plane_sizes(int size[4], int required_plane[4], enum AVPixelFormat pix_fmt,
+    int height, const int linesizes[4])
 {
     int i, total_size;
     memset(required_plane, 0, sizeof(required_plane[0])*4);
@@ -201,5 +183,3 @@ static int get_plane_sizes(int size[4], int required_plane[4], enum AVPixelForma
 
     return total_size;
 }
-
-#endif
