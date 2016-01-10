@@ -267,17 +267,25 @@ ext_modules = [Extension(
 for e in ext_modules:
     e.cython_directives = {"embedsignature": True}
 
+with open('RAEDME.rst') as fh:
+    long_description = fh.read()
+
 setup(name='ffpyplayer',
       version=ffpyplayer.__version__,
       author='Matthew Einhorn',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
+      url='http://matham.github.io/ffpyplayer/',
+      long_description=long_description,
       classifiers=['License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
                    'Topic :: Multimedia :: Video',
                    'Topic :: Multimedia :: Video :: Display',
                    'Topic :: Multimedia :: Sound/Audio :: Players',
                    'Topic :: Multimedia :: Sound/Audio :: Players :: MP3',
                    'Programming Language :: Python :: 2.7',
+                   'Programming Language :: Python :: 3.3',
+                   'Programming Language :: Python :: 3.4',
+                   'Programming Language :: Python :: 3.5',
                    'Operating System :: MacOS :: MacOS X',
                    'Operating System :: Microsoft :: Windows',
                    'Operating System :: POSIX :: BSD :: FreeBSD',

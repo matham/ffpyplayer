@@ -13,6 +13,12 @@ __version__ = '4.0.dev0'
 _ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
 # skipped all show modes and subtitle display related functionality commits
 
+# TODO:
+# * Implement CONFIG_SDL to be able to compile without needing SDL at all.
+# * Currently, it only supports text subtitles - bitmap subtitles are ignored.
+#   Unless one uses a filter to overlay the subtitle.
+# * We can not yet visualize audio to video. Provide a filter chain link between
+#   audio to video filters to acomplish this.
 
 _ffmpeg = join(sys.prefix, 'share', 'ffpyplayer', 'ffmpeg', 'bin')
 if isdir(_ffmpeg):

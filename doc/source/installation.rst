@@ -4,47 +4,115 @@
 Installation
 ************
 
+Using binary wheels
+-------------------
+
+On windows 7+, compiled ffpyplayer binaries can be installed for python 2.7 and 3.4,
+on either a 32 or 64 bit system using::
+
+    pip install ffpyplayer
+
+.. warning::
+
+    Although the ffpyplayer source code is licensed under the LGPL, the ffpyplayer wheels
+    for Windows on PYPI are distributed under the GPL because the pre-compiled FFmpeg binaries
+    are GPL'd. For LGPL builds you can compile FFmpeg yourself using LGPL options.
+
+For other OSs or to compile with master see below.
+
+Compiling
+---------
+
 Requirements
-------------
+============
 
-Before installing ffpyplayer you need the following software:
+To compile ffpyplayer we need:
 
-    * A recent version of cython `pip install cython`.
-    * A c compiler e.g. MinGW, or visual studio (`pip install mingwpy`).
-    * SDL1.2 or SDL2. There must be a directory containing
-      a lib and include directory. The lib directory contains the .a files, while
-      the include directory contains a folder called either SDL or SDL2 which in turn
-      contains the SDL headers. We identify whether SDL or SDL2 is available based
-      on the name of this directory in include.
-      Finally, the main directory also contains a bin directory which is used at runtime
-      (if it's defined) to search for the shared libraries (e.g. .dll on Windows)
-      if they are not already on the path.
+    * Cython (``pip install --upgrade cython``).
+    * A c compiler e.g. MinGW  (``pip install mingwpy`` on windows).
+    * SDL2 or SDL1.2 (not reccomended). See :ref:`compille` for how to get it.
+    * A recent (2.x+, has been tested with 2.8) FFmpeg compiled with ``--enable-shared``.
+      See :ref:`compille` for how to get it.
 
-      Finally in the environment, a variable called SDL_ROOT must point to the
-      top level directory.
-    * A recent compiled shared FFmpeg. ffpyplayer defines a variable called
-      _ffmpeg_git which is the version of ffmpeg git that it has been tested with.
-      A version of FFmpeg that is newer than Nov 2013 is likely required.
+Compiling ffpyplayer
+====================
 
-      Similar to SDL, there must be a directory containing a lib and include directory
-      and bin directory if the shared libraries are not on the system path.
-      The lib directory contains the .a files while the include directory contains the
-      FFmpeg public API header files (e.g. libavcodec/avcodec.h).
+On linux or mac, if the SDL or FFmpeg package config (.pc) files are on the path exported
+in ``PKG_CONFIG_PATH`` the library and header files will automatically be found.
 
-      Finally in the environment, a variable called FFMPEG_ROOT must point to the
-      top level directory.
+Otherwise, or if compiling on Windows, the following environmental variables are required.
 
-      Autodetection is currently not available.
+    * ``SDL_LIB_DIR`` and ``FFMPEG_LIB_DIR`` should point to a folder which contains the
+      SDL and FFmpeg library files (*.a files), respectively.
+    * ``FFMPEG_INCLUDE_DIR`` should point to a directory which contains the FFmpeg header files.
+    * ``SDL_INCLUDE_DIR`` should point to a directory containg the SDL headers. For SDL2,
+      this directory contains a SDL2 named directory with all the headers.
 
-Installation
-------------
+In addition, directories containing the SDL and FFmpeg shared libraries, *.dlls on Windows
+and *.so on Linux/Mac, need to be added to the PATH.
 
-After setting up the requirements download ffpyplayer from github and run
-`make` or `make force`. Before running, you have the option to
-select which FFmpeg libraries are to be used by defining values for CONFIG
-variables in the environment. For example, CONFIG_AVFILTER=0 will not use the
-FFmpeg avfilter libraries. See setup.py for all the available flags.
+You can also select the FFmpeg libraries to be used by defining values for CONFIG_XXX.
+For example, CONFIG_AVFILTER=0 will disable inclusion of the FFmpeg avfilter libraries.
+See setup.py for all the available flags.
 
-To test, there's a file in the top level called test.py. To use it,
-you need to pass as the first command line argument the path to a media file
-that will be played.
+Finally, run::
+
+    pip install ffpyplayer
+
+Or to install master, do::
+
+    pip install https://github.com/matham/ffpyplayer/archive/master.zip
+
+If you have a local zip with the ffpyplayer source code you can also run ``make``
+or ``python setup.py build_ext --inplace`` to compile.
+
+You should not be able to import ffpyplayer with ``import ffpyplayer``.
+
+.. _compille
+
+SDL and Compiling FFmpeg
+------------------------
+
+To use ffpyplayer, the compiled FFmpeg and SDL shared libraries must be available. Following are
+instructions for the various OSs.
+
+Windows
+=======
+
+You can get pre-compiled FFmpeg libaries from http://ffmpeg.zeranoe.com/builds/. You need
+both the shared (which contains the .a files and headers) and the dev (which contains the dlls)
+downloads.
+
+You can download SDL2 from https://www.libsdl.org/release/. 2.0.4 is the most recent
+`version <https://www.libsdl.org/release/SDL2-devel-2.0.4-mingw.tar.gz>`_.
+
+OSX
+===
+
+You can get both FFmpeg and SDL2 using brew. You can install them using::
+
+    brew update
+    brew install sdl2
+    brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora
+
+This automatically installs the package config (*.pc) files.
+
+Ubuntu
+======
+
+Follow the instructions at https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu to compile FFMpeg.
+However, those instructions detail how to build the static version. But we need the shared
+version. This means that ``--enable-shared`` and ``--extra-cflags="-fPIC"` need to be added
+when compiling FFmpeg **AND** its dependencies. And if present, ``--disable-shared`` or
+``--enable-static`` must be removed.
+
+Following that guide, ``export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib`` also needs
+to be executed initially for the compiled binaries to be found.
+
+To get SDL2, do the following::
+
+    sudo apt-get update
+    sudo apt-get -y install libsdl2-dev python-dev
+
+You can find a complete minimal example of compiling ffpyplayer on Ubuntu
+`here <https://github.com/matham/ffpyplayer/blob/master/.travis.yml#L20>`_.
