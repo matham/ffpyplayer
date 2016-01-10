@@ -1,4 +1,4 @@
-FFPyPlayer is a python binding to the FFmpeg library for playing and writing
+FFPyPlayer is a python binding for the FFmpeg library for playing and writing
 media files.
 
 For more information: http://matham.github.io/ffpyplayer/index.html
@@ -19,6 +19,12 @@ To install: http://matham.github.io/ffpyplayer/installation.html
 .. image:: https://img.shields.io/pypi/v/ffpyplayer.svg
     :target: https://pypi.python.org/pypi/ffpyplayer/
     :alt: Latest Version on PyPI
+
+.. warning::
+
+    Although the ffpyplayer source code is licensed under the LGPL, the ffpyplayer wheels
+    for Windows on PYPI are distributed under the GPL because the pre-compiled FFmpeg binaries
+    are GPL'd. For LGPL builds you can compile FFmpeg yourself using LGPL options.
 
 Usage example
 -------------

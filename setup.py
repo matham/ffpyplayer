@@ -267,7 +267,7 @@ ext_modules = [Extension(
 for e in ext_modules:
     e.cython_directives = {"embedsignature": True}
 
-with open('RAEDME.rst') as fh:
+with open('README.rst') as fh:
     long_description = fh.read()
 
 setup(name='ffpyplayer',
