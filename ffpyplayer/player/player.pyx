@@ -101,11 +101,12 @@ cdef class MediaPlayer(object):
 
         `loglevel`: str
             The level of logs to emit. Defaults to ``'warning'``. Its value is one of the keys
-            defined in :attr:`ffpyplayer.tools.loglevels`. This loglevel is
-            used to filter logs for this player instance only. Although the default ffmpeg logger or the
-            logger set with :attr:`ffpyplayer.tools.set_log_callback` also filter logs, this is
-            applied first and allows us to discard log quickly without having to aquire the gil
-            in performant areas of code. However, it doesn't affect internal ffmpeg logs.
+            of :attr:`~ffpyplayer.tools.loglevels`.
+
+            Although log are also filtered globally according to the level of
+            :attr:`~ffpyplayer.tools.set_loglevel`, this is applied first to filter logs
+            quickly for this instance. However, this doesn't affect internally generated
+            ffmpeg logs.
         `thread_lib`: str
             The threading library to use internally. Can be one of 'SDL' or 'python'.
 

@@ -6,11 +6,13 @@ Module for manipulating and finding information of FFmpeg formats, codecs,
 devices, pixel formats and more.
 '''
 
-__all__ = ('initialize_sdl_aud', 'loglevels', 'codecs_enc',
-           'codecs_dec', 'pix_fmts', 'formats_in', 'formats_out',
-           'set_log_callback', 'get_log_callback', 'set_default_loglevel',
-           'get_codecs', 'encode_to_bytes', 'decode_to_unicode',
-           'convert_to_str')
+__all__ = (
+    'initialize_sdl_aud', 'loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts',
+    'formats_in', 'formats_out', 'set_log_callback', 'get_log_callback',
+    'set_loglevel', 'get_loglevel', 'get_codecs', 'get_fmts',
+    'get_supported_framerates', 'get_supported_pixfmts', 'emit_library_info',
+    'list_dshow_devices', 'encode_to_bytes', 'decode_to_unicode',
+    'convert_to_str')
 
 include "includes/ffmpeg.pxi"
 include "includes/inline_funcs.pxi"
@@ -73,6 +75,7 @@ loglevels = {
     "verbose": AV_LOG_VERBOSE, "debug": AV_LOG_DEBUG, "trace": AV_LOG_TRACE}
 '''A dictionary with all the available ffmpeg log levels. The keys are the loglevels
 and the values are their ffmpeg values. The lower the value, the more important
+the log. Note, this is ooposite python where the higher the level the more important
 the log.
 '''
 _loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
@@ -90,22 +93,24 @@ formats_out = get_fmts(output=True)[0]
 
 cdef object _log_callback = None
 cdef MTMutex _log_mutex= MTMutex(SDL_MT)
+cdef int log_level = AV_LOG_WARNING
 
+cdef void gil_call_callback(object callback, char *line, int level) nogil:
+    with gil:
+        callback(tcode(line), _loglevel_inverse[level])
 
-cdef void call_callback(char *line, int level):
-    cdef object callback = _log_callback
-    if callback is None:
+cdef void call_callback(object callback, char *line, int level) nogil:
+    if callback is None or level > log_level:
         return
+    gil_call_callback(callback, line, level)
 
-    _log_callback(tcode(line), _loglevel_inverse[level])
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
     cdef int print_prefix = 1
     av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &print_prefix)
 
-    with gil:
-        call_callback(line, level)
+    call_callback(_log_callback, line, level)
 
 def _logger_callback(logger_dict, message, level):
     message = message.strip()
@@ -113,7 +118,10 @@ def _logger_callback(logger_dict, message, level):
         logger_dict[level]('FFPyPlayer: {}'.format(message))
 
 def set_log_callback(object callback=None, logger=None, int default_only=False):
-    '''Sets a callback to be used by ffmpeg when emitting logs. It is thread safe.
+    '''Sets a callback to be used by ffmpeg when emitting logs.
+    This function is thread safe.
+
+    See also :func:`set_loglevel`.
 
     :Parameters:
 
@@ -185,13 +193,32 @@ def get_log_callback():
     return old_callback
 
 
-def set_default_loglevel(loglevel):
-    '''This sets the FFmpeg log level to be used when no log :func:`set_log_callback`
-    is set and ffmpeg itself handles the log and prints it to stderr.
+def set_loglevel(loglevel):
+    '''This sets the global FFmpeg log level. less important log levels are filtered
+    and not passsed on to the logger or callback set by :func:`set_log_callback`.
+    It also set the loglevel of FFmpeg if not callback or logger is set.
+
+    The global log level, if not set, defaults to ``'warning'``.
+
+    :Parameters:
+
+        `loglevel`: str
+            The log level. Can be one of the keys of :attr:`loglevels`.
     '''
+    cdef int level
+    global log_level
     if loglevel not in loglevels:
         raise ValueError('Invalid loglevel {}'.format(loglevel))
-    av_log_set_level(loglevels[loglevel])
+    level = loglevels[loglevel]
+    av_log_set_level(level)
+    log_level = level
+set_loglevel(_loglevel_inverse[log_level])
+
+def get_loglevel():
+    '''Returns the log level set with :func:`set_loglevel`, or the default level if not
+    set. It is one of the keys of :attr:`loglevels`.
+    '''
+    return _loglevel_inverse[log_level]
 
 
 cpdef get_codecs(

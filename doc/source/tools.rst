@@ -12,6 +12,13 @@ Tools
    :undoc-members:
    :show-inheritance:
 
+.. autoattribute:: ffpyplayer.tools.loglevels
+
+    A dictionary with all the available ffmpeg log levels. The keys are the loglevels
+    and the values are their ffmpeg values. The lower the value, the more important
+    the log. Note, this is ooposite python where the higher the level the more important
+    the log.
+
 .. autoattribute:: ffpyplayer.tools.codecs_enc
 
     A list of all the codecs available for encoding video.
