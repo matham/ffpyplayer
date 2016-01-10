@@ -74,7 +74,9 @@ cdef class MediaPlayer(object):
             The function takes two parameters, ``selector``, and ``value``.
             ``selector`` can be one of:
 
-            `eof`: When eof is reached. ``value`` is the empty string.
+            `eof`: 
+                When eof is reached. ``value`` is the empty string.
+
             `display_sub`:
                 When a new subtitle string is available. ``value`` will be a
                 5-tuple of the form ``(text, fmt, pts, start, end)``. Where
@@ -137,7 +139,7 @@ cdef class MediaPlayer(object):
                 it will immediately start playing. Defaults to False.
             `cpuflags`: str
                 Similar to ffplay
-            `max_alloc: int
+            `max_alloc`: int
                 Set the maximum size that may me allocated in one block.
             `infbuf`: bool
                 If True, do not limit the input buffer size and read as much data as possible
@@ -158,7 +160,7 @@ cdef class MediaPlayer(object):
                 let decoder reorder pts 0=off 1=on -1=auto. Defaults to 0.
             `genpts`: bool
                 Generate missing pts even if it requires parsing future frames, defaults to False.
-            `fast: bool
+            `fast`: bool
                 Enable non-spec-compliant optimizations, defaults to False.
             `stats`: bool
                 Print several playback statistics, in particular show the stream duration,

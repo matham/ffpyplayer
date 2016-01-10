@@ -263,7 +263,7 @@ cdef double get_rotation(AVStream *st) nogil:
 
     return theta
 
-cdef bytes py_pat = bytes("%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" + PRId64 + "/%" + PRId64 + "   \r")
+cdef bytes py_pat = bytes(b"%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%" + PRId64 + b"/%" + PRId64 + b"   \r")
 cdef char *py_pat_str = py_pat
 cdef bytes av_str = b"A-V", mv_str = b"M-V", ma_str = b"M-A", empty_str = b"   "
 cdef char *str_av = av_str
