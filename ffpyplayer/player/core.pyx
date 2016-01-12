@@ -1130,8 +1130,6 @@ cdef class VideoState(object):
             av_frame_unref(frame)
             ret = self.get_video_frame(frame)
             if ret < 0:
-                if self.player.loglevel >= AV_LOG_ERROR:
-                    av_log(NULL, AV_LOG_ERROR, b'Error getting frame: %s')
                 break
             if not ret:
                 continue
@@ -1158,9 +1156,6 @@ cdef class VideoState(object):
                         graph, self.player.vfilters_list[self.vfilter_idx] if self.player.vfilters_list != NULL else NULL,
                         frame, last_out_fmt_temp)
                     if ret < 0:
-                        if self.player.loglevel >= AV_LOG_FATAL:
-                            av_log(NULL, AV_LOG_FATAL, b"%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
-                        self.request_thread_s(b'video:error', fmt_err(ret, err_msg, sizeof(err_msg)))
                         break
                     filt_in  = self.in_video_filter
                     filt_out = self.out_video_filter
@@ -1532,10 +1527,10 @@ cdef class VideoState(object):
                 memset(stream, self.silence_buf[0], len1)
                 if not self.player.muted:
                     IF HAS_SDL2:
-                        SDL_MixAudioFormat(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, 
+                        SDL_MixAudioFormat(stream, <uint8_t *>self.audio_buf + self.audio_buf_index,
                                            AUDIO_S16SYS, len1, self.player.audio_volume)
                     ELSE:
-                        SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, 
+                        SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index,
                                      len1, self.player.audio_volume)
 
             len -= len1

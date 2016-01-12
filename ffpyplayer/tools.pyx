@@ -82,7 +82,7 @@ _loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
 codecs_enc = get_codecs(encode=True, video=True)
 '''A list of all the codecs available for encoding video. '''
-codecs_dec = get_codecs(decode=True)
+codecs_dec = get_codecs(decode=True, video=True, audio=True)
 '''A list of all the codecs available for decoding video and audio. '''
 pix_fmts = list_pixfmts()
 '''A list of all the pixel formats available to ffmpeg. '''
