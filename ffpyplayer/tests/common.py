@@ -2,7 +2,7 @@
 __all__ = ('get_media', )
 
 from os import environ
-from os.path import join, abspath, dirname, exists, sep
+from os.path import join, abspath, dirname, exists
 
 from ffpyplayer.tools import set_loglevel, set_log_callback
 import logging
@@ -23,7 +23,7 @@ def get_media(fname):
         return ex
 
     if 'FFPYPLAYER_TEST_DIRS' in environ:
-        for d in environ['FFPYPLAYER_TEST_DIRS'].split(sep):
+        for d in environ['FFPYPLAYER_TEST_DIRS'].split(';'):
             d = d.strip()
             if not d:
                 continue
