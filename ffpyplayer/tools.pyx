@@ -210,15 +210,21 @@ def set_loglevel(loglevel):
     if loglevel not in loglevels:
         raise ValueError('Invalid loglevel {}'.format(loglevel))
     level = loglevels[loglevel]
+    _log_mutex.lock()
     av_log_set_level(level)
     log_level = level
+    _log_mutex.unlock()
 set_loglevel(_loglevel_inverse[log_level])
 
 def get_loglevel():
     '''Returns the log level set with :func:`set_loglevel`, or the default level if not
     set. It is one of the keys of :attr:`loglevels`.
     '''
-    return _loglevel_inverse[log_level]
+    cdef int level
+    _log_mutex.lock()
+    level = log_level
+    _log_mutex.unlock()
+    return _loglevel_inverse[level]
 
 
 cpdef get_codecs(
@@ -377,7 +383,7 @@ def get_supported_framerates(codec_name, rate=()):
     cdef AVRational rate_struct
     cdef list rate_list = []
     cdef int i = 0
-    cdef bytes name = codec_name.encode('utf8')
+    cdef bytes name = codec_name if isinstance(codec_name, bytes) else codec_name.encode('utf8')
     cdef AVCodec *codec = avcodec_find_encoder_by_name(name)
     if codec == NULL:
         raise Exception('Encoder codec %s not available.' % codec_name)
@@ -430,7 +436,8 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
         'gray16le', 'gbrp9le', 'gbrp10le', 'gbrp12le', 'gbrp14le']
     '''
     cdef AVPixelFormat fmt
-    cdef bytes name = codec_name.encode('utf8'), fmt_b = pix_fmt.encode('utf8')
+    cdef bytes name = codec_name if isinstance(codec_name, bytes) else codec_name.encode('utf8')
+    cdef bytes fmt_b = pix_fmt if isinstance(pix_fmt, bytes) else pix_fmt.encode('utf8')
     cdef list fmt_list = []
     cdef int i = 0, loss = 0, has_alpha = 0
     cdef AVCodec *codec = avcodec_find_encoder_by_name(name)
@@ -463,13 +470,15 @@ def emit_library_info():
     print_all_libs_info(INDENT|SHOW_VERSION, AV_LOG_INFO)
 
 def _dshow_log_callback(log, message, level):
-    log.append((<bytes>message, level))
+    log.append((message.encode('utf8'), level))
 
 cdef int list_dshow_opts(list log, bytes stream, bytes option) except 1:
     cdef AVFormatContext *fmt = NULL
     cdef AVDictionary* opts = NULL
     cdef AVInputFormat *ifmt
     cdef object old_callback
+    cdef int level
+    global log_level
 
     ifmt = av_find_input_format(b"dshow")
     if ifmt == NULL:
@@ -478,8 +487,16 @@ cdef int list_dshow_opts(list log, bytes stream, bytes option) except 1:
     av_dict_set(&opts, option, b"true", 0)
     _log_mutex.lock()
     old_callback = set_log_callback(partial(_dshow_log_callback, log))
+    level = log_level
+
+    av_log_set_level(AV_LOG_TRACE)
+    log_level = AV_LOG_TRACE
     avformat_open_input(&fmt, stream, ifmt, &opts)
+
+    av_log_set_level(level)
+    log_level = level
     set_log_callback(old_callback)
+
     _log_mutex.unlock()
     avformat_close_input(&fmt)
     av_dict_free(&opts)

@@ -275,7 +275,7 @@ cdef class MediaPlayer(object):
         cdef VideoSettings *settings = &self.settings
         cdef AVPixelFormat out_fmt
         cdef int res, paused
-        cdef const char* cy_str
+        ff_opts_orig = ff_opts
         ff_opts = self.ff_opts = encode_to_bytes(deepcopy(ff_opts))
         lib_opts = encode_to_bytes(deepcopy(lib_opts))
         kargs = encode_to_bytes(deepcopy(kargs))
@@ -302,14 +302,11 @@ cdef class MediaPlayer(object):
         settings.wanted_stream_spec[<int>AVMEDIA_TYPE_SUBTITLE] = NULL
 
         if 'ast' in ff_opts:
-            cy_str = ff_opts['ast']
-            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_AUDIO] =  cy_str
+            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_AUDIO] =  ff_opts['ast']
         if 'vst' in ff_opts:
-            cy_str = ff_opts['vst']
-            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_VIDEO] =  cy_str
+            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_VIDEO] =  ff_opts['vst']
         if 'sst' in ff_opts:
-            cy_str = ff_opts['sst']
-            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_SUBTITLE] =  cy_str
+            settings.wanted_stream_spec[<int>AVMEDIA_TYPE_SUBTITLE] =  ff_opts['sst']
         settings.start_time = ff_opts['ss'] * 1000000 if 'ss' in ff_opts else AV_NOPTS_VALUE
         settings.duration = ff_opts['t'] * 1000000 if 't' in ff_opts else AV_NOPTS_VALUE
         settings.autorotate = bool(ff_opts.get('autorotate', 1))
@@ -333,8 +330,8 @@ cdef class MediaPlayer(object):
         settings.lowres = ff_opts['lowres'] if 'lowres' in ff_opts else 0
         settings.av_sync_type = AV_SYNC_AUDIO_MASTER
         settings.audio_volume = SDL_MIX_MAXVOLUME
-        if 'sync' in ff_opts:
-            val = ff_opts['sync']
+        if 'sync' in ff_opts_orig:
+            val = ff_opts_orig['sync']
             if val == 'audio':
                 settings.av_sync_type = AV_SYNC_AUDIO_MASTER
             elif val == 'video':
@@ -353,13 +350,12 @@ cdef class MediaPlayer(object):
             if 'vf' in ff_opts:
                 vfilters = ff_opts['vf']
                 if isinstance(vfilters, basestring):
-                    vfilters = [vfilters]
+                    vfilters = ff_opts['vf'] = [vfilters]
                 for vfilt in vfilters:
-                    cy_str = vfilt
                     settings.vfilters_list = <const char **>grow_array(
                         settings.vfilters_list, sizeof(settings.vfilters_list[0]),
                         &settings.nb_vfilters, settings.nb_vfilters + 1)
-                    settings.vfilters_list[settings.nb_vfilters - 1] = cy_str
+                    settings.vfilters_list[settings.nb_vfilters - 1] = vfilt
 
             settings.afilters = NULL
             if 'af' in ff_opts:
@@ -385,8 +381,9 @@ cdef class MediaPlayer(object):
             av_force_cpu_flags(flags)
 
         for k, v in lib_opts.iteritems():
+            k_new = k.encode('utf8')
             if opt_default(
-                    k, v, NULL, &settings.sws_dict, &settings.swr_opts,
+                    k_new, v, NULL, &settings.sws_dict, &settings.swr_opts,
                     &settings.resample_opts, &settings.format_opts,
                     &self.settings.codec_opts) < 0:
                 raise Exception('library option %s: %s not found' % (k, v))

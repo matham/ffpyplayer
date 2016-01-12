@@ -166,11 +166,11 @@ cdef class MediaWriter(object):
         s = self.streams
         self.n_streams = n
         memset(s, 0, n * sizeof(MediaStream))
-        if type(lib_opts) is dict:
+        if isinstance(lib_opts, dict):
             lib_opts = [lib_opts, ] * n
         elif len(lib_opts) == 1:
             lib_opts = lib_opts * n
-        if type(metadata) is dict:
+        if isinstance(metadata, dict):
             metadata = [metadata, ] * n
         elif len(metadata) == 1:
             metadata = metadata * n
@@ -230,8 +230,9 @@ cdef class MediaWriter(object):
             s[r].codec_ctx.time_base.num = s[r].den
             s[r].codec_ctx.pix_fmt = s[r].pix_fmt_out
 
-            for k, v in metadata[r].iteritems():
-                res = av_dict_set(&s[r].av_stream.metadata, k, v, 0)
+            for k, v in metadata[r].items():
+                k_b = k.encode('utf8')
+                res = av_dict_set(&s[r].av_stream.metadata, k_b, v, 0)
                 if res < 0:
                     av_dict_free(&s[r].av_stream.metadata)
                     self.clean_up()
@@ -242,7 +243,7 @@ cdef class MediaWriter(object):
                 s[r].codec_ctx.flags |= CODEC_FLAG_GLOBAL_HEADER
 
             supported_fmts = get_supported_pixfmts(config['codec'], config['pix_fmt_out'])
-            if supported_fmts and supported_fmts[0] != config['pix_fmt_out']:
+            if supported_fmts and supported_fmts[0] != config['pix_fmt_out'].decode('utf8'):
                 self.clean_up()
                 raise Exception('%s is not a supported pixel format for codec %s, the \
                 best valid format is %s' % (config['pix_fmt_out'], config['codec'],
@@ -267,8 +268,9 @@ cdef class MediaWriter(object):
                     self.clean_up()
                     raise Exception('Cannot find conversion context.')
 
-            for k, v in lib_opts[r].iteritems():
-                if opt_default(k, v, s[r].sws_ctx, NULL, NULL, NULL, &self.format_opts, &s[r].codec_opts) < 0:
+            for k, v in lib_opts[r].items():
+                k_b = k.encode('utf8')
+                if opt_default(k_b, v, s[r].sws_ctx, NULL, NULL, NULL, &self.format_opts, &s[r].codec_opts) < 0:
                     raise Exception('library option %s: %s not found' % (k, v))
 
             res = avcodec_open2(s[r].codec_ctx, s[r].codec, &s[r].codec_opts)
