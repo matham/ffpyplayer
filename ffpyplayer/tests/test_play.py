@@ -21,14 +21,12 @@ class PicTestCase(unittest.TestCase):
 
         while not error[0]:
             frame, val = player.get_frame()
-            print val, frame
             if val == 'eof':
                 break
             elif frame is None:
                 time.sleep(0.01)
             else:
                 img, t = frame
-                print(t)
 
         if error[0]:
             raise Exception('{}: {}'.format(*error[0]))
