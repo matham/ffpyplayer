@@ -1,12 +1,11 @@
 
 import unittest
-from os.path import join, abspath, dirname
 
 
 class PicTestCase(unittest.TestCase):
 
     def test_play(self):
-        import ffpyplayer.tests.common
+        from ffpyplayer.tests.common import get_media
         from ffpyplayer.player import MediaPlayer
         import time
 
@@ -17,9 +16,8 @@ class PicTestCase(unittest.TestCase):
 
         # only video
         ff_opts={'an':True, 'sync':'video'}
-        player = MediaPlayer(
-            abspath(join(dirname(__file__), '../../examples/dw11222.mp4')),
-            callback=callback, ff_opts=ff_opts)
+        player = MediaPlayer(get_media('dw11222.mp4'), callback=callback,
+                             ff_opts=ff_opts)
 
         while not error[0]:
             frame, val = player.get_frame()
