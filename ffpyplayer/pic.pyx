@@ -11,8 +11,7 @@ Create an image in rgb24 format:
 
     >>> w, h = 500, 100
     >>> size = w * h * 3
-    >>> buf = [int(x * 255 / size) for x in range(size)]
-    >>> buf = ''.join(map(chr, buf))
+    >>> buf = bytearray([int(x * 255 / size) for x in range(size)])
     >>> img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
 Convert the image to a different size:
@@ -157,8 +156,7 @@ cdef class SWScale(object):
 
         >>> w, h = 500, 100
         >>> size = w * h * 3
-        >>> buf = [int(x * 255 / size) for x in range(size)]
-        >>> buf = ''.join(map(chr, buf))
+        >>> buf = bytearray([int(x * 255 / size) for x in range(size)])
         >>> img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
         >>> # specify output w,h
@@ -357,8 +355,7 @@ cdef class Image(object):
 
         >>> w, h = 640, 480
         >>> size = w * h * 3
-        >>> buf = [int(x * 255 / size) for x in range(size)]
-        >>> buf = ''.join(map(chr, buf))
+        >>> buf = bytearray([int(x * 255 / size) for x in range(size)])
         >>> img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
         >>> img2 = Image(pix_fmt='rgb24', size=(w, h))
     '''

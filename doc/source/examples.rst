@@ -15,8 +15,7 @@ Converting Image formats
     from ffpyplayer.pic import Image, SWScale
     w, h = 500, 100
     size = w * h * 3
-    buf = [int(x * 255 / size) for x in range(size)]
-    buf = ''.join(map(chr, buf))
+    buf = bytearray([int(x * 255 / size) for x in range(size)])
 
     img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
     sws = SWScale(w, h, img.get_pixel_format(), ofmt='yuv420p')
@@ -179,12 +178,10 @@ Writing video to file
 
     # Construct images
     size = w * h * 3
-    buf = [int(x * 255 / size) for x in range(size)]
-    buf = ''.join(map(chr, buf))
+    buf = bytearray([int(x * 255 / size) for x in range(size)])
     img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
-    buf = [int((size - x) * 255 / size) for x in range(size)]
-    buf = ''.join(map(chr, buf))
+    buf = bytearray([int((size - x) * 255 / size) for x in range(size)])
     img2 = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
     for i in range(20):
@@ -234,12 +231,10 @@ the above results in a 10MB file):
 
     # Construct images
     size = w * h * 3
-    buf = [int(x * 255 / size) for x in range(size)]
-    buf = ''.join(map(chr, buf))
+    buf = bytearray([int(x * 255 / size) for x in range(size)])
     img = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
-    buf = [int((size - x) * 255 / size) for x in range(size)]
-    buf = ''.join(map(chr, buf))
+    buf = bytearray([int((size - x) * 255 / size) for x in range(size)])
     img2 = Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
     for i in range(20):

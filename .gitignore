@@ -1,10 +1,8 @@
 build/
+*.pyd
+*.pyc
 ffpyplayer/*.c
-ffpyplayer/*.pyd
 ffpyplayer/*.html
-ffpyplayer/*.pyc
 ffpyplayer/player/*.c
-ffpyplayer/player/*.pyd
-ffpyplayer/player/*.pyc
 ffpyplayer/includes/ffconfig.h
 ffpyplayer/includes/ffconfig.pxi
