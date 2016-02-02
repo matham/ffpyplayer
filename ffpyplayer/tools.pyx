@@ -95,22 +95,25 @@ cdef object _log_callback = None
 cdef MTMutex _log_mutex= MTMutex(SDL_MT)
 cdef int log_level = AV_LOG_WARNING
 
-cdef void gil_call_callback(object callback, char *line, int level) nogil:
-    with gil:
-        callback(tcode(line), _loglevel_inverse[level])
-
-cdef void call_callback(object callback, char *line, int level) nogil:
-    if callback is None or level > log_level:
+cdef void gil_call_callback(char *line, int level):
+    cdef object callback
+    callback = _log_callback
+    if callback is None:
         return
-    gil_call_callback(callback, line, level)
+    callback(tcode(line), _loglevel_inverse[level])
 
+cdef void call_callback(char *line, int level) nogil:
+    with gil:
+        gil_call_callback(line, level)
 
 cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
     cdef char line[2048]
     cdef int print_prefix = 1
-    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &print_prefix)
+    if fmt == NULL or level > log_level:
+        return
 
-    call_callback(_log_callback, line, level)
+    av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &print_prefix)
+    call_callback(line, level)
 
 def _logger_callback(logger_dict, message, level):
     message = message.strip()
