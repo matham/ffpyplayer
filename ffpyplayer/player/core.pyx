@@ -86,9 +86,9 @@ cdef int read_thread_enter(void *obj_id) except? 1 with gil:
             return vs.read_thread()
     except Exception as e:
         msg = str(e).encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         msg = traceback.format_exc().encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         vs.request_thread_s('read:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
@@ -106,9 +106,9 @@ cdef int video_thread_enter(void *obj_id) except? 1 with gil:
             return vs.video_thread()
     except Exception as e:
         msg = str(e).encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         msg = traceback.format_exc().encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         vs.request_thread_s('video:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
@@ -126,9 +126,9 @@ cdef int audio_thread_enter(void *obj_id) except? 1 with gil:
             return vs.audio_thread()
     except Exception as e:
         msg = str(e).encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         msg = traceback.format_exc().encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         vs.request_thread_s('audio:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise
@@ -146,9 +146,9 @@ cdef int subtitle_thread_enter(void *obj_id) except? 1 with gil:
             return vs.subtitle_thread()
     except Exception as e:
         msg = str(e).encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         msg = traceback.format_exc().encode('utf8')
-        av_log(NULL, AV_LOG_FATAL, msg)
+        av_log(NULL, AV_LOG_FATAL, '%s', msg)
         vs.request_thread_s('subtitle:error', e)
         if vs.mt_gen.mt_src == Py_MT:
             raise

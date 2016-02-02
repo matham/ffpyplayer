@@ -282,7 +282,7 @@ cdef class MediaWriter(object):
             av_dict_free(&s[r].codec_opts)
             if bad_vals:
                 msg2 = ("The following options were not recognized: %s.\n" % bad_vals).encode('utf8')
-                av_log(NULL, AV_LOG_ERROR, msg2)
+                av_log(NULL, AV_LOG_ERROR, '%s', msg2)
             if res < 0:
                 self.clean_up()
                 raise Exception('Failed to open codec for stream %d; %s' % (r, tcode(emsg(res, msg, sizeof(msg)))))
@@ -317,7 +317,7 @@ cdef class MediaWriter(object):
         av_dict_free(&self.format_opts)
         if bad_vals:
             msg2 = ("The following options were not recognized: %s.\n" % bad_vals).encode('utf8')
-            av_log(NULL, AV_LOG_ERROR, msg2)
+            av_log(NULL, AV_LOG_ERROR, '%s', msg2)
         if res < 0:
             self.clean_up()
             raise Exception('Error writing header: ' + tcode(emsg(res, msg, sizeof(msg))))

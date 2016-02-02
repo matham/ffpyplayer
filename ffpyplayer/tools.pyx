@@ -559,7 +559,7 @@ def list_dshow_devices():
     cdef list res = []
     cdef dict video = {}, audio = {}, curr = None
     cdef object last
-    cdef bytes msg
+    cdef bytes msg, msg2
     cdef dict name_map = {}
 
     # list devices
@@ -594,7 +594,7 @@ def list_dshow_devices():
             m = m2 = None
 
         if curr is None:
-            av_log(NULL, loglevels[level], msg)
+            av_log(NULL, loglevels[level], '%s', msg)
             continue
         elif switched:
             continue
@@ -611,7 +611,8 @@ def list_dshow_devices():
         else:
             m = m_temp
             if not m:
-                av_log(NULL, loglevels[level], message)
+                msg2 = message.decode('utf8') if PY3 else message
+                av_log(NULL, loglevels[level], '%s', msg2)
     if m:
         curr[m.group(1)] = []
         name_map[m.group(1)] = m.group(1)
@@ -639,7 +640,7 @@ def list_dshow_devices():
             if mcodec:
                 last = ('', mcodec.group(1))
             if mopts and not last:
-                av_log(NULL, loglevels[level], msg)
+                av_log(NULL, loglevels[level], '%s', msg)
                 continue
 
             if mopts:
@@ -650,7 +651,7 @@ def list_dshow_devices():
                 last = ()
             if (not mpix) and (not mcodec) and (not mopts) and\
             (not pheader1.match(message)) and (not pheader2.match(message)):
-                av_log(NULL, loglevels[level], msg)
+                av_log(NULL, loglevels[level], '%s', msg)
 
         video[video_stream] = sorted(list(set(video[video_stream])))
 
@@ -671,7 +672,7 @@ def list_dshow_devices():
                 if opts not in audio[audio_stream]:
                     audio[audio_stream].append(opts)
             elif (not pheader1.match(message)) and (not pheader2.match(message)):
-                av_log(NULL, loglevels[level], msg)
+                av_log(NULL, loglevels[level], '%s', msg)
         audio[audio_stream] = sorted(list(set(audio[audio_stream])))
 
     return video, audio, name_map
