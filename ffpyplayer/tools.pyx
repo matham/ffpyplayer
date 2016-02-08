@@ -10,12 +10,17 @@ __all__ = (
     'initialize_sdl_aud', 'loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts',
     'formats_in', 'formats_out', 'set_log_callback', 'get_log_callback',
     'set_loglevel', 'get_loglevel', 'get_codecs', 'get_fmts',
-    'get_supported_framerates', 'get_supported_pixfmts', 'emit_library_info',
+    'get_supported_framerates', 'get_supported_pixfmts', 'get_best_pix_fmt',
+    'emit_library_info',
     'list_dshow_devices', 'encode_to_bytes', 'decode_to_unicode',
     'convert_to_str')
 
 include "includes/ffmpeg.pxi"
 include "includes/inline_funcs.pxi"
+
+cdef extern from "stdlib.h" nogil:
+    void *malloc(size_t)
+    void free(void *)
 
 from ffpyplayer.threading cimport Py_MT, MTMutex, get_lib_lockmgr, SDL_MT
 import ffpyplayer.threading  # for sdl init
@@ -464,6 +469,71 @@ def get_supported_pixfmts(codec_name, pix_fmt=''):
         del fmt_list[i]
         fmt_list.insert(0, pix)
     return fmt_list
+
+def get_best_pix_fmt(pix_fmt, pix_fmts):
+    '''Returns the best pixel format with the least conversion loss from the
+    original pixel format, given a list of potential pixel formats.
+
+    :Parameters:
+
+        `pix_fmt`: str
+            The name of a original pixel format.
+        `pix_fmts`: list-type of strings
+            A list of possible pixel formats from which the best will be chosen.
+
+    :returns:
+
+        The pixel format with the least conversion loss.
+
+    .. note::
+
+        The returned pixel format seems to be somewhat sensitive to the order
+        of the input pixel formats. Higher quality pixel formats should therefore
+        be at the beginning of the list.
+
+
+    For example:
+
+    .. code-block:: python
+
+        >>> get_best_pix_fmt('yuv420p', ['rgb24', 'rgba', 'yuv444p', 'gray'])
+        'rgb24'
+        >>> get_best_pix_fmt('gray', ['rgb24', 'rgba', 'yuv444p', 'gray'])
+        'gray'
+        >>> get_best_pix_fmt('rgb8', ['rgb24', 'yuv420p', 'rgba', 'yuv444p', 'gray'])
+        'rgb24'
+    '''
+    cdef AVPixelFormat fmt, fmt_src
+    cdef bytes fmt_src_b = pix_fmt if isinstance(pix_fmt, bytes) else pix_fmt.encode('utf8')
+    cdef bytes fmt_b
+    cdef int i = 0, loss = 0, has_alpha = 0
+    cdef AVPixelFormat *fmts = NULL
+
+    if not pix_fmt or not pix_fmts:
+        raise ValueError('Invalid arguments {}, {}'.format(pix_fmt, pix_fmts))
+    fmt_src = av_get_pix_fmt(fmt_src_b)
+    if fmt_src == AV_PIX_FMT_NONE:
+        raise Exception('Pixel format {} not recognized.'.format(pix_fmt))
+
+    fmts = <AVPixelFormat *>malloc(sizeof(AVPixelFormat) * (len(pix_fmts) + 1))
+    if fmts == NULL:
+        raise MemoryError()
+
+    try:
+        fmts[len(pix_fmts)] = AV_PIX_FMT_NONE
+
+        for i, fmt_s in enumerate(pix_fmts):
+            fmt_b = fmt_s if isinstance(fmt_s, bytes) else fmt_s.encode('utf8')
+            fmts[i] = av_get_pix_fmt(fmt_b)
+            if fmts[i] == AV_PIX_FMT_NONE:
+                raise Exception('Pixel format {} not recognized.'.format(fmt_s))
+
+        has_alpha = av_pix_fmt_desc_get(fmt_src).nb_components % 2 == 0
+        fmt = avcodec_find_best_pix_fmt_of_list(fmts, fmt_src, has_alpha, &loss)
+    finally:
+        free(fmts)
+
+    return tcode(av_get_pix_fmt_name(fmt))
 
 def emit_library_info():
     '''Prints to the ffmpeg log all the ffmpeg library's versions and configure
