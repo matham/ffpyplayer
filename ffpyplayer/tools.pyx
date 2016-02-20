@@ -10,6 +10,7 @@ __all__ = (
     'initialize_sdl_aud', 'loglevels', 'codecs_enc', 'codecs_dec', 'pix_fmts',
     'formats_in', 'formats_out', 'set_log_callback', 'get_log_callback',
     'set_loglevel', 'get_loglevel', 'get_codecs', 'get_fmts',
+    'get_format_codec',
     'get_supported_framerates', 'get_supported_pixfmts', 'get_best_pix_fmt',
     'emit_library_info',
     'list_dshow_devices', 'encode_to_bytes', 'decode_to_unicode',
@@ -353,6 +354,62 @@ cpdef get_fmts(int input=False, int output=False):
     full_names = [x for (y, x) in sorted(zip(fmts, full_names), key=_get_item0)]
     fmts = sorted(fmts)
     return fmts, full_names, exts
+
+
+def get_format_codec(filename=None, fmt=None):
+    '''Returns the best codec associated with the file format. The format
+    can be provided using either ``filename`` or ``fmt``.
+
+    :Parameters:
+        `filename`: str or None
+            The output filename. If provided, the extension of the filename
+            is used to guess the format.
+        `fmt`: str or None.
+            The format to use. Can be one of :attr:`ffpyplayer.tools.formats_out`.
+
+    :returns:
+
+        str:
+            The name from :attr:`ffpyplayer.tools.codecs_enc`
+            of the best codec that can be used with this format.
+
+    For example:
+
+    .. code-block:: python
+
+        >>> get_format_codecs('test.png')
+        'mjpeg'
+        >>> get_format_codecs('test.jpg')
+        'mjpeg'
+        >>> get_format_codecs('test.mkv')
+        'libx264'
+        >>> get_format_codecs(fmt='h264')
+        'libx264'
+    '''
+    cdef int res
+    cdef char *format_name = NULL
+    cdef char *name = NULL
+    cdef const AVCodec *codec_desc = NULL
+    cdef AVFormatContext *fmt_ctx = NULL
+    cdef char msg[256]
+    cdef AVCodecID codec_id
+
+    if fmt:
+        fmt = fmt.encode('utf8')
+        format_name = fmt
+    if filename:
+        filename = filename.encode('utf8')
+        name = filename
+
+    res = avformat_alloc_output_context2(&fmt_ctx, NULL, format_name, name)
+    if res < 0 or fmt_ctx == NULL or fmt_ctx.oformat == NULL:
+        raise Exception('Failed to find format: ' + tcode(emsg(res, msg, sizeof(msg))))
+
+    codec_id = fmt_ctx.oformat.video_codec
+    codec_desc = avcodec_find_encoder(codec_id)
+    if codec_desc == NULL:
+        raise Exception('Default codec not found for format')
+    return tcode(codec_desc.name)
 
 
 def get_supported_framerates(codec_name, rate=()):

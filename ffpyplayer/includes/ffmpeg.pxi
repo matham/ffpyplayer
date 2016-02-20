@@ -226,11 +226,15 @@ cdef:
             const char *name
             const char *long_name
             const char *extensions
+        struct AVCodecTag:
+            pass
         struct AVOutputFormat:
             const char *name
             const char *long_name
             const char *extensions
             int flags
+            AVCodecID video_codec
+            const AVCodecTag* const* codec_tag
         struct AVFormatContext:
             AVInputFormat *iformat
             AVOutputFormat *oformat
@@ -470,6 +474,7 @@ cdef:
                                      int *, AVPacket *)
         int avcodec_decode_audio4(AVCodecContext *, AVFrame *, int *, const AVPacket *)
         enum AVCodecID:
+            AV_CODEC_ID_NONE
             AV_CODEC_ID_RAWVIDEO
         AVCodec *avcodec_find_decoder(AVCodecID)
         AVCodec *avcodec_find_encoder(AVCodecID)

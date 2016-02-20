@@ -83,6 +83,10 @@ cdef class MediaWriter(object):
                 `codec`: str
                     The codec used to write the frames to the file. Can be one of
                     the encoding codecs in :attr:`ffpyplayer.tools.codecs_enc`.
+
+                    If not provided, it defaults to the default best codec for the format
+                    provided in ``fmt`` or guessed from the ``filename``.
+                    See :func:`ffpyplayer.tools.get_format_codecs`
                 `frame_rate`: 2-tuple of ints
                     A 2-tuple of ints representing the frame rate to be used when writing
                     the file. The first element is the numerator, while the second is the
@@ -184,11 +188,18 @@ cdef class MediaWriter(object):
                 config['width_out'] = config['width_in']
             if 'height_out' not in config or not config['height_out']:
                 config['height_out'] = config['height_in']
-            codec_desc = avcodec_find_encoder_by_name(config['codec'])
-            if codec_desc == NULL:
-                self.clean_up()
-                raise Exception('Encoder codec %s not available.' % config['codec'])
-            s[r].codec_id = codec_desc.id
+            if 'codec' not in config or not config['codec']:
+                s[r].codec_id = self.fmt_ctx.oformat.video_codec
+                codec_desc = avcodec_find_encoder(s[r].codec_id)
+                if codec_desc == NULL:
+                    raise Exception('Default codec not found for output file.')
+                config['codec'] = codec_desc.name
+            else:
+                codec_desc = avcodec_find_encoder_by_name(config['codec'])
+                if codec_desc == NULL:
+                    self.clean_up()
+                    raise Exception('Encoder codec %s not available.' % config['codec'])
+                s[r].codec_id = codec_desc.id
             s[r].width_in = config['width_in']
             s[r].width_out = config['width_out']
             s[r].height_in = config['height_in']
@@ -236,7 +247,7 @@ cdef class MediaWriter(object):
                 if res < 0:
                     av_dict_free(&s[r].av_stream.metadata)
                     self.clean_up()
-                    raise Exception('Failed to set option %s: %s for stream %d; %s'\
+                    raise Exception('Failed to set option %s: %s for stream %d; %s'
                                     % (k, v, r, tcode(emsg(res, msg, sizeof(msg)))))
             # Some formats want stream headers to be separate
             if self.fmt_ctx.oformat.flags & AVFMT_GLOBALHEADER:
@@ -245,8 +256,8 @@ cdef class MediaWriter(object):
             supported_fmts = get_supported_pixfmts(config['codec'], config['pix_fmt_out'])
             if supported_fmts and supported_fmts[0] != config['pix_fmt_out'].decode('utf8'):
                 self.clean_up()
-                raise Exception('%s is not a supported pixel format for codec %s, the \
-                best valid format is %s' % (config['pix_fmt_out'], config['codec'],
+                raise Exception('%s is not a supported pixel format for codec %s, the '
+                'best valid format is %s' % (config['pix_fmt_out'], config['codec'],
                                             supported_fmts[0]))
 
             if (s[r].codec_ctx.pix_fmt != s[r].pix_fmt_in or s[r].codec_ctx.width != s[r].width_in or
