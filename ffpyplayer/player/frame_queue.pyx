@@ -55,6 +55,9 @@ cdef class FrameQueue(object):
         self.cond.unlock()
         return 0
 
+    cdef int is_empty(self) nogil:
+        return self.size - self.rindex_shown <= 0
+
     cdef Frame *frame_queue_peek(self) nogil:
         return &self.queue[(self.rindex + self.rindex_shown) % self.max_size]
 

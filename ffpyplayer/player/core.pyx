@@ -468,7 +468,7 @@ cdef class VideoState(object):
             self.continue_read_thread.cond_signal()
             self.continue_read_thread.unlock()
             if flush:
-                while self.pictq.size:
+                while not self.pictq.is_empty():
                     self.pictq.frame_queue_next()
         return 0
 

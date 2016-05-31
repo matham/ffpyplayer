@@ -39,6 +39,7 @@ cdef class FrameQueue(object):
 
     cdef void frame_queue_unref_item(self, Frame *vp) nogil
     cdef int frame_queue_signal(self) nogil except 1
+    cdef int is_empty(self) nogil
     cdef Frame *frame_queue_peek(self) nogil
     cdef Frame *frame_queue_peek_next(self) nogil
     cdef Frame *frame_queue_peek_last(self) nogil
