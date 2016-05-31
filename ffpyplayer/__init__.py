@@ -21,13 +21,16 @@ _ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
 # * We can not yet visualize audio to video. Provide a filter chain link between
 #   audio to video filters to acomplish this.
 
+dep_bins = []
 _ffmpeg = join(sys.prefix, 'share', 'ffpyplayer', 'ffmpeg', 'bin')
 if isdir(_ffmpeg):
     os.environ["PATH"] += os.pathsep + _ffmpeg
+    dep_bins.append(_ffmpeg)
 
 _sdl = join(sys.prefix, 'share', 'ffpyplayer', 'sdl', 'bin')
 if isdir(_sdl):
     os.environ["PATH"] += os.pathsep + _sdl
+    dep_bins.append(_sdl)
 
 if 'SDL_AUDIODRIVER' not in os.environ and platform.system() == 'Windows':
     os.environ['SDL_AUDIODRIVER'] = 'DirectSound'
