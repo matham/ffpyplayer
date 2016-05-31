@@ -66,7 +66,7 @@ Or to install master, do::
 If you have a local zip with the ffpyplayer source code you can also run ``make``
 or ``python setup.py build_ext --inplace`` to compile.
 
-You should not be able to import ffpyplayer with ``import ffpyplayer``.
+You should now be able to import ffpyplayer with ``import ffpyplayer``.
 
 .. _compille
 
