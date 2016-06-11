@@ -31,6 +31,7 @@ c_options = {
 # whether sdl is included as an option
 'config_sdl': True, # not implemented yet
 'has_sdl2': False,
+'use_sdl2_mixer': False,
 # these should be true
 'config_avutil':True,
 'config_avcodec':True,
@@ -81,6 +82,25 @@ def pkgconfig(*packages, **kw):
         kw.setdefault(flag, []).append(token[2:].decode('utf-8'))
     return kw
 
+
+def get_paths(name):
+    root = environ.get('{}_ROOT'.format(name))
+    if root is not None and not isdir(root):
+        root = None
+
+    if root is not None:
+        include = environ.get('{}_INCLUDE_DIR'.format(name), join(root, 'include'))
+        lib = environ.get('{}_LIB_DIR'.format(name), join(root, 'lib'))
+    else:
+        include = environ.get('{}_INCLUDE_DIR'.format(name))
+        lib = environ.get('{}_LIB_DIR'.format(name))
+
+    if include is not None and not isdir(include):
+        include = None
+    if lib is not None and not isdir(lib):
+        lib = None
+    return lib, include
+
 libraries = []
 library_dirs = []
 include_dirs = []
@@ -105,22 +125,7 @@ elif "NDKPLATFORM" in environ:
 
 else:
 
-    # locate sdl and ffmpeg headers and binaries
-    ffmpeg_root = environ.get('FFMPEG_ROOT')
-    if ffmpeg_root is not None and not isdir(ffmpeg_root):
-        ffmpeg_root = None
-
-    if ffmpeg_root is not None:
-        ffmpeg_include = environ.get('FFMPEG_INCLUDE_DIR', join(ffmpeg_root, 'include'))
-        ffmpeg_lib = environ.get('FFMPEG_LIB_DIR', join(ffmpeg_root, 'lib'))
-    else:
-        ffmpeg_include = environ.get('FFMPEG_INCLUDE_DIR')
-        ffmpeg_lib = environ.get('FFMPEG_LIB_DIR')
-    if ffmpeg_include is not None and not isdir(ffmpeg_include):
-        ffmpeg_include = None
-    if ffmpeg_lib is not None and not isdir(ffmpeg_lib):
-        ffmpeg_lib = None
-
+    # ffmpeg
     objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                    'avutil', 'swscale', 'swresample', 'postproc']
     for libname in objects[:]:
@@ -129,6 +134,7 @@ else:
                 objects.remove(libname)
                 break
 
+    ffmpeg_lib, ffmpeg_include = get_paths('FFMPEG')
     flags = {'include_dirs': [], 'library_dirs': [], 'libraries': []}
     if ffmpeg_lib is None and ffmpeg_include is None:
         flags = pkgconfig(*['lib' + l for l in objects])
@@ -140,23 +146,10 @@ else:
     libraries = objects[:]
 
     # sdl
-    sdl_root = environ.get('SDL_ROOT')
-    if sdl_root is not None and not isdir(sdl_root):
-        sdl_root = None
-
-    if sdl_root is not None:
-        sdl_include = environ.get('SDL_INCLUDE_DIR', join(sdl_root, 'include'))
-        sdl_lib = environ.get('SDL_LIB_DIR', join(sdl_root, 'lib'))
-    else:
-        sdl_include = environ.get('SDL_INCLUDE_DIR')
-        sdl_lib = environ.get('SDL_LIB_DIR')
-    if sdl_include is not None and not isdir(sdl_include):
-        sdl_include = None
-    if sdl_lib is not None and not isdir(sdl_lib):
-        sdl_lib = None
+    sdl_lib, sdl_include = get_paths('SDL')
 
     sdl = 'SDL2'
-    flags = {'include_dirs': [], 'library_dirs': [], 'libraries': []}
+    flags = {}
     if sdl_lib is None and sdl_include is None:
         flags = pkgconfig('sdl2')
         if not flags:
@@ -167,14 +160,24 @@ else:
         sdl = 'SDL'
     print('Selecting %s out of (SDL, SDL2)' % sdl)
 
-    sdl_lib = flags.get('library_dirs', []) if sdl_lib is None \
+    sdl_libs = flags.get('library_dirs', []) if sdl_lib is None \
         else [sdl_lib]
-    sdl_include = flags.get('include_dirs', []) if sdl_include is None \
+    sdl_includes = flags.get('include_dirs', []) if sdl_include is None \
         else [join(sdl_include, sdl)]
 
-    library_dirs.extend(sdl_lib)
-    include_dirs.extend(sdl_include)
-    libraries.append(sdl)
+    library_dirs.extend(sdl_libs)
+    include_dirs.extend(sdl_includes)
+    libraries.extend(flags.get('libraries', [sdl]))
+
+    c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
+    if c_options['use_sdl2_mixer']:
+        flags = {}
+        if sdl_lib is None and sdl_include is None:
+            flags = pkgconfig('SDL2_mixer')
+
+        library_dirs.extend(flags.get('library_dirs', []))
+        include_dirs.extend(flags.get('include_dirs', []))
+        libraries.extend(flags.get('libraries', ['SDL2_mixer']))
 
 
 def get_wheel_data():
@@ -205,6 +208,7 @@ mods = [
     'player/decoder', 'player/frame_queue', 'player/player', 'player/queue']
 extra_compile_args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
 c_options['has_sdl2'] = sdl == 'SDL2'
+c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
 
 if have_cython:
     mod_suffix = '.pyx'

@@ -1,5 +1,6 @@
 
 include '../includes/ffmpeg.pxi'
+include '../includes/sdl.pxi'
 
 from ffpyplayer.player.queue cimport FFPacketQueue
 from ffpyplayer.player.frame_queue cimport FrameQueue, Frame
@@ -64,6 +65,12 @@ cdef class VideoState(object):
         FFPacketQueue audioq
         int audio_hw_buf_size
         uint8_t silence_buf[AUDIO_MIN_BUFFER_SIZE]
+
+        IF USE_SDL2_MIXER:
+            uint8_t chunk_buf[AUDIO_MIN_BUFFER_SIZE]
+            Mix_Chunk *chunk
+            int audio_count
+
         uint8_t *audio_buf
         uint8_t *audio_buf1
         unsigned int audio_buf_size # in bytes
@@ -156,6 +163,7 @@ cdef class VideoState(object):
     cdef int synchronize_audio(VideoState self, int nb_samples) nogil except -1
     cdef int audio_decode_frame(VideoState self) nogil except? 1
     cdef int sdl_audio_callback(VideoState self, uint8_t *stream, int len) nogil except 1
+    cdef inline int open_audio_device(VideoState self, SDL_AudioSpec *wanted_spec, SDL_AudioSpec *spec) nogil except 1
     cdef int audio_open(VideoState self, int64_t wanted_channel_layout, int wanted_nb_channels,
                         int wanted_sample_rate, AudioParams *audio_hw_params) nogil except? 1
     cdef int stream_component_open(VideoState self, int stream_index) nogil except 1

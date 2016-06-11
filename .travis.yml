@@ -19,7 +19,7 @@ matrix:
 install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
       sudo apt-get update;
-      sudo apt-get -y install libsdl2-dev python-dev;
+      sudo apt-get -y install libsdl2-dev libsdl2-mixer-dev python-dev;
       mkdir ~/ffmpeg_sources;
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
@@ -70,6 +70,7 @@ install:
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
       brew update;
       brew install sdl2;
+      brew install sdl2_mixer;
       brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
       if [ "${PY}" == "3" ]; then
          curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
@@ -83,6 +84,7 @@ install:
 before_script:
     cd "$TRAVIS_BUILD_DIR";
     export PYTHONPATH=$PYTHONPATH:$(pwd);
+    export USE_SDL2_MIXER=1;
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then

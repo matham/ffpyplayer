@@ -1,5 +1,6 @@
 
 include '../includes/ffmpeg.pxi'
+include '../includes/sdl.pxi'
 
 from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex
 from ffpyplayer.player.core cimport VideoState, VideoSettings

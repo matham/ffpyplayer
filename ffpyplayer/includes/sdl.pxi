@@ -46,6 +46,31 @@ cdef extern from "SDL_thread.h" nogil:
     ELSE:
         SDL_Thread *SDL_CreateThread(int_void_func, void *) with gil
 
+IF USE_SDL2_MIXER:
+    cdef extern from "SDL_mixer.h" nogil:
+        struct Mix_Chunk:
+            int allocated
+            uint8_t *abuf
+            uint32_t alen
+            uint8_t volume
+
+        int Mix_OpenAudio(int, uint16_t, int, int)
+        int Mix_QuerySpec(int *, uint16_t *, int *)
+        void Mix_CloseAudio()
+
+        Mix_Chunk *Mix_QuickLoad_RAW(uint8_t *, uint32_t)
+        void Mix_FreeChunk(Mix_Chunk *)
+
+        int Mix_AllocateChannels(int)
+        int Mix_PlayChannel(int, Mix_Chunk *, int)
+        int Mix_Volume(int, int)
+        int Mix_RegisterEffect(int, void (*)(int, void *, int, void *), void (*)(int, void *), void *)
+        int Mix_UnregisterEffect(int, void (*)(int, void *, int, void *))
+        void Mix_Pause(int)
+        void Mix_Resume(int)
+        int Mix_HaltChannel(int)
+
+
 cdef extern from * nogil:
     uint32_t SDL_HWACCEL
     uint32_t SDL_ASYNCBLIT

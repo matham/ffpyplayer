@@ -30,14 +30,15 @@ To compile ffpyplayer we need:
 
     * Cython (``pip install --upgrade cython``).
     * A c compiler e.g. MinGW  (``pip install mingwpy`` on windows).
-    * SDL2 or SDL1.2 (not reccomended). See :ref:`compille` for how to get it.
+    * SDL2 or SDL1.2 (SDL1.2 is not recommended). See :ref:`compille` for how to get it.
+    * SDL2_mixer If wanting to play multiple audio files simultaneously (``USE_SDL2_MIXER`` must be set). See :ref:`compille` for how to get it.
     * A recent (2.x+, has been tested with 2.8) FFmpeg compiled with ``--enable-shared``.
       See :ref:`compille` for how to get it.
 
 Compiling ffpyplayer
 ====================
 
-On linux or mac, if the SDL or FFmpeg package config (.pc) files are on the path exported
+On linux or mac, if the SDL2/SDL2_mixer or FFmpeg package config (.pc) files are on the path exported
 in ``PKG_CONFIG_PATH`` the library and header files will automatically be found.
 
 Otherwise, or if compiling on Windows, the following environmental variables are required.
@@ -54,6 +55,10 @@ and *.so on Linux/Mac, need to be added to the PATH.
 You can also select the FFmpeg libraries to be used by defining values for CONFIG_XXX.
 For example, CONFIG_AVFILTER=0 will disable inclusion of the FFmpeg avfilter libraries.
 See setup.py for all the available flags.
+
+To use SDL2_mixer, which is required when multiple audio files are to be played
+simultaneously (or even when they are open at the same time) environment variable ``USE_SDL2_MIXER``
+must be set to 1 when compiling. SDL2_mixer binaries and headers must also be available.
 
 Finally, run::
 
@@ -86,6 +91,9 @@ downloads.
 You can download SDL2 from https://www.libsdl.org/release/. 2.0.4 is the most recent
 `version <https://www.libsdl.org/release/SDL2-devel-2.0.4-mingw.tar.gz>`_.
 
+You can download SDL2_mixer from https://www.libsdl.org/projects/SDL_mixer/. 2.0.1 is the most recent
+`version <https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-2.0.1-mingw.tar.gz>`_.
+
 OSX
 ===
 
@@ -93,6 +101,7 @@ You can get both FFmpeg and SDL2 using brew. You can install them using::
 
     brew update
     brew install sdl2
+    brew install sdl2_mixer
     brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora
 
 This automatically installs the package config (*.pc) files.
@@ -112,7 +121,7 @@ to be executed initially for the compiled binaries to be found.
 To get SDL2, do the following::
 
     sudo apt-get update
-    sudo apt-get -y install libsdl2-dev python-dev
+    sudo apt-get -y install libsdl2-dev libsdl2-mixer-dev python-dev
 
 You can find a complete minimal example of compiling ffpyplayer on Ubuntu
 `here <https://github.com/matham/ffpyplayer/blob/master/.travis.yml#L20>`_.

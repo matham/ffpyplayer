@@ -6,7 +6,7 @@ include "../includes/inline_funcs.pxi"
 
 from ffpyplayer.player.queue cimport FFPacketQueue, get_flush_packet
 from ffpyplayer.player.frame_queue cimport FrameQueue
-from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT
+from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT, SDL_MT
 from ffpyplayer.player.clock cimport Clock
 from ffpyplayer.pic cimport Image
 from cpython.ref cimport PyObject
@@ -71,12 +71,21 @@ ctypedef enum LoopState:
     display
 
 # XXX: const
+cdef object sub_ass = str(b'ass'), sub_text = str(b'text'), sub_fmt
+
 cdef AVSampleFormat *sample_fmts = [AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE]
 cdef int *next_nb_channels = [0, 0, 1, 6, 2, 6, 4, 6]
 cdef int *next_sample_rates = [0, 44100, 48000, 96000, 192000]
 cdef int next_sample_rates_len = 5
 
-cdef object sub_ass = str(b'ass'), sub_text = str(b'text'), sub_fmt
+cdef MTMutex audio_mutex = MTMutex(SDL_MT)
+cdef int audio_count = 0
+cdef SDL_AudioSpec spec_used
+
+
+cdef void sdl_mixer_callback(int chan, uint8_t *stream, int len, VideoState self) nogil:
+    self.sdl_audio_callback(stream, len)
+
 
 cdef int read_thread_enter(void *obj_id) except? 1 with gil:
     cdef VideoState vs = <VideoState>obj_id
@@ -1521,7 +1530,7 @@ cdef class VideoState(object):
             if len1 > len:
                 len1 = len
 
-            if not self.player.muted and self.player.audio_volume == SDL_MIX_MAXVOLUME:
+            if USE_SDL2_MIXER or not self.player.muted and self.player.audio_volume == SDL_MIX_MAXVOLUME:
                 memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
             else:
                 memset(stream, self.silence_buf[0], len1)
@@ -1545,6 +1554,59 @@ cdef class VideoState(object):
                 self.audio_tgt.bytes_per_sec, self.audio_clock_serial, self.player.audio_callback_time / 1000000.0)
             self.extclk.sync_clock_to_slave(self.audclk)
         return 0
+
+    cdef inline int open_audio_device(VideoState self, SDL_AudioSpec *wanted_spec,
+                                      SDL_AudioSpec *spec) nogil except 1:
+        cdef int error = 0
+        cdef int channels
+        global audio_count, spec_used
+
+        IF USE_SDL2_MIXER:
+            self.audio_count = -1
+            audio_mutex.lock()
+            if audio_count:
+                memcpy(spec, &spec_used, sizeof(spec_used))
+            else:
+                memcpy(spec, wanted_spec, sizeof(spec_used))
+                spec.size = spec.samples * 2 * spec.channels
+                error = Mix_OpenAudio(spec.freq, AUDIO_S16SYS, spec.channels, spec.size)
+                if not error:
+                    if not Mix_QuerySpec(&spec.freq, &spec.format, &channels):
+                        error = -1
+                    spec.channels = channels
+
+                if not error:
+                    spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC))
+                    spec.size = spec.samples * 2 * spec.channels
+                    memcpy(&spec_used, spec, sizeof(spec_used))
+
+            if not error:
+                self.audio_count = audio_count
+                audio_count += 1
+                if Mix_AllocateChannels(-1) < audio_count:
+                    Mix_AllocateChannels(audio_count)
+            audio_mutex.unlock()
+            if error:
+                return error
+
+            memset(self.chunk_buf, 0, sizeof(self.chunk_buf))
+            self.chunk = Mix_QuickLoad_RAW(self.chunk_buf, sizeof(self.chunk_buf) / sizeof(uint8_t))
+            if self.chunk == NULL:
+                return -1
+
+            self.audio_dev = Mix_PlayChannel(-1, self.chunk, -1)
+            if self.audio_dev == -1:
+                return -1
+
+            if not Mix_RegisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) nogil>sdl_mixer_callback, NULL, self.self_id):
+                return -1
+
+        ELIF HAS_SDL2:
+            self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, wanted_spec, spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
+            error = self.audio_dev == 0
+        ELSE:
+            error = SDL_OpenAudio(wanted_spec, spec) < 0
+        return error
 
     cdef int audio_open(VideoState self, int64_t wanted_channel_layout, int wanted_nb_channels,
                         int wanted_sample_rate, AudioParams *audio_hw_params) nogil except? 1:
@@ -1576,14 +1638,10 @@ cdef class VideoState(object):
         wanted_spec.format = AUDIO_S16SYS
         wanted_spec.silence = 0
         wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC))
-        wanted_spec.callback = <void (*)(void *, uint8_t *, int)>self.sdl_audio_callback
+        wanted_spec.callback = <void (*)(void *, uint8_t *, int) nogil>self.sdl_audio_callback
         wanted_spec.userdata = self.self_id
 
-        IF HAS_SDL2:
-            self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
-            error = self.audio_dev == 0
-        ELSE:
-            error = SDL_OpenAudio(&wanted_spec, &spec) < 0
+        error = self.open_audio_device(&wanted_spec, &spec)
         while error:
             if self.player.loglevel >= AV_LOG_WARNING:
                 av_log(NULL, AV_LOG_WARNING, b"SDL_OpenAudio (%d channels, %d Hz): %s\n",
@@ -1601,11 +1659,7 @@ cdef class VideoState(object):
                     return -1
             wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels)
 
-            IF HAS_SDL2:
-                self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
-                error = self.audio_dev == 0
-            ELSE:
-                error = SDL_OpenAudio(&wanted_spec, &spec) < 0
+            error = self.open_audio_device(&wanted_spec, &spec)
 
         if spec.format != AUDIO_S16SYS:
             if self.player.loglevel >= AV_LOG_ERROR:
@@ -1760,7 +1814,9 @@ cdef class VideoState(object):
                 self.auddec.start_pts = self.audio_st.start_time
                 self.auddec.start_pts_tb = self.audio_st.time_base
             self.auddec.decoder_start(audio_thread_enter, self.self_id)
-            IF HAS_SDL2:
+            IF USE_SDL2_MIXER:
+                Mix_Resume(self.audio_dev)
+            ELIF HAS_SDL2:
                 SDL_PauseAudioDevice(<SDL_AudioDeviceID>self.audio_dev, 0)
             ELSE:
                 SDL_PauseAudio(0)
@@ -1781,17 +1837,30 @@ cdef class VideoState(object):
         av_dict_free(&opts)
         return 0
 
-
     cdef int stream_component_close(VideoState self, int stream_index) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef AVCodecContext *avctx
+        global audio_count
         if stream_index < 0 or stream_index >= ic.nb_streams:
             return 0
         avctx = ic.streams[stream_index].codec
 
         if avctx.codec_type == AVMEDIA_TYPE_AUDIO:
             self.auddec.decoder_abort(self.sampq)
-            IF HAS_SDL2:
+            IF USE_SDL2_MIXER:
+                Mix_UnregisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) nogil>sdl_mixer_callback)
+                Mix_HaltChannel(self.audio_dev)
+                Mix_FreeChunk(self.chunk)
+                self.chunk = NULL
+
+                audio_mutex.lock()
+                if self.audio_count != -1:
+                    audio_count -= 1
+                self.audio_count = -1
+                if not audio_count:
+                    Mix_CloseAudio()
+                audio_mutex.unlock()
+            ELIF HAS_SDL2:
                 SDL_CloseAudioDevice(<SDL_AudioDeviceID>self.audio_dev)
             ELSE:
                 SDL_CloseAudio()

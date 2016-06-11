@@ -58,6 +58,13 @@ cdef class MediaPlayer(object):
         All strings that are passed to the program, e.g. ``filename`` will first be
         internally encoded using utf-8 before handing off to FFmpeg.
 
+    .. note::
+
+        If playing or even opening multiple audio files simultaneously
+        SDL2_mixer is required. The audio parameters of the first audio file opened
+        will set the audio output parameters for all the subsequent audio files opened
+        until they are all closed and a new file is opened.
+
     :Parameters:
 
         `filename`: str
@@ -664,6 +671,9 @@ cdef class MediaPlayer(object):
                 A value between 0.0 - 1.0.
         '''
         self.settings.audio_volume = av_clip(volume * SDL_MIX_MAXVOLUME, 0, SDL_MIX_MAXVOLUME)
+        IF USE_SDL2_MIXER:
+            with nogil:
+                Mix_Volume(self.ivs.audio_dev, self.settings.audio_volume)
 
     def get_volume(self):
         '''Returns the volume of the audio.
