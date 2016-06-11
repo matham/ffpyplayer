@@ -87,15 +87,15 @@ build_script:
     Check-Error
 
 
-    Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_VERSION-mingw.tar.gz" -OutFile "SDL2_mixer-devel-$env:SDL_VERSION-mingw.tar.gz"
+    Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz"
 
     Check-Error
 
-    7z x "SDL2_mixer-devel-$env:SDL_VERSION-mingw.tar.gz"
+    7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz"
 
     Check-Error
 
-    7z x "SDL2_mixer-devel-$env:SDL_VERSION-mingw.tar"
+    7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar"
 
     Check-Error
 
@@ -103,15 +103,15 @@ build_script:
     if ($env:BITTNESS -eq "64") {
       Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\bin"
       Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\bin"
-      Copy-Item "SDL2_mixer-$env:SDL_VERSION\x86_64-w64-mingw32\bin\*" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\bin"
-      Copy-Item "SDL2_mixer-$env:SDL_VERSION\x86_64-w64-mingw32\include\SDL2\*" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\include\SDL2"
+      Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\x86_64-w64-mingw32\bin\*" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\bin"
+      Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\x86_64-w64-mingw32\include\SDL2\*" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\include\SDL2"
 
       $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION\x86_64-w64-mingw32"
     } else {
       Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\bin"
       Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\bin"
-      Copy-Item "SDL2_mixer-$env:SDL_VERSION\i686-w64-mingw32\bin\*" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\bin"
-      Copy-Item "SDL2_mixer-$env:SDL_VERSION\i686-w64-mingw32\include\SDL2\*" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\include\SDL2"
+      Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\i686-w64-mingw32\bin\*" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\bin"
+      Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\i686-w64-mingw32\include\SDL2\*" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\include\SDL2"
 
       $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION\i686-w64-mingw32"
     }
