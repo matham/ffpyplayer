@@ -6,3 +6,4 @@ ffpyplayer/*.html
 ffpyplayer/player/*.c
 ffpyplayer/includes/ffconfig.h
 ffpyplayer/includes/ffconfig.pxi
+*egg-info

@@ -7,6 +7,8 @@ import os
 from os.path import join, isdir
 import platform
 
+__all__ = ('dep_bins', )
+
 __version__ = '4.0.dev0'
 version = __version__
 
@@ -22,6 +24,12 @@ _ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
 #   audio to video filters to acomplish this.
 
 dep_bins = []
+'''A list of paths to the binaries used by the library. It can be used during
+packaging for including required binaries.
+
+It is read only.
+'''
+
 _ffmpeg = join(sys.prefix, 'share', 'ffpyplayer', 'ffmpeg', 'bin')
 if isdir(_ffmpeg):
     os.environ["PATH"] += os.pathsep + _ffmpeg
