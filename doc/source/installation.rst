@@ -111,7 +111,7 @@ Ubuntu
 
 Follow the instructions at https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu to compile FFMpeg.
 However, those instructions detail how to build the static version. But we need the shared
-version. This means that ``--enable-shared`` and ``--extra-cflags="-fPIC"` need to be added
+version. This means that ``--enable-shared`` and ``--extra-cflags="-fPIC"`` need to be added
 when compiling FFmpeg **AND** its dependencies. And if present, ``--disable-shared`` or
 ``--enable-static`` must be removed.
 
