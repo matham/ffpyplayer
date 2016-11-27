@@ -6,7 +6,7 @@ except ImportError:
 import os
 import sys
 from os.path import join, exists, isdir, dirname, abspath
-from os import environ, listdir
+from os import environ, listdir, mkdir
 import ffpyplayer
 try:
     import Cython.Compiler.Options
@@ -217,6 +217,8 @@ else:
 
 
 print('Generating ffconfig.h')
+if not exists(join('ffpyplayer', 'includes')):
+    mkdir(join('ffpyplayer', 'includes'))
 with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'w') as f:
     f.write('''
 #ifndef _FFCONFIG_H
