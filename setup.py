@@ -113,15 +113,26 @@ if "KIVYIOSROOT" in environ:
     sdl = "SDL2"
 
 elif "NDKPLATFORM" in environ:
-    # enable python-for-android compilation
-    include_dirs = [
-        environ.get("SDL_INCLUDE_DIR"),
-        environ.get("FFMPEG_INCLUDE_DIR")]
-    ffmpeg_libdir = environ.get("FFMPEG_LIB_DIR")
-    sdl = "SDL"
+    # enable python-for-android/py4a compilation
+    ffmpeg_lib, ffmpeg_include = get_paths('FFMPEG')
+    sdl_lib, sdl_include = get_paths('SDL')
+
+    if not sdl_lib or not sdl_include:  # old toolchain
+        library_dirs = [ffmpeg_lib]
+        if sdl_lib:
+            library_dirs.append(sdl_lib)
+
+        include_dirs = [ffmpeg_include]
+        if sdl_include:
+            include_dirs.append(sdl_include)
+        sdl = "sdl"
+    else:
+        library_dirs = [ffmpeg_lib, sdl_lib]
+        include_dirs = [ffmpeg_include, sdl_include]
+        sdl = "SDL2"
     libraries = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                  'avutil', 'swscale', 'swresample', 'postproc',
-                 'sdl']
+                 sdl]
 
 else:
 
