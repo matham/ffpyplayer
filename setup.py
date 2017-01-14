@@ -132,6 +132,7 @@ elif "NDKPLATFORM" in environ:
         sdl = "SDL2"
     libraries = ['avcodec', 'avdevice', 'avfilter', 'avformat',
                  'avutil', 'swscale', 'swresample', 'postproc',
+                 'm',
                  sdl]
 
 else:
