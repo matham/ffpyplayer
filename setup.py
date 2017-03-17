@@ -310,6 +310,7 @@ setup(name='ffpyplayer',
                    'Operating System :: POSIX :: Linux',
                    'Intended Audience :: Developers'],
       packages=['ffpyplayer', 'ffpyplayer.player', 'ffpyplayer.tests'],
+      package_data={'ffpyplayer': ['clib/misc.h']},
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=['cython'])
