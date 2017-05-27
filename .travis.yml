@@ -33,6 +33,16 @@ install:
       make install;
       make distclean;
 
+      sudo apt-get -y install nasm;
+      cd /home/cpl/python/ffmpeg_sources;
+      wget http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.xz;
+      tar xf nasm-2.13.01.tar.xz;
+      cd nasm-2.13.01;
+      ./configure --prefix="/home/cpl/python/ffmpeg_build" --bindir="/home/cpl/python/ffmpeg_build/bin";
+      make;
+      make install;
+      make distclean;
+
       sudo apt-get -y install libx264-dev;
       cd ~/ffmpeg_sources;
       wget http://download.videolan.org/pub/x264/snapshots/last_x264.tar.bz2;
