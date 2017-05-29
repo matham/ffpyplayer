@@ -1,7 +1,7 @@
 version: 1.0.{build}
 environment:
   FF_BUILD_DIR: C:\ff_build
-  FFMPEG_VERSION: 2.8.4
+  FFMPEG_VERSION: latest
   SDL_VERSION: 2.0.4
   SDL_MIXER_VERSION: 2.0.1
   USE_SDL2_MIXER: 1
