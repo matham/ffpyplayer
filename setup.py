@@ -3,40 +3,38 @@ try:
 except ImportError:
     from distutils.core import setup
     from distutils.extension import Extension
-import os
-import sys
 from os.path import join, exists, isdir, dirname, abspath
 from os import environ, listdir, mkdir
 import ffpyplayer
 try:
     import Cython.Compiler.Options
-    #Cython.Compiler.Options.annotate = True
     from Cython.Distutils import build_ext
     have_cython = True
     cmdclass = {'build_ext': build_ext}
 except ImportError:
     have_cython = False
     cmdclass = {}
+    build_ext = object
 
 
 # select which ffmpeg libraries will be available
 c_options = {
-#If true, filters will be used'
-'config_avfilter': True,
-'config_avdevice': True,
-'config_swscale': True,
-'config_rtsp_demuxer': True,
-'config_mmsh_protocol': True,
-'config_postproc':True,
-# whether sdl is included as an option
-'config_sdl': True, # not implemented yet
-'has_sdl2': False,
-'use_sdl2_mixer': False,
-# these should be true
-'config_avutil':True,
-'config_avcodec':True,
-'config_avformat':True,
-'config_swresample':True
+    # If true, filters will be used'
+    'config_avfilter': True,
+    'config_avdevice': True,
+    'config_swscale': True,
+    'config_rtsp_demuxer': True,
+    'config_mmsh_protocol': True,
+    'config_postproc':True,
+    # whether sdl is included as an option
+    'config_sdl': True, # not implemented yet
+    'has_sdl2': False,
+    'use_sdl2_mixer': False,
+    # these should be true
+    'config_avutil':True,
+    'config_avcodec':True,
+    'config_avformat':True,
+    'config_swresample':True
 }
 
 for key in list(c_options.keys()):
@@ -47,12 +45,31 @@ for key in list(c_options.keys()):
         c_options[key] = value
 
 if (not c_options['config_avfilter']) and not c_options['config_swscale']:
-    raise Exception('At least one of config_avfilter and config_swscale must be enabled.')
+    raise Exception(
+        'At least one of config_avfilter and config_swscale must be enabled.')
 
-#if c_options['config_avfilter'] and ((not c_options['config_postproc']) or not c_options['config_swscale']):
-#    raise Exception('config_avfilter implicitly requires the postproc and swscale binaries.')
+# if c_options['config_avfilter'] and ((not c_options['config_postproc']) or \
+#     not c_options['config_swscale']):
+#     raise Exception(
+#         'config_avfilter requires the postproc and swscale binaries.')
 c_options['config_avutil'] = c_options['config_avutil'] = True
 c_options['config_avformat'] = c_options['config_swresample'] = True
+
+
+class FFBuildExt(build_ext):
+
+    def build_extensions(self):
+        compiler = self.compiler.compiler_type
+        if compiler == 'msvc':
+            args = ["/O3"]
+        else:
+            args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
+        for ext in self.extensions:
+            ext.extra_compile_args = args
+        super(FFBuildExt, self).build_extensions()
+
+if have_cython:
+    cmdclass = {'build_ext': FFBuildExt}
 
 
 def getoutput(cmd):
@@ -218,7 +235,6 @@ def get_wheel_data():
 mods = [
     'pic', 'threading', 'tools', 'writer', 'player/clock', 'player/core',
     'player/decoder', 'player/frame_queue', 'player/player', 'player/queue']
-extra_compile_args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
 c_options['has_sdl2'] = sdl == 'SDL2'
 c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
 
@@ -278,8 +294,7 @@ ext_modules = [Extension(
              join('ffpyplayer', 'clib', 'misc.c')],
     libraries=libraries,
     include_dirs=include_dirs,
-    library_dirs=library_dirs,
-    extra_compile_args=extra_compile_args)
+    library_dirs=library_dirs)
                for src_file in mods]
 
 for e in ext_modules:
@@ -304,6 +319,7 @@ setup(name='ffpyplayer',
                    'Programming Language :: Python :: 3.3',
                    'Programming Language :: Python :: 3.4',
                    'Programming Language :: Python :: 3.5',
+                   'Programming Language :: Python :: 3.6',
                    'Operating System :: MacOS :: MacOS X',
                    'Operating System :: Microsoft :: Windows',
                    'Operating System :: POSIX :: BSD :: FreeBSD',

@@ -2,7 +2,7 @@ version: 1.0.{build}
 environment:
   FF_BUILD_DIR: C:\ff_build
   FFMPEG_VERSION: latest
-  SDL_VERSION: 2.0.4
+  SDL_VERSION: 2.0.5
   SDL_MIXER_VERSION: 2.0.1
   USE_SDL2_MIXER: 1
   access_token:
@@ -10,12 +10,28 @@ environment:
   matrix:
   - PYVER: 27
     BITTNESS: 32
+    COMPILER: mingw
   - PYVER: 34
     BITTNESS: 32
+    COMPILER: mingw
+  - PYVER: 35
+    BITTNESS: 32
+    COMPILER: msvc
+  - PYVER: 36
+    BITTNESS: 32
+    COMPILER: msvc
   - PYVER: 27
     BITTNESS: 64
+    COMPILER: mingw
   - PYVER: 34
     BITTNESS: 64
+    COMPILER: mingw
+  - PYVER: 35
+    BITTNESS: 64
+    COMPILER: msvc
+  - PYVER: 36
+    BITTNESS: 64
+    COMPILER: msvc
 build_script:
 - ps: >-
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
@@ -120,17 +136,16 @@ build_script:
     cd "$env:APPVEYOR_BUILD_FOLDER"
 
 
-    python -c "with open(r'$PYTHON_ROOT\Lib\distutils\distutils.cfg', 'wb') as fh: fh.write(b'[build]\ncompiler = mingw32\n')"
-
-    Check-Error
-
     python -m pip install pip wheel setuptools --upgrade
 
     Check-Error
 
-    pip install -i https://pypi.anaconda.org/carlkl/simple mingwpy
-
-    Check-Error
+    if ($env:COMPILER -eq "mingw") {
+      python -c "with open(r'$PYTHON_ROOT\Lib\distutils\distutils.cfg', 'wb') as fh: fh.write(b'[build]\ncompiler = mingw32\n')"
+      Check-Error
+      pip install mingwpy
+      Check-Error
+    }
 
     pip install cython nose
 
