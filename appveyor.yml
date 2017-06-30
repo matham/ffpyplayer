@@ -121,7 +121,7 @@ build_script:
       7z x "SDL2-devel-$env:SDL_VERSION-VC.zip"
       Check-Error
 
-      Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zipz" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
+      Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
       Check-Error
       7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
       Check-Error
