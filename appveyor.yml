@@ -143,7 +143,7 @@ build_script:
     if ($env:COMPILER -eq "mingw") {
       python -c "with open(r'$PYTHON_ROOT\Lib\distutils\distutils.cfg', 'wb') as fh: fh.write(b'[build]\ncompiler = mingw32\n')"
       Check-Error
-      pip install mingwpy
+      pip install -i https://pypi.anaconda.org/carlkl/simple mingwpy
       Check-Error
     }
 
