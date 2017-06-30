@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e -x
 
-yum install SDL2-devel
-yum install SDL_mixer-devel
+yum -y install SDL2-devel
+yum -y install SDL_mixer-devel
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
@@ -80,6 +80,8 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
 hash -r;
+
+mkdir wheelhouse
 
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
