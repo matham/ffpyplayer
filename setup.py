@@ -66,7 +66,7 @@ class FFBuildExt(build_ext):
             args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
         for ext in self.extensions:
             ext.extra_compile_args = args
-        super(FFBuildExt, self).build_extensions()
+        build_ext.build_extensions(self)
 
 if have_cython:
     cmdclass = {'build_ext': FFBuildExt}
