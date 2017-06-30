@@ -15,6 +15,15 @@ matrix:
     - language: generic
       env: PY=3
       os: osx
+    - sudo: required
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    - sudo: required
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
+           PRE_CMD=linux32
 
 install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
@@ -109,4 +118,8 @@ script:
          make;
          make test;
       fi;
+    fi;
+  - if [ "${DOCKER_IMAGE}" != "" ]; then
+      docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.travis/build-wheels.sh
+      ls wheelhouse/
     fi;
