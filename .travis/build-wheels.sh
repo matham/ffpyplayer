@@ -15,11 +15,11 @@ make;
 make install;
 make distclean;
 
-cd /home/cpl/python/ffmpeg_sources;
+cd ~/ffmpeg_sources;
 wget http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.xz;
 tar xf nasm-2.13.01.tar.xz;
 cd nasm-2.13.01;
-./configure --prefix="/home/cpl/python/ffmpeg_build" --bindir="/home/cpl/python/ffmpeg_build/bin";
+./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 make;
 make install;
 make distclean;
