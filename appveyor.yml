@@ -133,13 +133,19 @@ build_script:
       }
 
       mkdir "SDL2-$env:SDL_VERSION\bin"
+      mkdir "SDL2-$env:SDL_VERSION\include\SDL"
+
       Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\bin"
       Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\bin"
+
       Copy-Item "SDL2-$env:SDL_VERSION\lib\$vc_bit\*.dll" -destination "SDL2-$env:SDL_VERSION\bin" -Recurse -Force
       Copy-Item "SDL2-$env:SDL_VERSION\lib\$vc_bit\*.lib" -destination "SDL2-$env:SDL_VERSION\lib" -Recurse -Force
+
       Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$vc_bit\*.dll" -destination "SDL2-$env:SDL_VERSION\bin" -Recurse -Force
       Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$vc_bit\*.lib" -destination "SDL2-$env:SDL_VERSION\lib" -Recurse -Force
       Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\include\*" -destination "SDL2-$env:SDL_VERSION\include" -Recurse -Force
+
+      Copy-Item "SDL2-$env:SDL_VERSION\include\*.h" -destination "SDL2-$env:SDL_VERSION\include\SDL" -Recurse -Force
 
       $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION"
     }
