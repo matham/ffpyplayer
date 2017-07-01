@@ -42,40 +42,13 @@ make;
 make install;
 make distclean;
 
-cd ~/ffmpeg_sources
-wget http://downloads.xiph.org/releases/ogg/libogg-1.3.2.tar.gz
-tar -xzvf libogg-1.3.2.tar.gz
-cd libogg-1.3.2
-./configure --prefix="$HOME/ffmpeg_build" --enable-shared
-make
-make install
-echo
-
-cd ~/ffmpeg_sources;
-wget http://downloads.xiph.org/releases/theora/libtheora-1.1.1.tar.gz
-tar xzvf libtheora-1.1.1.tar.gz
-cd libtheora-1.1.1
-./configure --prefix="$HOME/ffmpeg_build" --enable-shared;
-make;
-make install;
-make distclean;
-
-cd ~/ffmpeg_sources;
-wget http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.3.tar.gz
-tar xzvf libvorbis-1.3.3.tar.gz
-cd libvorbis-1.3.3
-./configure --prefix="$HOME/ffmpeg_build" --enable-shared;
-make;
-make install;
-make distclean;
-
 # sudo apt-get -y install libass-dev libfreetype6-dev
 # --enable-libass --enable-libfreetype
 cd ~/ffmpeg_sources;
 wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2;
 tar xjf ffmpeg-snapshot.tar.bz2;
 cd ffmpeg;
-PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libtheora --enable-libvorbis --enable-libx264 --enable-shared;
+PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-shared;
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
