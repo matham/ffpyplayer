@@ -42,14 +42,14 @@ make;
 make install;
 make distclean;
 
-cd ~/ffmpeg_sources;
-wget http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz;
-tar xzf lame-3.99.5.tar.gz;
-cd lame-3.99.5;
-./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared;
-make;
-make install;
-make distclean;
+cd ~/ffmpeg_sources
+wget http://downloads.xiph.org/releases/ogg/libogg-1.3.2.tar.gz
+tar -xzvf libogg-1.3.2.tar.gz
+cd libogg-1.3.2
+./configure --prefix="$HOME/ffmpeg_build" --enable-shared
+make
+make install
+echo
 
 cd ~/ffmpeg_sources;
 wget http://downloads.xiph.org/releases/theora/libtheora-1.1.1.tar.gz
