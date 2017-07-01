@@ -57,7 +57,11 @@ hash -r;
 mkdir wheelhouse
 
 # Compile wheels
-for PYBIN in /opt/python/*/bin; do
+for PYBIN in /opt/python/*27*/bin; do
+    "${PYBIN}/pip" install --upgrade cython nose
+    "${PYBIN}/pip" wheel /io/ -w wheelhouse/
+done
+for PYBIN in /opt/python/*3*/bin; do
     "${PYBIN}/pip" install --upgrade cython nose
     "${PYBIN}/pip" wheel /io/ -w wheelhouse/
 done
