@@ -16,8 +16,8 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.xz;
-tar -xJf nasm-2.13.01.tar.xz;
+wget http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.gz;
+tar -xvzf nasm-2.13.01.tar.gz;
 cd nasm-2.13.01;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 make;
