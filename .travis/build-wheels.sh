@@ -23,6 +23,14 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
+wget https://www.openssl.org/source/openssl-1.0.2l.tar.gz;
+tar xzf openssl-1.0.2l.tar.gz;
+cd openssl-1.0.2l;
+./config -fpic shared --prefix="$HOME/ffmpeg_build";
+make;
+make install;
+
+cd ~/ffmpeg_sources;
 wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
 tar xzf yasm-1.3.0.tar.gz;
 cd yasm-1.3.0;
