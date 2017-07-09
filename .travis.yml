@@ -123,7 +123,7 @@ script:
       mkdir wheelhouse;
       mkdir upload;
       docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.travis/build-wheels.sh;
-      tar -czvf upload/ffpyplayer-wheels.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
+      tar -czvf upload/ffpyplayer-wheels-$(date +%s)$PRE_CMD.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
       ls wheelhouse/;
       ls upload;
     fi;
@@ -140,4 +140,4 @@ deploy:
   upload-dir: ffpyplayer
   on:
     condition: "$DOCKER_IMAGE"
-    all_branches: true
+    branch: "master"
