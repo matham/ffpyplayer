@@ -144,3 +144,4 @@ deploy:
   on:
     condition: "$DOCKER_IMAGE"
     branch: "master"
+    tags: true
