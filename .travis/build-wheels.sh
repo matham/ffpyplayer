@@ -153,8 +153,6 @@ make install;
 make distclean;
 hash -r;
 
-mkdir wheelhouse
-
 # Compile wheels
 for PYBIN in /opt/python/*27*/bin; do
     "${PYBIN}/pip" install --upgrade cython nose
