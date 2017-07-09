@@ -124,10 +124,11 @@ script:
     fi;
   - if [ "${DOCKER_IMAGE}" != "" ]; then
       mkdir wheelhouse;
+      mkdir upload;
       docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.travis/build-wheels.sh;
-      tar -czvf ffpyplayer-wheels.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
+      tar -czvf upload/ffpyplayer-wheels.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
       ls wheelhouse/;
-      rm "wheelhouse/*.whl";
+      ls upload;
     fi;
 deploy:
   provider: s3
@@ -135,7 +136,7 @@ deploy:
   bucket: "ffpyplayer-wheels"
   skip_cleanup: true
   region: us-east-1
-  local_dir: wheelhouse
+  local_dir: upload
   upload-dir: ffpyplayer
   on:
     condition: "$DOCKER_IMAGE"
