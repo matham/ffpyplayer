@@ -104,7 +104,6 @@ before_script:
     cd "$TRAVIS_BUILD_DIR";
     export PYTHONPATH=$PYTHONPATH:$(pwd);
     export USE_SDL2_MIXER=1;
-    if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then unset DOCKER_IMAGE; fi
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
@@ -120,6 +119,9 @@ script:
          make test;
       fi;
     fi;
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+      unset DOCKER_IMAGE;
+    fi
   - if [ "${DOCKER_IMAGE}" != "" ]; then
       mkdir wheelhouse;
       mkdir upload;
