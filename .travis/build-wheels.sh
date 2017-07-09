@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e -x
 
-yum -y install libass libass-devel autoconf automake bzip2 cmake freetype-devel gcc gcc-c++ git libtool make mercurial pkgconfig zlib-devel enca-devel fontconfig-devel
+yum -y install libass libass-devel autoconf automake bzip2 cmake freetype-devel gcc gcc-c++ git libtool make mercurial pkgconfig zlib-devel enca-devel fontconfig-devel openssl openssl-devel
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
@@ -21,6 +21,14 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgc
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
+
+cd ~/ffmpeg_sources;
+wget https://www.openssl.org/source/openssl-1.0.2l.tar.gz;
+tar xzf openssl-1.0.2l.tar.gz;
+cd openssl-1.0.2l;
+./config -fpic shared --prefix="$HOME/ffmpeg_build";
+make;
+make install;
 
 cd ~/ffmpeg_sources;
 wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
@@ -147,7 +155,7 @@ cd ~/ffmpeg_sources;
 wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2;
 tar xjf ffmpeg-snapshot.tar.bz2;
 cd ffmpeg;
-PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig:/usr/lib/pkgconfig/" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-shared;
+PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig:/usr/lib/pkgconfig/" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-openssl --enable-shared;
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
