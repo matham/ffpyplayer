@@ -28,6 +28,7 @@ cdef class Decoder(object):
 
     cdef void decoder_destroy(self) nogil:
         av_packet_unref(&self.pkt)
+        avcodec_free_context(&self.avctx)
 
     cdef void set_seek_pos(self, double seek_req_pos) nogil:
         self.seek_req_pos = seek_req_pos
