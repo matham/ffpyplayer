@@ -1519,8 +1519,8 @@ cdef class VideoState(object):
 
                 if audio_size < 0:
                     # if error, just output silence
-                    self.audio_buf = self.silence_buf
-                    self.audio_buf_size = sizeof(self.silence_buf) / self.audio_tgt.frame_size * self.audio_tgt.frame_size
+                    self.audio_buf = NULL
+                    self.audio_buf_size = SDL_AUDIO_MIN_BUFFER_SIZE / self.audio_tgt.frame_size * self.audio_tgt.frame_size
                 else:
 #                     if self.show_mode != SHOW_MODE_VIDEO:
 #                         self.update_sample_display(<int16_t *>self.audio_buf, audio_size)
@@ -1530,11 +1530,11 @@ cdef class VideoState(object):
             if len1 > len:
                 len1 = len
 
-            if USE_SDL2_MIXER or not self.player.muted and self.player.audio_volume == SDL_MIX_MAXVOLUME:
+            if USE_SDL2_MIXER or not self.player.muted and self.audio_buf and self.player.audio_volume == SDL_MIX_MAXVOLUME:
                 memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
             else:
-                memset(stream, self.silence_buf[0], len1)
-                if not self.player.muted:
+                memset(stream, 0, len1)
+                if not self.player.muted and self.audio_buf:
                     IF HAS_SDL2:
                         SDL_MixAudioFormat(stream, <uint8_t *>self.audio_buf + self.audio_buf_index,
                                            AUDIO_S16SYS, len1, self.player.audio_volume)

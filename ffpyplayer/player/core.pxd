@@ -64,7 +64,6 @@ cdef class VideoState(object):
         AVStream *audio_st
         FFPacketQueue audioq
         int audio_hw_buf_size
-        uint8_t silence_buf[AUDIO_MIN_BUFFER_SIZE]
 
         IF USE_SDL2_MIXER:
             uint8_t chunk_buf[AUDIO_MIN_BUFFER_SIZE]
