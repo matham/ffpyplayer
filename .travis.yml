@@ -15,9 +15,18 @@ matrix:
     - language: generic
       env: PY=3
       os: osx
+    - sudo: required
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    - sudo: required
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
+           PRE_CMD=linux32
 
 install:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
       sudo apt-get update;
       sudo apt-get -y install libsdl2-dev libsdl2-mixer-dev python-dev;
       mkdir ~/ffmpeg_sources;
@@ -97,7 +106,7 @@ before_script:
     export USE_SDL2_MIXER=1;
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
         make test;
     fi;
@@ -110,3 +119,29 @@ script:
          make test;
       fi;
     fi;
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+      unset DOCKER_IMAGE;
+    fi
+  - if [ "${DOCKER_IMAGE}" != "" ]; then
+      mkdir wheelhouse;
+      mkdir upload;
+      docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.travis/build-wheels.sh;
+      tar -czvf upload/ffpyplayer-wheels-$(date +%s)$PRE_CMD.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
+      ls wheelhouse/;
+      ls upload;
+    fi;
+deploy:
+  provider: s3
+  access_key_id:
+    secure: "U0Mt95UGtagb1g0Fo1PN+XbXhoBQSM6RINn9c5oS8etIMUW0j/Xyr/GSHLkACWZVzCGnSGkJuCc0VLi8S1vXvSrRI5XhwEcd0kSqaPtWAafLdQZ/eCd+xCFGLBdsQnF9M5cZHQoYYuR20bJrgbd35/+lcRqJwA3eJ0/uH8rXZuFaxsEZpDLyvbBMkynSr7lD/bW+2kpcegYe04Ksc/PCU8izxdly10LL7HzAzaVsHjWHBJkh75xCsL0JT82jmepr9KWAf04e01gIy/mCOQGlDkrS+H1Hz5E46E+emzV7shWGkIqHIejXz3stCWpXqHlynfDXx0pQKiIw6Lla7EB0ZmcatJxKoRRS4nrJ5r8e2vhT7YmNcxNm/02tA8hlgSaA0PqR1yHZVqSFrJNQ1PIR22GmWAKEcEN31mb7V3DutqblNFgIEkg70Q1uFx7ZwS09LPjL8Yt62UCoUDRI6+kJbCo9/hgu2CM2Trnz7G38qdXeYg8YJkmNYDYkDqcxeUQlhvV5Rzv/bLsrv0AQUwPDjDDpjndJjuAh/VFl8n/g1sQbZJrM+Wqxvg0Nwh+LTUvCOnM2c7GIf7Yzu1HiDrSsb29r3kTe3VCDnU/ZYpeoF+8ema3NLoikECC/QjinvaOVwv5BOrtKWGw68URKs+GJ0UWq4tCiRk4UbKJ9zYzU43s="
+  secret_access_key:
+    secure: "pHv12lGUbPNn1DVwZb/MjeyvTeP4Q5YsItUYwUdjVGYghtNrAEiORROmVARywg5P99kcFhfFzsmC56CCvaUzahHFdenzHKnPaJNQmUvokBMPt4Avo7X7Va/oUjqis4UqvmOGz7Cn3KkOCL06hBdkCEWfQ/nMGFb/IhMKfpfCQdTKXrB1TjMoQjbSoBoJ1Sdf67mmKxbGGXKkgA1xPU0mm61kmKzm+lZ0b4BwSZQjlqN0S6Cj7UPH43X8qDqsbDHCgQX9osdhnjkU5V0MJaawEPxLSsOMx75XPgce64RCMhLdUm6JjPv8DqI4NFpVIonK1HkJIQfoavUmNHyVebcBE+nSx8/0O+SvwA+avEygirccuftkZsYOk1mQtHc3OX24Dd4URs31QNbYwnfx11rnMGaANxmed0uoAG4E9BVG8W+sKGoBam2PGdxOj+xlwvWVpOBMkgJ+92jb3kI2tYp5k2drEG0Vn9kifHw98kqicARLIUrhkL4FHfAYFFOsQE5mVGYYCPtdusrxEUIX+LlgfKfTKuTmZjUMD4VbGFsF3G1JJxKXSULf9OAJfEIAFR5XP9s5p6KtBKJAFlYj5m2rnZuGFTm7sSPJBL85w9EcABQz0tf/6dCFFCxPJU8NtedmA0SYM6z+iBt82eVWu73saXgwXDaApjzyhunhNdrzBK8="
+  bucket: "ffpyplayer-wheels"
+  skip_cleanup: true
+  region: us-east-1
+  local_dir: upload
+  upload-dir: ffpyplayer
+  on:
+    condition: "$DOCKER_IMAGE"
+    branch: "master"
+    tags: true

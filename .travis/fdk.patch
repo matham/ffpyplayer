@@ -1,0 +1,30 @@
+diff --git a/Makefile.am b/Makefile.am
+index 5b2c65b..728c72a 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -13,7 +13,7 @@ AM_CPPFLAGS = \
+     -I$(top_srcdir)/libPCMutils/include
+ 
+ AM_CXXFLAGS = -fno-exceptions -fno-rtti
+-libfdk_aac_la_LINK = $(LINK) $(libfdk_aac_la_LDFLAGS)
++#libfdk_aac_la_LINK = $(LINK) $(libfdk_aac_la_LDFLAGS)
+ # Mention a dummy pure C file to trigger generation of the $(LINK) variable
+ nodist_EXTRA_libfdk_aac_la_SOURCES = dummy.c
+ 
+diff --git a/configure.ac b/configure.ac
+index 1485ff7..4bec7a7 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -19,7 +19,11 @@ AM_CONDITIONAL(EXAMPLE, test x$example = xyes)
+ dnl Checks for programs.
+ AC_PROG_CC
+ AC_PROG_CXX
+-LT_INIT
++
++AM_PROG_CC_C_O
++
++AC_PROG_LIBTOOL
++AC_SUBST(LIBTOOL_DEPS)
+ 
+ AC_SEARCH_LIBS([sin], [m])
+ 

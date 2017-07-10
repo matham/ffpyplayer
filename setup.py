@@ -61,7 +61,7 @@ class FFBuildExt(build_ext):
     def build_extensions(self):
         compiler = self.compiler.compiler_type
         if compiler == 'msvc':
-            args = ["/O3"]
+            args = []
         else:
             args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
         for ext in self.extensions:
