@@ -551,6 +551,11 @@ cdef:
 
     extern from "libavfilter/buffersink.h" nogil:
         int av_buffersink_get_frame_flags(AVFilterContext *, AVFrame *, int)
+        AVRational av_buffersink_get_time_base(const AVFilterContext *)
+        AVRational av_buffersink_get_frame_rate(const AVFilterContext *)
+        int av_buffersink_get_sample_rate(const AVFilterContext *)
+        int av_buffersink_get_channels(const AVFilterContext *)
+        uint64_t av_buffersink_get_channel_layout(const AVFilterContext *)
 
     extern from "libavfilter/buffersrc.h" nogil:
         int av_buffersrc_add_frame(AVFilterContext *, AVFrame *)

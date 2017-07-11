@@ -1037,7 +1037,7 @@ cdef class VideoState(object):
 
                     ret = av_buffersink_get_frame_flags(self.out_audio_filter, frame, 0)
                     while ret >= 0:
-                        tb = self.out_audio_filter.inputs[0].time_base
+                        tb = av_buffersink_get_time_base(self.out_audio_filter)
                         af = self.sampq.frame_queue_peek_writable()
                         if af == NULL:
                             avfilter_graph_free(&self.agraph)
@@ -1175,7 +1175,7 @@ cdef class VideoState(object):
                     last_format = <AVPixelFormat>frame.format
                     last_out_fmt = last_out_fmt_temp
                     last_serial = self.viddec.pkt_serial
-                    frame_rate = filt_out.inputs[0].frame_rate
+                    frame_rate = av_buffersink_get_frame_rate(filt_out)
                     last_vfilter_idx = self.vfilter_idx
                     with gil:
                         self.metadata['src_vid_size'] = (last_w, last_h)
@@ -1198,7 +1198,7 @@ cdef class VideoState(object):
                     if fabs(self.frame_last_filter_delay) > AV_NOSYNC_THRESHOLD / 10.0:
                         self.frame_last_filter_delay = 0
 
-                    tb = filt_out.inputs[0].time_base
+                    tb = av_buffersink_get_time_base(filt_out)
                     duration = 0
                     if frame_rate.num and frame_rate.den:
                         tb_temp.num = frame_rate.den
@@ -1708,7 +1708,7 @@ cdef class VideoState(object):
         cdef int64_t channel_layout
         cdef int ret = 0
         cdef int stream_lowres = self.player.lowres
-        cdef AVFilterLink *link
+        cdef AVFilterContext *sink
         if stream_index < 0 or stream_index >= ic.nb_streams:
             return -1
 
@@ -1793,10 +1793,10 @@ cdef class VideoState(object):
                     avcodec_free_context(&avctx)
                     av_dict_free(&opts)
                     return ret
-                link = self.out_audio_filter.inputs[0]
-                sample_rate    = link.sample_rate
-                nb_channels    = avfilter_link_get_channels(link)
-                channel_layout = link.channel_layout
+                sink = self.out_audio_filter
+                sample_rate    = av_buffersink_get_sample_rate(sink)
+                nb_channels    = av_buffersink_get_channels(sink)
+                channel_layout = av_buffersink_get_channel_layout(sink)
             ELSE:
                 sample_rate    = avctx.sample_rate
                 nb_channels    = avctx.channels
