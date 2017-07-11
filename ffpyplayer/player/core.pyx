@@ -2133,14 +2133,11 @@ cdef class VideoState(object):
                     self.videoq.packet_queue_put_nullpacket(self.video_stream)
                 self.queue_attachments_req = 0
             # if the queue are full, no need to read more
-            if self.player.infinite_buffer < 1 and\
-            (self.audioq.size + self.videoq.size + self.subtitleq.size > MAX_QUEUE_SIZE\
-            or ((self.audioq.nb_packets > MIN_FRAMES or self.audio_stream < 0 or\
-            self.audioq.abort_request) and (self.videoq.nb_packets > MIN_FRAMES or\
-            self.video_stream < 0 or self.videoq.abort_request\
-            or (self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC))\
-            and (self.subtitleq.nb_packets > MIN_FRAMES or self.subtitle_stream < 0\
-            or self.subtitleq.abort_request))):
+            if self.player.infinite_buffer < 1 and \
+                (self.audioq.size + self.videoq.size + self.subtitleq.size > MAX_QUEUE_SIZE or
+                (self.stream_has_enough_packets(self.audio_st, self.audio_stream, self.audioq) and
+                self.stream_has_enough_packets(self.video_st, self.video_stream, self.videoq) and
+                self.stream_has_enough_packets(self.subtitle_st, self.subtitle_stream, self.subtitleq))):
                 # wait 10 ms
                 self.continue_read_thread.lock()
                 self.continue_read_thread.cond_wait_timeout(10)
@@ -2226,6 +2223,12 @@ cdef class VideoState(object):
         if self.player.loglevel >= AV_LOG_INFO:
             av_log(NULL, AV_LOG_INFO, b"Exiting read thread\n")
         return self.failed(ret, ic)
+
+    cdef int stream_has_enough_packets(self, AVStream *st, int stream_id, FFPacketQueue queue) nogil:
+        return (stream_id < 0 or
+                queue.abort_request or
+                (st.disposition & AV_DISPOSITION_ATTACHED_PIC) or
+                queue.nb_packets > MIN_FRAMES)
 
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1:
         cdef char err_msg[256]
