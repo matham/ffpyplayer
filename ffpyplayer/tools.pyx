@@ -37,6 +37,15 @@ def initialize_sdl_aud():
     global sdl_aud_initialized
     if sdl_aud_initialized:
         return
+
+    # Try to work around an occasional ALSA buffer underflow issue when the
+    # period size is NPOT due to ALSA resampling by forcing the buffer size.
+    if not SDL_getenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE"):
+        IF HAS_SDL2:
+            SDL_setenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE", "1", 0)
+        ELSE:
+            SDL_putenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE=1")
+
     if SDL_InitSubSystem(SDL_INIT_AUDIO):
         raise ValueError('Could not initialize SDL audio - %s' % SDL_GetError())
     sdl_aud_initialized = 1
