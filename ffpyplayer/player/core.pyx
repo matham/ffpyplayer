@@ -1849,7 +1849,6 @@ cdef class VideoState(object):
             self.subtitle_st = ic.streams[stream_index]
             self.subdec.decoder_init(self.mt_gen, avctx, self.subtitleq, self.continue_read_thread)
             self.subdec.decoder_start(subtitle_thread_enter, self.self_id)
-        avcodec_free_context(&avctx)
         av_dict_free(&opts)
         return 0
 

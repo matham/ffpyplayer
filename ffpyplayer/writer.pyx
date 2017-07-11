@@ -224,7 +224,17 @@ cdef class MediaWriter(object):
                 raise Exception("Couldn't create stream %d." % r)
             s[r].index = s[r].av_stream.index
 
-            s[r].codec_ctx = s[r].av_stream.codec
+            s[r].codec_ctx = avcodec_alloc_context3(NULL)
+            if s[r].codec_ctx == NULL:
+                self.clean_up()
+                raise MemoryError("Couldn't create stream %d." % r)
+
+            res = avcodec_parameters_to_context(s[r].codec_ctx, s[r].av_stream.codecpar)
+            if res < 0:
+                self.clean_up()
+                raise Exception('Failed to init codec for stream %d; %s'
+                                % (r, tcode(emsg(res, msg, sizeof(msg)))))
+
             s[r].codec_ctx.width = s[r].width_out
             s[r].codec_ctx.height = s[r].height_out
             supported_rates = get_supported_framerates(config['codec'], (s[r].num, s[r].den))
@@ -569,6 +579,8 @@ cdef class MediaWriter(object):
                 self.streams[r].sws_ctx= NULL
             if self.streams[r].codec_opts:
                 av_dict_free(&self.streams[r].codec_opts)
+            if self.streams[r].codec_ctx:
+                avcodec_free_context(&self.streams[r].codec_ctx)
         free(self.streams)
         self.streams = NULL
         self.n_streams = 0
