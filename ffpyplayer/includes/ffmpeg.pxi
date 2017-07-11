@@ -252,7 +252,6 @@ cdef:
             AVChapter **chapters
         struct AVStream:
             int index
-            AVCodecContext *codec
             AVRational time_base
             int64_t start_time
             AVDiscard discard
@@ -261,6 +260,7 @@ cdef:
             AVRational avg_frame_rate
             AVRational r_frame_rate
             AVDictionary *metadata
+            AVCodecParameters *codecpar
         struct AVProgram:
             unsigned int nb_stream_indexes
             unsigned int *stream_index
@@ -406,6 +406,12 @@ cdef:
             AVFrame *coded_frame
             int me_threshold
             AVRational pkt_timebase
+        struct AVCodecParameters:
+            AVCodecID codec_id
+            AVMediaType codec_type
+            AVRational sample_aspect_ratio
+            int sample_rate
+            int channels
         struct AVSubtitle:
             uint16_t format
             uint32_t start_display_time # relative to packet pts, in ms
@@ -462,6 +468,8 @@ cdef:
         void avcodec_flush_buffers(AVCodecContext *)
         int av_lockmgr_register(lockmgr_func)
         void av_init_packet(AVPacket *)
+        int avcodec_parameters_to_context(AVCodecContext *, const AVCodecParameters *)
+        void av_codec_set_pkt_timebase(AVCodecContext *, AVRational)
         enum AVLockOp:
             AV_LOCK_CREATE,
             AV_LOCK_OBTAIN,
@@ -481,6 +489,8 @@ cdef:
         AVCodec *avcodec_find_encoder_by_name(const char *)
         AVCodec *avcodec_find_decoder_by_name(const char *)
         const AVClass *avcodec_get_class()
+        AVCodecContext *avcodec_alloc_context3(const AVCodec *)
+        void avcodec_free_context(AVCodecContext **)
         int avcodec_open2(AVCodecContext *, const AVCodec *, AVDictionary **)
         enum AVDiscard:
             AVDISCARD_DEFAULT,
