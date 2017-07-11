@@ -91,9 +91,7 @@ cdef class Decoder(object):
                     if got_frame:
                         if decoder_reorder_pts == -1:
                             frame.pts = av_frame_get_best_effort_timestamp(frame)
-                        elif decoder_reorder_pts:
-                            frame.pts = frame.pkt_pts
-                        else:
+                        elif not decoder_reorder_pts:
                             frame.pts = frame.pkt_dts
 
                 elif self.avctx.codec_type == AVMEDIA_TYPE_AUDIO:
@@ -102,9 +100,7 @@ cdef class Decoder(object):
                         tb.num = 1
                         tb.den = frame.sample_rate
                         if frame.pts != AV_NOPTS_VALUE:
-                            frame.pts = av_rescale_q(frame.pts, self.avctx.time_base, tb)
-                        elif frame.pkt_pts != AV_NOPTS_VALUE:
-                            frame.pts = av_rescale_q(frame.pkt_pts, av_codec_get_pkt_timebase(self.avctx), tb)
+                            frame.pts = av_rescale_q(frame.pts, av_codec_get_pkt_timebase(self.avctx), tb)
                         elif self.next_pts != AV_NOPTS_VALUE:
                             frame.pts = av_rescale_q(self.next_pts, self.next_pts_tb, tb)
                         if frame.pts != AV_NOPTS_VALUE:
