@@ -218,22 +218,16 @@ cdef class MediaWriter(object):
             if s[r].codec == NULL:
                 self.clean_up()
                 raise Exception('Codec %s not found.' % config['codec'])
-            s[r].av_stream = avformat_new_stream(self.fmt_ctx, s[r].codec);
+            s[r].av_stream = avformat_new_stream(self.fmt_ctx, NULL);
             if s[r].av_stream == NULL:
                 self.clean_up()
                 raise Exception("Couldn't create stream %d." % r)
             s[r].index = s[r].av_stream.index
 
-            s[r].codec_ctx = avcodec_alloc_context3(NULL)
+            s[r].codec_ctx = avcodec_alloc_context3(s[r].codec)
             if s[r].codec_ctx == NULL:
                 self.clean_up()
                 raise MemoryError("Couldn't create stream %d." % r)
-
-            res = avcodec_parameters_to_context(s[r].codec_ctx, s[r].av_stream.codecpar)
-            if res < 0:
-                self.clean_up()
-                raise Exception('Failed to init codec for stream %d; %s'
-                                % (r, tcode(emsg(res, msg, sizeof(msg)))))
 
             s[r].codec_ctx.width = s[r].width_out
             s[r].codec_ctx.height = s[r].height_out
@@ -307,6 +301,11 @@ cdef class MediaWriter(object):
             if res < 0:
                 self.clean_up()
                 raise Exception('Failed to open codec for stream %d; %s' % (r, tcode(emsg(res, msg, sizeof(msg)))))
+
+            res = avcodec_parameters_from_context(s[r].av_stream.codecpar, s[r].codec_ctx)
+            if res < 0:
+                self.clean_up()
+                raise Exception('Failed to initialize stream parameters for stream %d; %s' % (r, tcode(emsg(res, msg, sizeof(msg)))))
 
             s[r].pts = 0
             if self.fmt_ctx.oformat.flags & AVFMT_VARIABLE_FPS:

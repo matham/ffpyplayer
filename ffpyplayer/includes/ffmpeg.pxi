@@ -458,6 +458,7 @@ cdef:
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
         int av_codec_get_max_lowres(const AVCodec *)
         void av_codec_set_lowres(AVCodecContext *, int)
+        int avcodec_parameters_from_context(AVCodecParameters *, const AVCodecContext *)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)
         void avsubtitle_free(AVSubtitle *)
