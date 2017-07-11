@@ -163,12 +163,14 @@ hash -r;
 
 # Compile wheels
 for PYBIN in /opt/python/*27*/bin; do
+    "${PYBIN}/pip" install --upgrade setuptools pip
     "${PYBIN}/pip" install --upgrade cython nose
-    PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
+    USE_SDL2_MIXER=1 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
 done
 for PYBIN in /opt/python/*3*/bin; do
+    "${PYBIN}/pip" install --upgrade setuptools pip
     "${PYBIN}/pip" install --upgrade cython nose
-    PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
+    USE_SDL2_MIXER=1 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
 done
 
 # Bundle external shared libraries into the wheels
