@@ -1603,7 +1603,7 @@ cdef class VideoState(object):
 
         ELIF HAS_SDL2:
             self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, wanted_spec, spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
-            error = self.audio_dev == 0
+            error = 0 if self.audio_dev else -1
         ELSE:
             error = SDL_OpenAudio(wanted_spec, spec) < 0
         return error
