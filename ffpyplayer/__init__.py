@@ -12,8 +12,9 @@ __all__ = ('dep_bins', )
 __version__ = '4.0.1.dev0'
 version = __version__
 
-# Dec 2015, the ffmpeg src git version tested and upto date with, including this commit
-_ffmpeg_git = 'c413d9e6356e843aa492be9bb0ddf66ae6c97501'
+# the ffmpeg src git version tested and upto date with,
+# not including this commit
+_ffmpeg_git = '915bb7881555c4966738b7ee78b28845c4665a40'
 # skipped all show modes and subtitle display related functionality commits
 
 # TODO:
