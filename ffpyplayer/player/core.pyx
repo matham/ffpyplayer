@@ -2015,7 +2015,7 @@ cdef class VideoState(object):
             st = ic.streams[i]
             media_type = st.codecpar.codec_type
             st.discard = AVDISCARD_ALL
-            if self.player.wanted_stream_spec[<int>media_type] != NULL and st_index[<int>media_type] == -1:
+            if <int>media_type >= 0 and self.player.wanted_stream_spec[<int>media_type] != NULL and st_index[<int>media_type] == -1:
                 if avformat_match_stream_specifier(ic, st, self.player.wanted_stream_spec[<int>media_type]) > 0:
                     st_index[<int>media_type] = i
 
