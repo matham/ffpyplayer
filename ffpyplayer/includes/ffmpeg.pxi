@@ -533,6 +533,7 @@ cdef:
         struct AVFilter:
             pass
         void avfilter_register_all()
+        int avfilter_link_get_channels(AVFilterLink *)
         AVFilterInOut *avfilter_inout_alloc()
         void avfilter_inout_free(AVFilterInOut **)
         int avfilter_graph_parse_ptr(AVFilterGraph *, const char *,

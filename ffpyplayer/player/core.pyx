@@ -1795,7 +1795,7 @@ cdef class VideoState(object):
                     return ret
                 link = self.out_audio_filter.inputs[0]
                 sample_rate    = link.sample_rate
-                nb_channels    = link.channels
+                nb_channels    = avfilter_link_get_channels(link)
                 channel_layout = link.channel_layout
             ELSE:
                 sample_rate    = avctx.sample_rate
