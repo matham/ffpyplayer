@@ -24,8 +24,14 @@ To install: http://matham.github.io/ffpyplayer/installation.html
 .. warning::
 
     Although the ffpyplayer source code is licensed under the LGPL, the ffpyplayer wheels
-    for Windows on PYPI are distributed under the GPL because the pre-compiled FFmpeg binaries
-    are GPL'd. For LGPL builds you can compile FFmpeg yourself using LGPL options.
+    for Windows and linux on PYPI are distributed under the GPL because the included FFmpeg binaries
+    were compiled with GPL options.
+
+    If you want to use it under the LGPL you need to compile FFmpeg yourself with the correct options.
+
+    Similarly, the wheels bundle openssl for online camera support. However, releases are not made
+    for every openssl release, so it is recommended that you compile ffpyplayer yourself if security
+    is a issue.
 
 Usage example
 -------------
