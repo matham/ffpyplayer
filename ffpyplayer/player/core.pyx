@@ -1530,8 +1530,14 @@ cdef class VideoState(object):
             if len1 > len:
                 len1 = len
 
-            if USE_SDL2_MIXER or not self.player.muted and self.audio_buf and self.player.audio_volume == SDL_MIX_MAXVOLUME:
-                memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+            if USE_SDL2_MIXER:
+                if self.audio_buf:
+                    memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+            elif not self.player.muted and self.player.audio_volume == SDL_MIX_MAXVOLUME:
+                if self.audio_buf:
+                    memcpy(stream, <uint8_t *>self.audio_buf + self.audio_buf_index, len1)
+                else:
+                    memset(stream, 0, len1)
             else:
                 memset(stream, 0, len1)
                 if not self.player.muted and self.audio_buf:
