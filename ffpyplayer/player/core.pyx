@@ -1843,7 +1843,7 @@ cdef class VideoState(object):
                 SDL_PauseAudio(0)
         elif avctx.codec_type ==  AVMEDIA_TYPE_VIDEO:
             with gil:
-                self.metadata['src_pix_fmt'] = av_get_pix_fmt_name(avctx.pix_fmt)
+                self.metadata['src_pix_fmt'] = <const char *>av_x_if_null(av_get_pix_fmt_name(avctx.pix_fmt), b"none")
             self.video_stream = stream_index
             self.video_st = ic.streams[stream_index]
             self.viddec.decoder_init(self.mt_gen, avctx, self.videoq, self.continue_read_thread)
