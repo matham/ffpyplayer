@@ -457,8 +457,10 @@ cdef class Image(object):
         frame.width = self.frame.width
         frame.height = self.frame.height
         if av_frame_copy_props(frame, self.frame) < 0:
+            av_frame_free(&frame)
             raise Exception('Cannot copy frame properties.')
         if av_frame_get_buffer(frame, 32) < 0:
+            av_frame_free(&frame)
             raise Exception('Cannot allocate frame buffers.')
 
         img = Image.__new__(Image, no_create=True)
@@ -467,6 +469,7 @@ cdef class Image(object):
                           self.frame.linesize, <AVPixelFormat>frame.format,
                           frame.width, frame.height)
             img.cython_init(frame)
+            av_frame_free(&frame)
         return img
 
     cpdef is_ref(Image self):
