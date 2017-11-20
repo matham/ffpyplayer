@@ -2239,7 +2239,7 @@ cdef class VideoState(object):
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1:
         cdef char err_msg[256]
         if ic != NULL and self.ic == NULL:
-            avformat_close_input(&self.ic)
+            avformat_close_input(&ic)
 
         if ret and not self.abort_request:
             if ret != -1:
