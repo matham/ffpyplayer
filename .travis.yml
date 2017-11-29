@@ -108,6 +108,7 @@ before_script:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
+        python -c 'import sys;print("printing sys path");print(sys.path)'
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
         make test;
     fi;
