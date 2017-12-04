@@ -239,7 +239,9 @@ cdef:
             AVInputFormat *iformat
             AVOutputFormat *oformat
             AVStream **streams
+            AVProgram **programs
             unsigned int nb_streams
+            unsigned int nb_programs
             char filename[1024]
             AVIOContext *pb
             AVDictionary *metadata
@@ -262,6 +264,7 @@ cdef:
             AVDictionary *metadata
             AVCodecParameters *codecpar
         struct AVProgram:
+            int id
             unsigned int nb_stream_indexes
             unsigned int *stream_index
         enum  AVPacketSideDataType:
