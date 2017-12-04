@@ -890,7 +890,8 @@ cdef class MediaPlayer(object):
             with nogil:
                 self.ivs.stream_cycle_channel(stream, requested_stream)
         elif action == 'close':
-            self.ivs.stream_component_close(old_index)
+            with nogil:
+                self.ivs.stream_component_close(old_index)
 
     def seek(self, pts, relative=True, seek_by_bytes='auto', accurate=True):
         '''Seeks in the current streams.
