@@ -170,7 +170,9 @@ cdef class VideoState(object):
     cdef int read_thread(VideoState self) nogil except 1
     cdef int stream_has_enough_packets(self, AVStream *st, int stream_id, FFPacketQueue queue) nogil
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1
-    cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1
+    cdef int stream_select_program(VideoState self, int requested_program) nogil except 1
+    cdef int stream_select_channel(VideoState self, int codec_type, unsigned int requested_stream) nogil except 1
+    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1
     cdef int decode_interrupt_cb(VideoState self) nogil
 
 

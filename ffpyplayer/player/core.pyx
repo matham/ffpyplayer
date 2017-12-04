@@ -2250,8 +2250,102 @@ cdef class VideoState(object):
             self.request_thread_s(b'read:exit', b'Done')
         return 0
 
-    cdef int stream_cycle_channel(VideoState self, int codec_type,
-                                  int requested_stream) nogil except 1:
+    cdef int stream_select_program(VideoState self,
+                                   int requested_program) nogil except 1:
+        cdef unsigned int i
+        cdef AVProgram *p, *selected_program = NULL
+        cdef AVStream *st
+        cdef unsigned int nb_streams
+        cdef unsigned int stream_index
+        cdef int video_stream_index = -1
+        cdef int audio_stream_index = -1
+        cdef int subtitle_stream_index = -1
+        cdef int program = -1
+        cdef unsigned int nb_programs = self.ic.nb_programs
+
+        i = 0
+        while i < nb_programs:
+            p = self.ic.programs[i]
+
+            if p.id == requested_program:
+                selected_program = p
+                break
+
+            i += 1
+
+        if selected_program == NULL:
+            return -1
+
+        nb_streams = selected_program.nb_stream_indexes
+
+        i = 0
+        while i < nb_streams:
+            stream_index = selected_program.stream_index[i]
+            st = self.ic.streams[stream_index]
+
+            if st.codecpar.codec_type == AVMEDIA_TYPE_VIDEO:
+                if video_stream_index == -1:
+                    video_stream_index = <int>stream_index
+            elif st.codecpar.codec_type == AVMEDIA_TYPE_AUDIO:
+                if audio_stream_index == -1:
+                    audio_stream_index = <int>stream_index
+            elif st.codecpar.codec_type == AVMEDIA_TYPE_SUBTITLE:
+                if subtitle_stream_index == -1:
+                    subtitle_stream_index = <int>stream_index
+
+            i += 1
+
+        self.stream_component_close(self.video_stream)
+        self.stream_component_close(self.audio_stream)
+        self.stream_component_close(self.subtitle_stream)
+
+        if video_stream_index != -1:
+            self.stream_component_open(video_stream_index)
+
+        if audio_stream_index != -1:
+            self.stream_component_open(audio_stream_index)
+
+        if subtitle_stream_index != -1:
+            self.stream_component_open(subtitle_stream_index)
+
+        return 0
+
+    cdef int stream_select_channel(VideoState self, int codec_type,
+                                  unsigned int requested_stream) nogil except 1:
+        cdef int old_index
+        cdef AVStream *st
+        cdef unsigned int nb_streams = self.ic.nb_streams
+
+        if codec_type == AVMEDIA_TYPE_VIDEO:
+            old_index = self.video_stream
+        elif codec_type == AVMEDIA_TYPE_AUDIO:
+            old_index = self.audio_stream
+        else:
+            old_index = self.subtitle_stream
+
+        if requested_stream >= nb_streams:
+            return -1
+
+        st = self.ic.streams[requested_stream]
+
+        if st.codecpar.codec_type != codec_type:
+            return -1
+
+        if codec_type == AVMEDIA_TYPE_AUDIO:
+            if st.codecpar.sample_rate == 0 or st.codecpar.channels == 0:
+                av_log(NULL, AV_LOG_ERROR, b'Invalid audio stream #%d\n', requested_stream)
+                return -1
+
+        if self.player.loglevel >= AV_LOG_INFO:
+            av_log(NULL, AV_LOG_INFO, b'Switch %s stream from #%d to #%d\n',
+                    av_get_media_type_string(<AVMediaType>codec_type), old_index, requested_stream)
+
+        self.stream_component_close(old_index)
+        self.stream_component_open(<int>requested_stream)
+
+        return 0
+
+    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef int start_index, stream_index
         cdef int old_index, was_closed = 0
@@ -2302,8 +2396,7 @@ cdef class VideoState(object):
                 st = self.ic.streams[p.stream_index[stream_index]]
             else:
                 st = self.ic.streams[stream_index]
-            if (requested_stream == -1 or stream_index == requested_stream) and\
-            st.codecpar.codec_type == codec_type:
+            if st.codecpar.codec_type == codec_type:
                 # check that parameters are OK
                 if codec_type == AVMEDIA_TYPE_AUDIO:
                     if st.codecpar.sample_rate != 0 and st.codecpar.channels != 0:
