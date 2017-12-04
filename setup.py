@@ -297,6 +297,8 @@ with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'w') as f:
 include_dirs.extend(
     [join(abspath(dirname(__file__)), 'ffpyplayer'),
      join(abspath(dirname(__file__)), 'ffpyplayer', 'includes')])
+print('includes')
+print(include_dirs, library_dirs)
 ext_modules = [Extension(
     'ffpyplayer.' + src_file.replace('/', '.'),
     sources=[join('ffpyplayer', *(src_file + mod_suffix).split('/')),
