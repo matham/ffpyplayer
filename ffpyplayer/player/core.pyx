@@ -1758,14 +1758,8 @@ cdef class VideoState(object):
             stream_lowres = av_codec_get_max_lowres(codec)
         av_codec_set_lowres(avctx, stream_lowres)
 
-        if FF_API_EMU_EDGE:
-            if stream_lowres:
-                avctx.flags |= CODEC_FLAG_EMU_EDGE
         if self.player.fast:
             avctx.flags2 |= AV_CODEC_FLAG2_FAST
-        if FF_API_EMU_EDGE:
-            if codec.capabilities & AV_CODEC_CAP_DR1:
-                avctx.flags |= CODEC_FLAG_EMU_EDGE
 
         opts = filter_codec_opts(self.player.codec_opts, avctx.codec_id, ic,
                                  ic.streams[stream_index], codec)
