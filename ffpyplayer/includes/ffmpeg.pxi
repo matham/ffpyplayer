@@ -358,7 +358,7 @@ cdef:
         void av_rdft_calc(RDFTContext *, FFTSample *)
 
     extern from "libavcodec/version.h" nogil:
-        int FF_API_EMU_EDGE
+        pass
 
     extern from "libswresample/swresample.h" nogil:
         struct SwrContext:
