@@ -514,7 +514,7 @@ cdef class MediaWriter(object):
                             raise Exception('Error encoding frame: ' + tcode(emsg(res, msg, sizeof(msg))))
 
                     if got_pkt:
-                        if pkt.pts == AV_NOPTS_VALUE and not (s.codec_ctx.codec.capabilities & CODEC_CAP_DELAY):
+                        if pkt.pts == AV_NOPTS_VALUE and not (s.codec_ctx.codec.capabilities & AV_CODEC_CAP_DELAY):
                             pkt.pts = s.pts
                         if pkt.pts != AV_NOPTS_VALUE:
                             pkt.pts = av_rescale_q(pkt.pts, s.codec_ctx.time_base, s.av_stream.time_base)
