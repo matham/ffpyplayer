@@ -358,7 +358,7 @@ cdef:
         void av_rdft_calc(RDFTContext *, FFTSample *)
 
     extern from "libavcodec/version.h" nogil:
-        int FF_API_EMU_EDGE
+        pass
 
     extern from "libswresample/swresample.h" nogil:
         struct SwrContext:
@@ -371,10 +371,9 @@ cdef:
         int swr_convert(SwrContext *, uint8_t **, int, const uint8_t ** , int)
 
     extern from "libavcodec/avcodec.h" nogil:
-        int CODEC_FLAG_EMU_EDGE
         int AV_CODEC_FLAG2_FAST
         int AV_CODEC_CAP_DR1
-        int CODEC_FLAG_GLOBAL_HEADER
+        int AV_CODEC_FLAG_GLOBAL_HEADER
         int AV_PKT_FLAG_KEY
         int AV_CODEC_CAP_DELAY
         struct AVCodec:
