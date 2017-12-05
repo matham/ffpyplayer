@@ -406,7 +406,6 @@ cdef:
             AVSampleFormat sample_fmt
             AVPixelFormat pix_fmt
             AVFrame *coded_frame
-            int me_threshold
             AVRational pkt_timebase
         struct AVCodecParameters:
             AVCodecID codec_id
