@@ -255,7 +255,7 @@ cdef class MediaWriter(object):
                                     % (k, v, r, tcode(emsg(res, msg, sizeof(msg)))))
             # Some formats want stream headers to be separate
             if self.fmt_ctx.oformat.flags & AVFMT_GLOBALHEADER:
-                s[r].codec_ctx.flags |= CODEC_FLAG_GLOBAL_HEADER
+                s[r].codec_ctx.flags |= AV_CODEC_FLAG_GLOBAL_HEADER
 
             supported_fmts = get_supported_pixfmts(config['codec'], config['pix_fmt_out'])
             if supported_fmts and supported_fmts[0] != config['pix_fmt_out'].decode('utf8'):
