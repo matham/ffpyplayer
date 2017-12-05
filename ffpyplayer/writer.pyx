@@ -484,8 +484,7 @@ cdef class MediaWriter(object):
                 got_pkt = 0
                 pict_type_src = frame_out.pict_type
                 pts_src = frame_out.pts
-                if not s.codec_ctx.me_threshold:
-                    frame_out.pict_type = AV_PICTURE_TYPE_NONE
+                frame_out.pict_type = AV_PICTURE_TYPE_NONE
                 frame_out.pts = s.pts
                 res = avcodec_encode_video2(s.codec_ctx, &pkt, frame_out, &got_pkt)
                 if res < 0:
