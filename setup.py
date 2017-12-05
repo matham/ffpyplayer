@@ -128,9 +128,11 @@ if "KIVYIOSROOT" in environ:
         environ.get("SDL_INCLUDE_DIR"),
         environ.get("FFMPEG_INCLUDE_DIR")]
     sdl = "SDL2"
+    print('Found OS ios')
 
 elif "NDKPLATFORM" in environ:
     # enable python-for-android/py4a compilation
+    print('Found OS py4a')
 
     # ffmpeg:
     ffmpeg_lib, ffmpeg_include = get_paths('FFMPEG')
@@ -162,6 +164,7 @@ elif "NDKPLATFORM" in environ:
         include_dirs.append(mixer_include)
 
 else:
+    print('Found OS other')
 
     # ffmpeg
     objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
@@ -297,13 +300,15 @@ with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'w') as f:
 include_dirs.extend(
     [join(abspath(dirname(__file__)), 'ffpyplayer'),
      join(abspath(dirname(__file__)), 'ffpyplayer', 'includes')])
+print('includes')
+print(include_dirs, library_dirs)
 ext_modules = [Extension(
     'ffpyplayer.' + src_file.replace('/', '.'),
     sources=[join('ffpyplayer', *(src_file + mod_suffix).split('/')),
              join('ffpyplayer', 'clib', 'misc.c')],
     libraries=libraries,
-    include_dirs=include_dirs,
-    library_dirs=library_dirs)
+    include_dirs=[d for d in include_dirs if d],
+    library_dirs=[d for d in library_dirs if d])
                for src_file in mods]
 
 for e in ext_modules:
