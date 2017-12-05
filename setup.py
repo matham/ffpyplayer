@@ -304,8 +304,8 @@ ext_modules = [Extension(
     sources=[join('ffpyplayer', *(src_file + mod_suffix).split('/')),
              join('ffpyplayer', 'clib', 'misc.c')],
     libraries=libraries,
-    include_dirs=include_dirs,
-    library_dirs=library_dirs)
+    include_dirs=[d for d in include_dirs if d],
+    library_dirs=[d for d in library_dirs if d])
                for src_file in mods]
 
 for e in ext_modules:
