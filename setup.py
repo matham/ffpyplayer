@@ -128,9 +128,11 @@ if "KIVYIOSROOT" in environ:
         environ.get("SDL_INCLUDE_DIR"),
         environ.get("FFMPEG_INCLUDE_DIR")]
     sdl = "SDL2"
+    print('Found OS ios')
 
 elif "NDKPLATFORM" in environ:
     # enable python-for-android/py4a compilation
+    print('Found OS py4a')
 
     # ffmpeg:
     ffmpeg_lib, ffmpeg_include = get_paths('FFMPEG')
@@ -162,6 +164,7 @@ elif "NDKPLATFORM" in environ:
         include_dirs.append(mixer_include)
 
 else:
+    print('Found OS other')
 
     # ffmpeg
     objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
