@@ -376,7 +376,7 @@ cdef:
         int AV_CODEC_CAP_DR1
         int CODEC_FLAG_GLOBAL_HEADER
         int AV_PKT_FLAG_KEY
-        int CODEC_CAP_DELAY
+        int AV_CODEC_CAP_DELAY
         struct AVCodec:
             const char *name
             int capabilities
