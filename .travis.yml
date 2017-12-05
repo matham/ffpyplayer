@@ -91,7 +91,7 @@ install:
       brew update;
       brew install sdl2;
       brew install sdl2_mixer;
-      brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
+      travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
       if [ "${PY}" == "3" ]; then
          curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
          sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
