@@ -622,8 +622,9 @@ cdef class MediaPlayer(object):
                 numerator and denominator. src and sink video sizes correspond to
                 the frame size of the original video, and the frames returned by
                 :meth:`get_frame`, respectively. `src_pix_fmt` is the pixel format
-                of the original input stream. Duration is the file duration and
-                defaults to None until updated.
+                of the original input stream. 'aspect_ratio' is the source to 
+                display aspect ratio as a numerator and denominator. Duration 
+                is the file duration and defaults to None until updated.
 
         :
 

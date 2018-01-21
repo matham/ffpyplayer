@@ -289,7 +289,8 @@ cdef class VideoState(object):
         self.self_id = <PyObject*>self
         self.metadata = {
             'src_vid_size': (0, 0), 'sink_vid_size': (0, 0), 'title': '',
-            'duration': None, 'frame_rate': (0, 0), 'src_pix_fmt': ''}
+            'duration': None, 'frame_rate': (0, 0), 'src_pix_fmt': '',
+            'aspect_ratio':(1, 1)}
 
     cdef int cInit(self, MTGenerator mt_gen, VideoSettings *player, int paused,
                    AVPixelFormat out_fmt) nogil except 1:
@@ -1107,6 +1108,7 @@ cdef class VideoState(object):
         cdef AVRational tb = self.video_st.time_base
         cdef AVRational tb_temp
         cdef AVRational frame_rate = av_guess_frame_rate(self.ic, self.video_st, NULL)
+        cdef AVRational sar
         cdef char err_msg[256]
         cdef AVPixelFormat last_out_fmt = self.pix_fmt
         IF CONFIG_AVFILTER:
@@ -1177,8 +1179,10 @@ cdef class VideoState(object):
                     last_serial = self.viddec.pkt_serial
                     frame_rate = av_buffersink_get_frame_rate(filt_out)
                     last_vfilter_idx = self.vfilter_idx
+                    sar = <AVRational>frame.sample_aspect_ratio
                     with gil:
                         self.metadata['src_vid_size'] = (last_w, last_h)
+                        self.metadata['aspect_ratio'] = (sar.num, sar.den)
                         self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
 
                 ret = av_buffersrc_add_frame(filt_in, frame)
@@ -1221,8 +1225,10 @@ cdef class VideoState(object):
                     pts = NAN
                 else:
                     pts = frame.pts * av_q2d(tb)
+                sar = <AVRational>frame.sample_aspect_ratio
                 with gil:
                     self.metadata['src_vid_size'] = (frame.width, frame.height)
+                    self.metadata['aspect_ratio'] = (sar.num, sar.den)
                     self.metadata['frame_rate'] = (frame_rate.num, frame_rate.den)
                 ret = self.pictq.queue_picture(frame, pts, duration, av_frame_get_pkt_pos(frame),
                                          self.viddec.pkt_serial, last_out_fmt, &self.abort_request,
