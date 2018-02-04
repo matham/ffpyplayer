@@ -20,6 +20,7 @@ cdef class Image(object):
 
     cdef int cython_init(self, AVFrame *frame) nogil except 1
     cpdef is_ref(Image self)
+    cpdef is_key_frame(Image self)
     cpdef get_linesizes(Image self, keep_align=*)
     cpdef get_size(Image self)
     cpdef get_pixel_format(Image self)
