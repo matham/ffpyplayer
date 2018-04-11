@@ -427,6 +427,7 @@ cdef:
             AVRational sample_aspect_ratio
             int width, height
             int format
+            int key_frame
             int64_t pts
             int64_t pkt_pts
             int64_t pkt_dts

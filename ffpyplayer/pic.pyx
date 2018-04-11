@@ -505,6 +505,15 @@ cdef class Image(object):
         '''
         return self.frame.buf[0] != NULL
 
+    cpdef is_key_frame(Image self):
+        '''Returns whether the image is a key frame.
+
+        :returns:
+
+            bool: True if the image was a key frame.
+        '''
+        return self.frame.key_frame == 1
+
     cpdef get_linesizes(Image self, keep_align=False):
         '''Returns the linesize of each plane.
 
