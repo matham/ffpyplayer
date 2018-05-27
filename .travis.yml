@@ -93,7 +93,7 @@ install:
       python3 get-pip.py --user;
       python3 -m pip install --upgrade --user pip;
       python3 -m pip install --upgrade --user cython nose wheel;
-      python3 -m pip install delocate;
+      python3 -m pip install --upgrade delocate;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
       wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -131,6 +131,8 @@ script:
        ls $rootp/../bin;
        echo "cheese4 is queen";
        ls $rootp/../sbin;
+       echo "cheese5 is queen";
+       ls /Users/travis/Library/Python/3.5/lib/python/site-packages/delocate
        mkdir wheelhouse;
 
        python3 setup.py build_ext --inplace;
