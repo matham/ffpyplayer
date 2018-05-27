@@ -159,7 +159,7 @@ build_script:
       conda config --add channels conda-forge
       conda update --yes --quiet conda
       conda create -n testenv --yes --quiet pip python=3
-      activate testenv
+      activate.bat testenv
       python -c "import sys;print('Python version is {}'.format(sys.version))"
       conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
       
