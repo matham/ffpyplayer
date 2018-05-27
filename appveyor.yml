@@ -168,6 +168,10 @@ build_script:
       
       $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
+      dir "$env:FFMPEG_ROOT"
+      dir "$env:FFMPEG_ROOT\bin"
+      dir "$env:FFMPEG_ROOT\lib"
+      dir "$CONDA_ROOT"
 
       python setup.py build_ext --inplace
       python -m pip install -e .
