@@ -176,6 +176,7 @@ build_script:
       dir "ffpyplayer"
 
       python setup.py build_ext --inplace
+      dir "ffpyplayer"
     }
     $env:PYTHONPATH = $old_pypath
 test_script:
