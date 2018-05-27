@@ -31,7 +31,7 @@ build_script:
 
     $env:PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
 
-    if ($env:COMPILER -neq "conda") {
+    if ($env:COMPILER -ne "conda") {
       if ($env:BITTNESS -eq "64") {
         $PYTHON_ROOT = "C:\Python$env:PYVER-x64"
       } else {
@@ -170,7 +170,7 @@ test_script:
 - ps: >-
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
 
-    if ($env:COMPILER -neq "conda") {
+    if ($env:COMPILER -ne "conda") {
       cd "$env:APPVEYOR_BUILD_FOLDER\deploy"
       $name = python -c "import glob;print(glob.glob('*.whl')[0])"
       Check-Error
