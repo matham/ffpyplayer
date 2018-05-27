@@ -1,6 +1,5 @@
 version: 1.0.{build}
 environment:
-  APPVEYOR_RDP_PASSWORD: fruity
   FF_BUILD_DIR: C:\ff_build
   FFMPEG_VERSION: latest
   SDL_VERSION: 2.0.8
