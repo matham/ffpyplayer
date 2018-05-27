@@ -122,11 +122,14 @@ script:
         make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+       rootp="$(python3 -c 'import sys;import os; print(os.path.dirname(sys.executable))')";
+       ls $rootp;
+       export PATH=$rootp:$PATH;
        mkdir wheelhouse;
 
        python3 setup.py build_ext --inplace;
        python3 setup.py bdist_wheel;
-       cp dist/*.whl wheelhouse;
+       cp -r dist/*.whl wheelhouse;
 
        delocate-wheel wheelhouse/*.whl;
        delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
