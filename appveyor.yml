@@ -159,7 +159,7 @@ build_script:
       conda update --yes --quiet conda
       conda create -n testenv --yes --quiet pip python=3
       source activate testenv
-      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkg-config
+      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
       
       $env:SDL_ROOT="$env:CONDA_PREFIX\Library"
       $env:FFMPEG_ROOT="$env:CONDA_PREFIX\Library"
