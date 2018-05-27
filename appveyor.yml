@@ -151,7 +151,8 @@ build_script:
         $CONDA_ROOT = "C:\Miniconda$env:PYVER"
       }
 
-      $env:PATH = "$CONDA_ROOT\Scripts;$env:PATH;C:\Program Files\7-Zip"
+      cd "$env:APPVEYOR_BUILD_FOLDER"
+      $env:PATH = "$CONDA_ROOT;$CONDA_ROOT\Scripts;$env:PATH;C:\Program Files\7-Zip"
       python -c "import sys;print('Python version is {}'.format(sys.version))"
       Check-Error
       
