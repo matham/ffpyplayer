@@ -8,21 +8,21 @@ environment:
   access_token:
     secure: H8F1UMqC4QixM9NbnHewuineXTu860e3WhkpgMzui6xQmCv2qyXd4BDonVrrW5Iv
   matrix:
-  - PYVER: 35
-    BITTNESS: 32
-    COMPILER: msvc
-  - PYVER: 36
-    BITTNESS: 32
-    COMPILER: msvc
-  - PYVER: 35
-    BITTNESS: 64
-    COMPILER: msvc
-  - PYVER: 36
-    BITTNESS: 64
-    COMPILER: msvc
   - PYVER: 36
     BITTNESS: 64
     COMPILER: conda
+  - PYVER: 35
+    BITTNESS: 32
+    COMPILER: msvc
+  - PYVER: 36
+    BITTNESS: 32
+    COMPILER: msvc
+  - PYVER: 35
+    BITTNESS: 64
+    COMPILER: msvc
+  - PYVER: 36
+    BITTNESS: 64
+    COMPILER: msvc
 build_script:
 - ps: >-
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
@@ -165,6 +165,7 @@ build_script:
       
       $env:SDL_ROOT="$env:CONDA_PREFIX" + "\Library"
       $env:FFMPEG_ROOT="$env:CONDA_PREFIX" + "\Library"
+      echo "$env:SDL_ROOT, $env:CONDA_PREFIX, $env:FFMPEG_ROOT, $CONDA_ROOT"
       python setup.py build_ext --inplace
     }
     $env:PYTHONPATH = $old_pypath
