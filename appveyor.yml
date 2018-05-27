@@ -152,21 +152,25 @@ build_script:
       }
 
       cd "$env:APPVEYOR_BUILD_FOLDER"
-      $env:PATH = "$CONDA_ROOT;$CONDA_ROOT\Scripts;$env:PATH;C:\Program Files\7-Zip"
+      #https://github.com/Anaconda-Platform/anaconda-project/blob/master/appveyor.yml
+      $env:PATH = "$CONDA_ROOT;$CONDA_ROOT\Scripts;$CONDA_ROOT\Library\bin;$env:PATH;C:\Program Files\7-Zip"
       python -c "import sys;print('Python version is {}'.format(sys.version))"
       Check-Error
-      
-      conda config --add channels conda-forge
-      conda update --yes --quiet conda
-      conda create -n testenv --yes --quiet pip python=3
+
+      conda config --set always_yes yes
+      conda install -n root -q conda --no-pin
       activate.bat testenv
+
+      conda create -q -n testenv --yes --quiet pip python=3
+      conda config --add channels conda-forge
+
       python -c "import sys;print('Python version is {}'.format(sys.version))"
       conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
       
-      $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
-      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
+      $env:SDL_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
+      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
       dir "$env:SDL_ROOT\include"
-      echo "$env:SDL_ROOT, $env:CONDA_PREFIX, $env:FFMPEG_ROOT, $CONDA_ROOT"
+
       python setup.py build_ext --inplace
     }
     $env:PYTHONPATH = $old_pypath
