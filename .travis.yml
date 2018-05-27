@@ -125,8 +125,12 @@ script:
        echo "cheese is queen";
        rootp="$(python3 -c 'import sys;import os; print(os.path.dirname(sys.executable))')";
        ls $rootp/..;
-       echo "apple is queen";
+       echo "cheese2 is queen";
        ls $rootp/../lib;
+       echo "cheese3 is queen";
+       ls $rootp/../bin;
+       echo "cheese4 is queen";
+       ls $rootp/../sbin;
        mkdir wheelhouse;
 
        python3 setup.py build_ext --inplace;
