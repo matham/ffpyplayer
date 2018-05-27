@@ -168,6 +168,7 @@ build_script:
       
       $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
+      $env:PATH = "$CONDA_ROOT;$CONDA_ROOT\Scripts;$CONDA_ROOT\Library\bin;$env:PATH;C:\Program Files\7-Zip"
       dir "$env:FFMPEG_ROOT"
       dir "$env:FFMPEG_ROOT\bin"
       dir "$env:FFMPEG_ROOT\lib"
