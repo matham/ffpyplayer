@@ -100,7 +100,7 @@ install:
       conda update --yes --quiet conda;
       conda create -n testenv --yes --quiet pip python=3;
       source activate testenv;
-      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg;
+      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkg-config;
     fi;
 
 before_script:
