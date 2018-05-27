@@ -145,6 +145,9 @@ script:
       ls wheelhouse/;
       ls upload;
     fi;
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ] || [ "${DOCKER_IMAGE}" != "" ]; then
+      export UPLOAD_WHEELS=1;
+    fi;
 deploy:
   - provider: s3
     access_key_id:
@@ -157,5 +160,5 @@ deploy:
     local_dir: upload
     upload-dir: ffpyplayer
     on:
-      condition: "${DOCKER_IMAGE}" != "" || "${TRAVIS_OS_NAME}" == "osx"
+      condition: "$UPLOAD_WHEELS"
       branch: "master"
