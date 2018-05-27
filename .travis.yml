@@ -92,7 +92,7 @@ install:
       curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
       python3 get-pip.py --user;
       python3 -m pip install --upgrade --user pip;
-      python3 -m pip install --upgrade --user cython nose;
+      python3 -m pip install --upgrade --user cython nose wheel delocate;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
       wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -121,7 +121,17 @@ script:
         make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+       mkdir wheelhouse;
+
        python3 setup.py build_ext --inplace;
+       python3 setup.py bdist_wheel;
+       cp dist/*.whl wheelhouse;
+
+       delocate-wheel wheelhouse/*.whl
+       delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl
+       ls wheelhouse/;
+       cp wheelhouse upload;
+
        python3 -m nose.core ffpyplayer/tests;
     fi;
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
@@ -147,5 +157,5 @@ deploy:
     local_dir: upload
     upload-dir: ffpyplayer
     on:
-      condition: "$DOCKER_IMAGE"
+      condition: "${DOCKER_IMAGE}" != "" || "${TRAVIS_OS_NAME}" == "osx"
       branch: "master"
