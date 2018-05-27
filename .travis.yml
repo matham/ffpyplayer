@@ -93,7 +93,7 @@ install:
       python3 get-pip.py --user;
       python3 -m pip install --upgrade --user pip;
       python3 -m pip install --upgrade --user cython nose wheel;
-      python3 -m pip install --verbose --verbose --verbose delocate;
+      python3 -m pip install delocate;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
       wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -122,9 +122,11 @@ script:
         make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+       echo "cheese is queen";
        rootp="$(python3 -c 'import sys;import os; print(os.path.dirname(sys.executable))')";
-       ls $rootp;
-       export PATH=$rootp:$PATH;
+       ls $rootp/..;
+       echo "apple is queen";
+       ls $rootp/../lib;
        mkdir wheelhouse;
 
        python3 setup.py build_ext --inplace;
