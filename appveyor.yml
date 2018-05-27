@@ -159,9 +159,10 @@ build_script:
 
       conda config --set always_yes yes
       conda install -n root -q conda --no-pin
-      activate.bat testenv
+      activate.bat root
 
       conda create -q -n testenv --yes --quiet pip python=3
+      activate.bat testenv
       conda config --add channels conda-forge
 
       python -c "import sys;print('Python version is {}'.format(sys.version))"
