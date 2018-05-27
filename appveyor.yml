@@ -165,8 +165,11 @@ build_script:
       
       $env:SDL_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
-      dir "$env:SDL_ROOT"
+      dir "$env:SDL_ROOT\bin"
       dir "$CONDA_ROOT\envs\testenv"
+      dir "$CONDA_ROOT\envs\testenv\include"
+      dir "$CONDA_ROOT\envs\testenv\Lib"
+      dir "$CONDA_ROOT\envs\testenv\libs"
       dir "$CONDA_ROOT\envs"
       echo "$env:SDL_ROOT, $env:CONDA_PREFIX, $env:FFMPEG_ROOT, $CONDA_ROOT"
       python setup.py build_ext --inplace
