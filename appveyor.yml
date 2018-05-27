@@ -161,8 +161,8 @@ build_script:
       source activate testenv
       conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkg-config
       
-      $env:SDL_ROOT=$env:CONDA_PREFIX\Library
-      $env:FFMPEG_ROOT=$env:CONDA_PREFIX\Library
+      $env:SDL_ROOT="$env:CONDA_PREFIX\Library"
+      $env:FFMPEG_ROOT="$env:CONDA_PREFIX\Library"
       make
     }
     $env:PYTHONPATH = $old_pypath
