@@ -2,10 +2,6 @@ matrix:
   fast_finish: true
   include:
     - language: python
-      python: 2.7
-      os: linux
-      dist: trusty
-    - language: python
       python: 3.5
       os: linux
       dist: trusty
@@ -15,12 +11,7 @@ matrix:
     - sudo: required
       services:
         - docker
-      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
-    - sudo: required
-      services:
-        - docker
-      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
-           PRE_CMD=linux32
+      env: DOCKER_IMAGE=markrwilliams/manylinux2
 
 install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
@@ -89,13 +80,9 @@ install:
       brew install sdl2;
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
-      if [ "${PY}" == "3" ]; then
-         curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
-         sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
-         pip3 install --upgrade --user cython nose;
-      else
-         pip install --upgrade --user cython nose;
-      fi;
+      curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
+      sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
+      pip3 install --upgrade --user Cython nose;
     fi;
 
 before_script:
@@ -109,13 +96,8 @@ script:
         make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-      if [ "${PY}" == "3" ]; then
-         python3 setup.py build_ext --inplace;
-         python3 -m nose.core ffpyplayer/tests;
-      else
-         make;
-         make test;
-      fi;
+       python3 setup.py build_ext --inplace;
+       python3 -m nose.core ffpyplayer/tests;
     fi;
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
       unset DOCKER_IMAGE;
