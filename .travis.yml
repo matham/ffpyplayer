@@ -127,8 +127,8 @@ script:
        python3 setup.py bdist_wheel;
        cp dist/*.whl wheelhouse;
 
-       delocate-wheel wheelhouse/*.whl
-       delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl
+       delocate-wheel wheelhouse/*.whl;
+       delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
        ls wheelhouse/;
        cp wheelhouse upload;
 
