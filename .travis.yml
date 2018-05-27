@@ -93,7 +93,7 @@ install:
       python3 get-pip.py --user;
       python3 -m pip install --upgrade --user pip;
       python3 -m pip install --upgrade --user cython nose wheel;
-      python3 -m pip install delocate;
+      python3 -m pip install --verbose --verbose --verbose delocate;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
       wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
