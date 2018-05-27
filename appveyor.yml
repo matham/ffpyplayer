@@ -189,7 +189,7 @@ test_script:
       python -m nose.core "$name\tests"
       Check-Error
     } else {
-      python -m nose.core "tests"
+      python -m nose.core "ffpyplayer/tests"
     }
 artifacts:
 - path: deploy\*
