@@ -2,30 +2,18 @@ version: 1.0.{build}
 environment:
   FF_BUILD_DIR: C:\ff_build
   FFMPEG_VERSION: latest
-  SDL_VERSION: 2.0.5
-  SDL_MIXER_VERSION: 2.0.1
+  SDL_VERSION: 2.0.8
+  SDL_MIXER_VERSION: 2.0.2
   USE_SDL2_MIXER: 1
   access_token:
     secure: H8F1UMqC4QixM9NbnHewuineXTu860e3WhkpgMzui6xQmCv2qyXd4BDonVrrW5Iv
   matrix:
-  - PYVER: 27
-    BITTNESS: 32
-    COMPILER: mingw
-  - PYVER: 34
-    BITTNESS: 32
-    COMPILER: mingw
   - PYVER: 35
     BITTNESS: 32
     COMPILER: msvc
   - PYVER: 36
     BITTNESS: 32
     COMPILER: msvc
-  - PYVER: 27
-    BITTNESS: 64
-    COMPILER: mingw
-  - PYVER: 34
-    BITTNESS: 64
-    COMPILER: mingw
   - PYVER: 35
     BITTNESS: 64
     COMPILER: msvc
@@ -61,18 +49,18 @@ build_script:
 
     cd "$env:FF_BUILD_DIR"
 
-    echo "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.7z"
+    echo "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip"
 
-    Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.7z" -OutFile "shared.7z"
-
-    Check-Error
-
-    Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/dev/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.7z" -OutFile "dev.7z"
+    Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip" -OutFile "shared.zip"
 
     Check-Error
 
+    Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/dev/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.zip" -OutFile "dev.zip"
 
-    7z x "shared.7z"
+    Check-Error
+
+
+    7z x "shared.zip"
 
     Check-Error
 
@@ -81,7 +69,7 @@ build_script:
     Check-Error
 
 
-    7z x "dev.7z" -y
+    7z x "dev.zip" -y
 
     Check-Error
 
@@ -178,7 +166,7 @@ build_script:
 
     Check-Error
 
-    if ($env:BITTNESS -eq "64" -and $env:PYVER -eq "34") {
+    if ($env:BITTNESS -eq "64" -and $env:PYVER -eq "35") {
       python setup.py sdist -d "deploy"
       Check-Error
     }
