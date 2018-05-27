@@ -1,3 +1,5 @@
+language: python
+
 matrix:
   fast_finish: true
   include:
@@ -5,6 +7,11 @@ matrix:
       python: 3.5
       os: linux
       dist: trusty
+    - language: python
+      python: 3.5
+      os: linux
+      dist: trusty
+      env: TEST_CONDA=1
     - language: generic
       env: PY=3
       os: osx
@@ -14,7 +21,7 @@ matrix:
       env: DOCKER_IMAGE=markrwilliams/manylinux2
 
 install:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ] && [ "${TEST_CONDA}" != "1" ]; then
       sudo apt-get update;
       sudo apt-get -y install libegl1-mesa-dev libgles2-mesa-dev;
       sudo apt-get -y install libsdl2-dev libsdl2-mixer-dev python-dev;
@@ -84,6 +91,17 @@ install:
       sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
       pip3 install --upgrade --user Cython nose;
     fi;
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
+      wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+      chmod +x miniconda.sh;
+      ./miniconda.sh -b -p ~/anaconda;
+      export PATH=~/anaconda/bin:$PATH;
+      conda config --add channels conda-forge;
+      conda update --yes --quiet conda;
+      conda create -n testenv --yes --quiet pip python=3;
+      source activate testenv;
+      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg;
+    fi;
 
 before_script:
     cd "$TRAVIS_BUILD_DIR";
@@ -91,8 +109,12 @@ before_script:
     export USE_SDL2_MIXER=1;
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ] && [ "${TEST_CONDA}" != "1" ]; then
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
+        make test;
+    fi;
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
+        make;
         make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
