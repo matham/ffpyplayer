@@ -163,14 +163,9 @@ build_script:
       python -c "import sys;print('Python version is {}'.format(sys.version))"
       conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
       
-      $env:SDL_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
-      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
-      dir "$env:SDL_ROOT\bin"
-      dir "$CONDA_ROOT\envs\testenv"
-      dir "$CONDA_ROOT\envs\testenv\include"
-      dir "$CONDA_ROOT\envs\testenv\Lib"
-      dir "$CONDA_ROOT\envs\testenv\libs"
-      dir "$CONDA_ROOT\envs"
+      $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
+      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
+      dir "$env:SDL_ROOT\include"
       echo "$env:SDL_ROOT, $env:CONDA_PREFIX, $env:FFMPEG_ROOT, $CONDA_ROOT"
       python setup.py build_ext --inplace
     }
