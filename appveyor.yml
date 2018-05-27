@@ -172,9 +172,9 @@ build_script:
       dir "$env:FFMPEG_ROOT\bin"
       dir "$env:FFMPEG_ROOT\lib"
       dir "$CONDA_ROOT"
+      dir "ffpyplayer"
 
       python setup.py build_ext --inplace
-      python -m pip install -e .
     }
     $env:PYTHONPATH = $old_pypath
 test_script:
@@ -196,6 +196,7 @@ test_script:
       python -m nose.core "$name\tests"
       Check-Error
     } else {
+      $env:PYTHONPATH="$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
       python -m nose.core "ffpyplayer/tests"
     }
 artifacts:
