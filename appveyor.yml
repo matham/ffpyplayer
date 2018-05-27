@@ -161,16 +161,13 @@ build_script:
       conda install -n root -q conda --no-pin
       activate.bat root
 
-      conda create -q -n testenv --yes --quiet pip python=3
-      activate.bat testenv
       conda config --add channels conda-forge
 
       python -c "import sys;print('Python version is {}'.format(sys.version))"
-      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
+      conda install --yes --quiet pip python=3.6 nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
       
-      $env:SDL_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
-      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\envs\testenv\Library"
-      dir "$env:SDL_ROOT\include"
+      $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
+      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
 
       python setup.py build_ext --inplace
     }
