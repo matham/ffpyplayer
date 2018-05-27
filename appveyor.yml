@@ -163,7 +163,7 @@ build_script:
       
       $env:SDL_ROOT="$env:CONDA_PREFIX\Library"
       $env:FFMPEG_ROOT="$env:CONDA_PREFIX\Library"
-      make
+      python setup.py build_ext --inplace
     }
     $env:PYTHONPATH = $old_pypath
 test_script:
@@ -185,7 +185,7 @@ test_script:
       python -m nose.core "$name\tests"
       Check-Error
     } else {
-      make test
+      python -m nose.core "tests"
     }
 artifacts:
 - path: deploy\*
