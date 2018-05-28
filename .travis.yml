@@ -15,6 +15,15 @@ matrix:
     - language: generic
       env: PY=3
       os: osx
+      env: 
+        - PYVER=3.5.4
+        - PYVER_SHORT=3.5
+    - language: generic
+      env: PY=3
+      os: osx
+      env: 
+        - PYVER=3.6.5
+        - PYVER_SHORT=3.6
     - sudo: required
       services:
         - docker
@@ -87,8 +96,8 @@ install:
       brew install sdl2;
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
-      curl -O -L https://www.python.org/ftp/python/3.5.2/python-3.5.2-macosx10.6.pkg;
-      sudo installer -package python-3.5.2-macosx10.6.pkg -target /;
+      curl -O -L https://www.python.org/ftp/python/$PYVER/python-$PYVER-macosx10.6.pkg;
+      sudo installer -package python-$PYVER-macosx10.6.pkg -target /;
       curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
       python3 get-pip.py --user;
       python3 -m pip install --upgrade --user pip;
@@ -128,8 +137,8 @@ script:
        python3 setup.py bdist_wheel;
        cp dist/*.whl wheelhouse/;
 
-       /Library/Frameworks/Python.framework/Versions/3.5/bin/delocate-wheel wheelhouse/*.whl;
-       /Library/Frameworks/Python.framework/Versions/3.5/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
+       /Library/Frameworks/Python.framework/Versions/$PYVER_SHORT/bin/delocate-wheel wheelhouse/*.whl;
+       /Library/Frameworks/Python.framework/Versions/$PYVER_SHORT/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
        ls wheelhouse/;
        cp -R wheelhouse upload;
 
