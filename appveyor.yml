@@ -168,6 +168,7 @@ build_script:
       $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
       python setup.py build_ext --inplace
+      python -m nose.core "ffpyplayer/tests"
     }
 test_script:
 - ps: >-
@@ -188,8 +189,7 @@ test_script:
       python -m nose.core "$name\tests"
       Check-Error
     } else {
-      activate.bat root
-      python -m nose.core "ffpyplayer/tests"
+      echo "nothing"
     }
 artifacts:
 - path: deploy\*
