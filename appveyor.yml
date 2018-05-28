@@ -25,8 +25,6 @@ environment:
     COMPILER: msvc
 build_script:
 - ps: >-
-    iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
-
     $old_pypath = $env:PYTHONPATH
 
     $env:PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
@@ -150,9 +148,6 @@ build_script:
       } else {
         $CONDA_ROOT = "C:\Miniconda$env:PYVER"
       }
-      
-      $blockRdp = $true
-      iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
       cd "$env:APPVEYOR_BUILD_FOLDER"
       #https://github.com/Anaconda-Platform/anaconda-project/blob/master/appveyor.yml
@@ -161,12 +156,10 @@ build_script:
       Check-Error
 
       conda config --set always_yes yes
-      conda update -n base conda -c defaults
-
       conda config --add channels conda-forge
 
       python -c "import sys;print('Python version is {}'.format(sys.version))"
-      conda install --yes --quiet pip python=3.6 nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
+      conda install --yes --quiet pip nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
       
       $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
@@ -176,8 +169,8 @@ build_script:
       dir "$CONDA_ROOT"
       dir "ffpyplayer"
 
-      python setup.py build_ext --inplace
-      dir "ffpyplayer"
+      python setup.py install
+      cd ..\
     }
     $env:PYTHONPATH = $old_pypath
 test_script:
@@ -200,7 +193,7 @@ test_script:
       Check-Error
     } else {
       $env:PYTHONPATH="$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
-      python -m nose.core "ffpyplayer/tests"
+      python -m nose.core "ffpyplayer/ffpyplayer/tests"
     }
 artifacts:
 - path: deploy\*
