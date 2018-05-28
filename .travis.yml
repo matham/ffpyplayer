@@ -137,12 +137,12 @@ script:
 
        python3 setup.py build_ext --inplace;
        python3 setup.py bdist_wheel;
-       cp -r dist/*.whl wheelhouse;
+       cp dist/*.whl wheelhouse/;
 
-       delocate-wheel wheelhouse/*.whl;
-       delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
+       /Library/Frameworks/Python.framework/Versions/3.5/bin/delocate-wheel wheelhouse/*.whl;
+       /Library/Frameworks/Python.framework/Versions/3.5/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
        ls wheelhouse/;
-       cp wheelhouse upload;
+       cp -R wheelhouse upload;
 
        python3 -m nose.core ffpyplayer/tests;
     fi;
