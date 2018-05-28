@@ -15,7 +15,7 @@ matrix:
     - language: generic
       env: PY=3
       os: osx
-      env: PYVERS=3.5.4 3.6.5
+      env: PYVERS="3.5.4 3.6.5"
     - language: generic
       env: PY=3
       os: osx
@@ -93,6 +93,9 @@ install:
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
       for pyver in $PYVERS; do
+        echo "got python $pyver"
+      done;
+      for pyver in $PYVERS; do
         pyver_short=${pyver:0:3};
         curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.6.pkg;
         sudo installer -package python-$pyver-macosx10.6.pkg -target /;
@@ -110,14 +113,14 @@ install:
         ./miniconda.sh -b -p ~/anaconda;
         export PATH=~/anaconda/bin:$PATH;
       else
-        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh;
-        bash miniconda.sh -b -p /Users/travis/ffpy_miniconda;
-        export PATH=/Users/travis/ffpy_miniconda/bin:$PATH;
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O ~/miniconda.sh;
+        bash ~/miniconda.sh -b -p $HOME/ffpy_miniconda;
+        export PATH="$HOME/ffpy_miniconda/bin:$PATH";
       fi;
       echo "Check install";
-      ls /Users/travis/;
-      ls /Users/travis/ffpy_miniconda;
-      ls /Users/travis/ffpy_miniconda/bin;
+      ls $HOME;
+      ls $HOME/ffpy_miniconda;
+      ls $HOME/ffpy_miniconda/bin;
       
       conda config --add channels conda-forge;
       conda update --yes --quiet conda;
