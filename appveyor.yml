@@ -172,8 +172,8 @@ build_script:
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
       python setup.py build_ext --inplace
 
-      Write-Host "Success!"
       nosetests "ffpyplayer/tests"
+      Write-Host "Success!"
     }
 test_script:
 - ps: >-
