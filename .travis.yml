@@ -1,29 +1,36 @@
+language: python
+
 matrix:
   fast_finish: true
   include:
     - language: python
-      python: 2.7
+      python: 3.5
       os: linux
       dist: trusty
     - language: python
       python: 3.5
       os: linux
       dist: trusty
+      env: TEST_CONDA=1
     - language: generic
       env: PY=3
       os: osx
+      env: 
+        - PYVER=3.5.4
+        - PYVER_SHORT=3.5
+    - language: generic
+      env: PY=3
+      os: osx
+      env: 
+        - PYVER=3.6.5
+        - PYVER_SHORT=3.6
     - sudo: required
       services:
         - docker
-      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
-    - sudo: required
-      services:
-        - docker
-      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
-           PRE_CMD=linux32
+      env: DOCKER_IMAGE=markrwilliams/manylinux2:x86_64
 
 install:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ] && [ "${TEST_CONDA}" != "1" ]; then
       sudo apt-get update;
       sudo apt-get -y install libegl1-mesa-dev libgles2-mesa-dev;
       sudo apt-get -y install libsdl2-dev libsdl2-mixer-dev python-dev;
@@ -89,13 +96,24 @@ install:
       brew install sdl2;
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
-      if [ "${PY}" == "3" ]; then
-         curl -O -L https://www.python.org/ftp/python/3.5.1/python-3.5.1-macosx10.6.pkg;
-         sudo installer -package python-3.5.1-macosx10.6.pkg -target /;
-         pip3 install --upgrade --user cython nose;
-      else
-         pip install --upgrade --user cython nose;
-      fi;
+      curl -O -L https://www.python.org/ftp/python/$PYVER/python-$PYVER-macosx10.6.pkg;
+      sudo installer -package python-$PYVER-macosx10.6.pkg -target /;
+      curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
+      python3 get-pip.py --user;
+      python3 -m pip install --upgrade --user pip;
+      python3 -m pip install --upgrade --user cython nose wheel;
+      python3 -m pip install --upgrade delocate;
+    fi;
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
+      wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+      chmod +x miniconda.sh;
+      ./miniconda.sh -b -p ~/anaconda;
+      export PATH=~/anaconda/bin:$PATH;
+      conda config --add channels conda-forge;
+      conda update --yes --quiet conda;
+      conda create -n testenv --yes --quiet pip python=3;
+      source activate testenv;
+      conda install --yes --quiet nose cython sdl2 sdl2_mixer ffmpeg pkg-config;
     fi;
 
 before_script:
@@ -104,18 +122,27 @@ before_script:
     export USE_SDL2_MIXER=1;
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ] && [ "${TEST_CONDA}" != "1" ]; then
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
         make test;
     fi;
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
+        make;
+        make test;
+    fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-      if [ "${PY}" == "3" ]; then
-         python3 setup.py build_ext --inplace;
-         python3 -m nose.core ffpyplayer/tests;
-      else
-         make;
-         make test;
-      fi;
+       mkdir wheelhouse;
+
+       python3 setup.py build_ext --inplace;
+       python3 setup.py bdist_wheel;
+       cp dist/*.whl wheelhouse/;
+
+       /Library/Frameworks/Python.framework/Versions/$PYVER_SHORT/bin/delocate-wheel wheelhouse/*.whl;
+       /Library/Frameworks/Python.framework/Versions/$PYVER_SHORT/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
+       ls wheelhouse/;
+       cp -R wheelhouse upload;
+
+       python3 -m nose.core ffpyplayer/tests;
     fi;
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
       unset DOCKER_IMAGE;
@@ -127,6 +154,9 @@ script:
       tar -czvf upload/ffpyplayer-wheels-$(date +%s)$PRE_CMD.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
       ls wheelhouse/;
       ls upload;
+    fi;
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ] || [ "${DOCKER_IMAGE}" != "" ]; then
+      export UPLOAD_WHEELS=1;
     fi;
 deploy:
   - provider: s3
@@ -140,5 +170,5 @@ deploy:
     local_dir: upload
     upload-dir: ffpyplayer
     on:
-      condition: "$DOCKER_IMAGE"
+      condition: "$UPLOAD_WHEELS"
       branch: "master"

@@ -14,18 +14,18 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.1.tar.gz;
-tar xzf SDL2_mixer-2.0.1.tar.gz;
-cd SDL2_mixer-2.0.1;
+wget http://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.2.tar.gz;
+tar xzf SDL2_mixer-2.0.2.tar.gz;
+cd SDL2_mixer-2.0.2;
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget https://www.openssl.org/source/openssl-1.0.2l.tar.gz;
-tar xzf openssl-1.0.2l.tar.gz;
-cd openssl-1.0.2l;
+wget https://www.openssl.org/source/openssl-1.0.2o.tar.gz;
+tar xzf openssl-1.0.2o.tar.gz;
+cd openssl-1.0.2o;
 ./config -fpic shared --prefix="$HOME/ffmpeg_build";
 make;
 make install;
@@ -40,9 +40,9 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.gz;
-tar -xvzf nasm-2.13.01.tar.gz;
-cd nasm-2.13.01;
+wget http://www.nasm.us/pub/nasm/releasebuilds/2.13.02/nasm-2.13.02.tar.gz;
+tar -xvzf nasm-2.13.02.tar.gz;
+cd nasm-2.13.02;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 make;
 make install;
@@ -58,35 +58,35 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-curl -kLO http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz;
-tar xzf lame-3.99.5.tar.gz;
-cd lame-3.99.5;
-./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared;
+curl -kLO https://cytranet.dl.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz;
+tar xzf lame-3.100.tar.gz;
+cd lame-3.100;
+LIBS="-ltinfo $LIBS" ./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared;
 make;
 make install;
 make distclean;
 
 cd ~/ffmpeg_sources
-wget --no-check-certificate http://fribidi.org/download/fribidi-0.19.7.tar.bz2
-tar xjf fribidi-0.19.7.tar.bz2
-cd fribidi-0.19.7
+curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.3/fribidi-1.0.3.tar.bz2
+tar xjf fribidi-1.0.3.tar.bz2
+cd fribidi-1.0.3
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared;
 make
 make install
 
 cd ~/ffmpeg_sources
-curl -sLO https://github.com/libass/libass/releases/download/0.13.7/libass-0.13.7.tar.gz
-tar xzf libass-0.13.7.tar.gz
-cd libass-0.13.7
+curl -sLO https://github.com/libass/libass/releases/download/0.14.0/libass-0.14.0.tar.gz
+tar xzf libass-0.14.0.tar.gz
+cd libass-0.14.0
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --disable-require-system-font-provider;
 PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources
-wget --no-check-certificate http://www.cmake.org/files/v2.8/cmake-2.8.10.2.tar.gz
-tar xzf cmake-2.8.10.2.tar.gz
-cd cmake-2.8.10.2
-./configure --prefix=/usr/local/cmake-2.8.10.2
+wget --no-check-certificate http://www.cmake.org/files/v3.11/cmake-3.11.2.tar.gz
+tar xzf cmake-3.11.2.tar.gz
+cd cmake-3.11.2
+./configure --prefix=/usr/local/cmake-3.11.2
 gmake
 make
 make install
@@ -103,27 +103,23 @@ cd ~/ffmpeg_sources
 git clone https://github.com/mstorsjo/fdk-aac
 cd fdk-aac
 git apply /io/.travis/fdk.patch
-for file in libtool ltdl
-do
-  ln -s /usr/share/aclocal/$file.m4 /usr/local/share/aclocal/$file.m4
-done
 autoreconf -fiv
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared
 make
 make install
 
 cd ~/ffmpeg_sources
-curl -LO https://archive.mozilla.org/pub/opus/opus-1.1.5.tar.gz
-tar xzvf opus-1.1.5.tar.gz
-cd opus-1.1.5
+curl -LO https://archive.mozilla.org/pub/opus/opus-1.2.tar.gz
+tar xzvf opus-1.2.tar.gz
+cd opus-1.2
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared
 make
 make install
 
 cd ~/ffmpeg_sources
-curl -LO http://downloads.xiph.org/releases/ogg/libogg-1.3.2.tar.gz
-tar xzvf libogg-1.3.2.tar.gz
-cd libogg-1.3.2
+curl -LO http://downloads.xiph.org/releases/ogg/libogg-1.3.3.tar.gz
+tar xzvf libogg-1.3.3.tar.gz
+cd libogg-1.3.3
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared
 make
 make install
@@ -137,9 +133,9 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install
 
 cd ~/ffmpeg_sources
-curl -LO http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.4.tar.gz
-tar xzvf libvorbis-1.3.4.tar.gz
-cd libvorbis-1.3.4
+curl -LO http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.6.tar.gz
+tar xzvf libvorbis-1.3.6.tar.gz
+cd libvorbis-1.3.6
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --with-ogg="$HOME/ffmpeg_build" --enable-shared
 PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
@@ -162,11 +158,6 @@ make distclean;
 hash -r;
 
 # Compile wheels
-for PYBIN in /opt/python/*27*/bin; do
-    "${PYBIN}/pip" install --upgrade setuptools pip
-    "${PYBIN}/pip" install --upgrade cython nose
-    USE_SDL2_MIXER=1 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
-done
 for PYBIN in /opt/python/*3*/bin; do
     "${PYBIN}/pip" install --upgrade setuptools pip
     "${PYBIN}/pip" install --upgrade cython nose
