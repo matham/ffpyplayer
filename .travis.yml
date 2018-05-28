@@ -122,17 +122,6 @@ script:
         make test;
     fi;
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-       echo "cheese is queen";
-       rootp="$(python3 -c 'import sys;import os; print(os.path.dirname(sys.executable))')";
-       ls $rootp/..;
-       echo "cheese2 is queen";
-       ls $rootp/../lib;
-       echo "cheese3 is queen";
-       ls $rootp/../bin;
-       echo "cheese4 is queen";
-       ls $rootp/../sbin;
-       find / -name "*addplat*";
-       echo "cheese5 is queen";
        mkdir wheelhouse;
 
        python3 setup.py build_ext --inplace;
