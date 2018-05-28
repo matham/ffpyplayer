@@ -28,6 +28,7 @@ build_script:
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
 
     $old_pypath = $env:PYTHONPATH
+
     $env:PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
 
     if ($env:COMPILER -ne "conda") {
