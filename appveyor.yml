@@ -142,6 +142,7 @@ build_script:
         python setup.py sdist -d "deploy"
         Check-Error
       }
+      $env:PYTHONPATH = $old_pypath
     } else {
       if ($env:BITTNESS -eq "64") {
         $CONDA_ROOT = "C:\Miniconda$env:PYVER-x64"
@@ -156,6 +157,8 @@ build_script:
       Check-Error
 
       conda config --set always_yes yes
+      conda update -n base conda
+      activate.bat root
       conda config --add channels conda-forge
 
       python -c "import sys;print('Python version is {}'.format(sys.version))"
@@ -163,9 +166,8 @@ build_script:
       
       $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
-      python setup.py install
+      python setup.py build_ext --inplace
     }
-    $env:PYTHONPATH = $old_pypath
 test_script:
 - ps: >-
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
@@ -185,7 +187,7 @@ test_script:
       python -m nose.core "$name\tests"
       Check-Error
     } else {
-      $env:PYTHONPATH="$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
+      activate.bat root
       python -m nose.core "ffpyplayer/tests"
     }
 artifacts:
