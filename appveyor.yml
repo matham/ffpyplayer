@@ -170,7 +170,7 @@ build_script:
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
       python setup.py build_ext --inplace
 
-      python -m nose.core "ffpyplayer/tests" 2>&1
+      python -m nose.core "ffpyplayer/tests" 2`>`&1
     }
 test_script:
 - ps: >-
