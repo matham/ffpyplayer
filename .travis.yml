@@ -112,7 +112,13 @@ install:
         
       wget -q http://repo.continuum.io/miniconda/Miniconda-latest-$fname-x86_64.sh -O miniconda.sh;
       chmod +x miniconda.sh;
-      ./miniconda.sh -b -p ~/anaconda;
+      echo "Check var";
+      ls;
+      sh miniconda.sh -b -p ~/anaconda;
+      echo "Check install";
+      ls ~/;
+      ls ~/anaconda;
+      ls ~/anaconda/bin;
       export PATH=~/anaconda/bin:$PATH;
       conda config --add channels conda-forge;
       conda update --yes --quiet conda;
