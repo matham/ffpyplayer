@@ -25,8 +25,9 @@ environment:
     COMPILER: msvc
 build_script:
 - ps: >-
-    $old_pypath = $env:PYTHONPATH
+    iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
 
+    $old_pypath = $env:PYTHONPATH
     $env:PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
 
     if ($env:COMPILER -ne "conda") {
@@ -170,6 +171,7 @@ build_script:
       $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
       python setup.py build_ext --inplace
 
+      Write-Host "Success!"
       nosetests "ffpyplayer/tests"
     }
 test_script:
