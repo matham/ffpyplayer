@@ -15,15 +15,11 @@ matrix:
     - language: generic
       env: PY=3
       os: osx
-      env: 
-        - PYVER=3.5.4
-        - PYVER_SHORT=3.5
+      env: PYVERS="3.5.4 3.6.5"
     - language: generic
       env: PY=3
       os: osx
-      env: 
-        - PYVER=3.6.5
-        - PYVER_SHORT=3.6
+      env: TEST_CONDA=1
     - sudo: required
       services:
         - docker
@@ -91,24 +87,29 @@ install:
 
       pip install --upgrade cython nose;
     fi;
-  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ] && [ "${TEST_CONDA}" != "1" ]; then
       brew update;
       brew install sdl2;
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
-      curl -O -L https://www.python.org/ftp/python/$PYVER/python-$PYVER-macosx10.6.pkg;
-      sudo installer -package python-$PYVER-macosx10.6.pkg -target /;
-      curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
-      python3 get-pip.py --user;
-      python3 -m pip install --upgrade --user pip;
-      python3 -m pip install --upgrade --user cython nose wheel;
-      python3 -m pip install --upgrade delocate;
     fi;
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
-      wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
-      chmod +x miniconda.sh;
-      ./miniconda.sh -b -p ~/anaconda;
-      export PATH=~/anaconda/bin:$PATH;
+  - if [ "${TEST_CONDA}" == "1" ]; then
+      if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b -p ~/anaconda;
+        export PATH=~/anaconda/bin:$PATH;
+      else
+        curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh > ~/miniconda.sh;
+        bash ~/miniconda.sh -b -p ~/miniconda;
+        export PATH="~/miniconda/bin:$PATH";
+      fi;
+      echo "Check install";
+      ls $HOME;
+      ls $HOME/ffpy_miniconda;
+      ls $HOME/ffpy_miniconda/bin;
+      ls /;
+      
       conda config --add channels conda-forge;
       conda update --yes --quiet conda;
       conda create -n testenv --yes --quiet pip python=3;
@@ -126,23 +127,39 @@ script:
         PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" make;
         make test;
     fi;
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${TEST_CONDA}" == "1" ]; then
+  - if [ "${TEST_CONDA}" == "1" ]; then
         make;
         make test;
     fi;
-  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-       mkdir wheelhouse;
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ] && [ "${TEST_CONDA}" != "1" ]; then
+       mkdir ../wheelhouse;
 
-       python3 setup.py build_ext --inplace;
-       python3 setup.py bdist_wheel;
-       cp dist/*.whl wheelhouse/;
+       for pyver in $PYVERS; do
+         git reset --hard;
+         git clean -d -x -f;
+         pyver_short=${pyver:0:3};
 
-       /Library/Frameworks/Python.framework/Versions/$PYVER_SHORT/bin/delocate-wheel wheelhouse/*.whl;
-       /Library/Frameworks/Python.framework/Versions/$PYVER_SHORT/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 wheelhouse/*.whl;
-       ls wheelhouse/;
-       cp -R wheelhouse upload;
+         curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.6.pkg;
+         sudo installer -package python-$pyver-macosx10.6.pkg -target /;
+         curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
+         python$pyver_short get-pip.py --user;
+         python$pyver_short -m pip install --upgrade --user pip;
+         python$pyver_short -m pip install --upgrade --user cython nose wheel;
+         python$pyver_short -m pip install --upgrade delocate;
 
-       python3 -m nose.core ffpyplayer/tests;
+         python$pyver_short setup.py build_ext --inplace;
+         python$pyver_short setup.py bdist_wheel;
+         python3 -m nose.core ffpyplayer/tests;
+
+         /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-wheel dist/*.whl;
+         /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 dist/*.whl;
+         cp dist/*.whl ../wheelhouse/;
+       done;
+
+       mkdir upload;
+       tar -czvf upload/ffpyplayer-osx-wheels-$(date +%s)$PRE_CMD.tar.gz $(find ../wheelhouse/ -type f -name '*.whl');
+       ls ../wheelhouse/;
+       ls upload;
     fi;
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
       unset DOCKER_IMAGE;
@@ -150,12 +167,13 @@ script:
   - if [ "${DOCKER_IMAGE}" != "" ]; then
       mkdir wheelhouse;
       mkdir upload;
+
       docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.travis/build-wheels.sh;
       tar -czvf upload/ffpyplayer-wheels-$(date +%s)$PRE_CMD.tar.gz $(find wheelhouse/ -type f -name '*manylinux*');
       ls wheelhouse/;
       ls upload;
     fi;
-  - if [ "${TRAVIS_OS_NAME}" == "osx" ] || [ "${DOCKER_IMAGE}" != "" ]; then
+  - if (([ "${TRAVIS_OS_NAME}" == "osx" ] && [ "${TEST_CONDA}" != "1" ]) || [ "${DOCKER_IMAGE}" != "" ]) && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
       export UPLOAD_WHEELS=1;
     fi;
 deploy:
