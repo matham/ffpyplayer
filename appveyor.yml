@@ -164,7 +164,7 @@ build_script:
       conda config --add channels conda-forge
 
       python -c "import sys;print('Python version is {}'.format(sys.version))"
-      conda install --yes --quiet pip nose cython sdl2 sdl2_mixer ffmpeg pkgconfig
+      conda install --yes --quiet pip nose cython sdl2 sdl2_mixer ffmpeg pkgconfig libflac libvorbis
       
       dir "c:\projects\ffpyplayer\ffpyplayer\player"
       $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
