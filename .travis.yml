@@ -92,19 +92,6 @@ install:
       brew install sdl2;
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
-      for pyver in $PYVERS; do
-        echo "got python $pyver";
-      done;
-      for pyver in $PYVERS; do
-        pyver_short=${pyver:0:3};
-        curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.6.pkg;
-        sudo installer -package python-$pyver-macosx10.6.pkg -target /;
-        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
-        python$pyver_short get-pip.py --user;
-        python$pyver_short -m pip install --upgrade --user pip;
-        python$pyver_short -m pip install --upgrade --user cython nose wheel;
-        python$pyver_short -m pip install --upgrade delocate;
-      done;
     fi;
   - if [ "${TEST_CONDA}" == "1" ]; then
       if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
@@ -114,13 +101,14 @@ install:
         export PATH=~/anaconda/bin:$PATH;
       else
         wget -q http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O ~/miniconda.sh;
-        bash ~/miniconda.sh -b -p $HOME/ffpy_miniconda;
+        bash ~/miniconda.sh -b -p $HOME/ffpy_miniconda -f;
         export PATH="$HOME/ffpy_miniconda/bin:$PATH";
       fi;
       echo "Check install";
       ls $HOME;
       ls $HOME/ffpy_miniconda;
       ls $HOME/ffpy_miniconda/bin;
+      ls /;
       
       conda config --add channels conda-forge;
       conda update --yes --quiet conda;
@@ -150,6 +138,14 @@ script:
          git reset --hard;
          git clean -d -x -f;
          pyver_short=${pyver:0:3};
+
+         curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.6.pkg;
+         sudo installer -package python-$pyver-macosx10.6.pkg -target /;
+         curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
+         python$pyver_short get-pip.py --user;
+         python$pyver_short -m pip install --upgrade --user pip;
+         python$pyver_short -m pip install --upgrade --user cython nose wheel;
+         python$pyver_short -m pip install --upgrade delocate;
 
          python$pyver_short setup.py build_ext --inplace;
          python$pyver_short setup.py bdist_wheel;
