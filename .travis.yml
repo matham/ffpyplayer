@@ -93,7 +93,7 @@ install:
       brew install sdl2_mixer;
       travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
       for pyver in $PYVERS; do
-        echo "got python $pyver"
+        echo "got python $pyver";
       done;
       for pyver in $PYVERS; do
         pyver_short=${pyver:0:3};
