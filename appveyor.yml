@@ -186,7 +186,7 @@ test_script:
       Check-Error
     } else {
       $env:PYTHONPATH="$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
-      python -m nose.core "ffpyplayer/ffpyplayer/tests"
+      python -m nose.core "ffpyplayer/tests"
     }
 artifacts:
 - path: deploy\*
