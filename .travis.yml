@@ -105,21 +105,20 @@ install:
     fi;
   - if [ "${TEST_CONDA}" == "1" ]; then
       if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        fname="Linux";
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b -p ~/anaconda;
+        export PATH=~/anaconda/bin:$PATH;
       else
-        fname="MacOSX";
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh;
+        bash miniconda.sh -b -p /Users/travis/ffpy_miniconda;
+        export PATH=/Users/travis/ffpy_miniconda/bin:$PATH;
       fi;
-        
-      wget -q http://repo.continuum.io/miniconda/Miniconda-latest-$fname-x86_64.sh -O miniconda.sh;
-      chmod +x miniconda.sh;
-      echo "Check var";
-      ls;
-      sh miniconda.sh -b -p ~/anaconda;
       echo "Check install";
-      ls ~/;
-      ls ~/anaconda;
-      ls ~/anaconda/bin;
-      export PATH=~/anaconda/bin:$PATH;
+      ls /Users/travis/;
+      ls /Users/travis/ffpy_miniconda;
+      ls /Users/travis/ffpy_miniconda/bin;
+      
       conda config --add channels conda-forge;
       conda update --yes --quiet conda;
       conda create -n testenv --yes --quiet pip python=3;
