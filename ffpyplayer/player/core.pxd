@@ -64,7 +64,6 @@ cdef class VideoState(object):
         AVStream *audio_st
         FFPacketQueue audioq
         int audio_hw_buf_size
-        uint8_t silence_buf[AUDIO_MIN_BUFFER_SIZE]
 
         IF USE_SDL2_MIXER:
             uint8_t chunk_buf[AUDIO_MIN_BUFFER_SIZE]
@@ -169,8 +168,11 @@ cdef class VideoState(object):
     cdef int stream_component_open(VideoState self, int stream_index) nogil except 1
     cdef int stream_component_close(VideoState self, int stream_index) nogil except 1
     cdef int read_thread(VideoState self) nogil except 1
+    cdef int stream_has_enough_packets(self, AVStream *st, int stream_id, FFPacketQueue queue) nogil
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1
-    cdef int stream_cycle_channel(VideoState self, int codec_type, int requested_stream) nogil except 1
+    cdef int stream_select_program(VideoState self, int requested_program) nogil except 1
+    cdef int stream_select_channel(VideoState self, int codec_type, unsigned int requested_stream) nogil except 1
+    cdef int stream_cycle_channel(VideoState self, int codec_type) nogil except 1
     cdef int decode_interrupt_cb(VideoState self) nogil
 
 

@@ -242,6 +242,8 @@ cdef class MediaPlayer(object):
             `autorotate`: bool
                 Whether to automatically rotate the video according to presentation metadata.
                 Defaults to True.
+            `volume`: float
+                The default volume. A value between 0.0 - 1.0.
 
     For example, a simple player:
 
@@ -336,7 +338,7 @@ cdef class MediaPlayer(object):
             settings.decoder_reorder_pts = val
         settings.lowres = ff_opts['lowres'] if 'lowres' in ff_opts else 0
         settings.av_sync_type = AV_SYNC_AUDIO_MASTER
-        settings.audio_volume = SDL_MIX_MAXVOLUME
+        settings.audio_volume = av_clip(ff_opts.get('volume', 1) * SDL_MIX_MAXVOLUME, 0, SDL_MIX_MAXVOLUME)
         if 'sync' in ff_opts_orig:
             val = ff_opts_orig['sync']
             if val == 'audio':
@@ -620,8 +622,9 @@ cdef class MediaPlayer(object):
                 numerator and denominator. src and sink video sizes correspond to
                 the frame size of the original video, and the frames returned by
                 :meth:`get_frame`, respectively. `src_pix_fmt` is the pixel format
-                of the original input stream. Duration is the file duration and
-                defaults to None until updated.
+                of the original input stream. 'aspect_ratio' is the source to 
+                display aspect ratio as a numerator and denominator. Duration 
+                is the file duration and defaults to None until updated.
 
         :
 
@@ -872,6 +875,7 @@ cdef class MediaPlayer(object):
                 If ``-1``, the next stream will be opened. Otherwise, this stream will
                 be attempted to be opened.
         '''
+
         cdef int stream, old_index
         if stream_type == 'audio':
             stream = AVMEDIA_TYPE_AUDIO
@@ -884,11 +888,53 @@ cdef class MediaPlayer(object):
             old_index = self.ivs.subtitle_stream
         else:
             raise Exception('Invalid stream type')
-        if action == 'open' or action == 'cycle':
+
+        if action == 'cycle' or requested_stream == -1:
             with nogil:
-                self.ivs.stream_cycle_channel(stream, requested_stream)
+                self.ivs.stream_cycle_channel(stream)
+        elif action == 'open':
+            if requested_stream < 0 or <unsigned int>requested_stream >= self.ivs.ic.nb_streams:
+                raise Exception('Stream number out of range')
+
+            with nogil:
+                self.ivs.stream_select_channel(stream, <unsigned int>requested_stream)
         elif action == 'close':
-            self.ivs.stream_component_close(old_index)
+            with nogil:
+                self.ivs.stream_component_close(old_index)
+
+    def get_programs(self):
+        '''Returns a list of available program IDs.
+
+        ::
+
+            >>> print(player.get_programs())
+            [0, 1, 2, 3, 4]
+        '''
+
+        cdef list programs = []
+        cdef unsigned int i
+
+        i = 0
+        while i < self.ivs.ic.nb_programs:
+            programs.append(self.ivs.ic.programs[i].id)
+            i += 1
+
+        return programs
+
+    def request_program(self, int requested_program):
+        '''Opens video, audio and subtitle streams associated with a program.
+
+        This closes all current streams and opens the first video, audio and
+        subtitle streams found in the program.
+
+        :Parameters:
+
+            `requested_program`: int
+                The program ID.
+        '''
+
+        with nogil:
+            self.ivs.stream_select_program(requested_program)
 
     def seek(self, pts, relative=True, seek_by_bytes='auto', accurate=True):
         '''Seeks in the current streams.

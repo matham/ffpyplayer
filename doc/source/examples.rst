@@ -37,9 +37,6 @@ devices and their option for playing. For example:
 
 .. code-block:: python
 
-    def callback(selector, value):
-        if selector == 'quit':
-            print 'quitting'
     # see http://ffmpeg.org/ffmpeg-formats.html#Format-Options for rtbufsize
     # lets use the yuv420p, 320x240, 30fps
     # 27648000 = 320*240*3 at 30fps, for 4 seconds.
@@ -48,8 +45,7 @@ devices and their option for playing. For example:
     'pixel_format': 'yuv420p', 'rtbufsize':'27648000'}
     ff_opts = {'f':'dshow'}
     player = MediaPlayer('video=Logitech HD Webcam C525:audio=Microphone (HD Webcam C525)',
-                         callback=weakref.ref(callback), ff_opts=ff_opts,
-                         lib_opts=lib_opts)
+                         ff_opts=ff_opts, lib_opts=lib_opts)
 
     while 1:
         frame, val = player.get_frame()
@@ -84,15 +80,10 @@ Simple transcoding example
     from ffpyplayer.writer import MediaWriter
     import time, weakref
 
-    def callback(selector, value):
-        if selector == 'quit':
-            print 'quitting'
-
     # only video
     ff_opts={'an':True, 'sync':'video'}
-    player = MediaPlayer(filename, callback=weakref.ref(callback),
-                         ff_opts=ff_opts)
-    # wait for size to be initialized (add timeout and check for callback quitting)
+    player = MediaPlayer(filename, ff_opts=ff_opts)
+    # wait for size to be initialized (todo: add timeout and check for quitting)
     while player.get_metadata()['src_vid_size'] == (0, 0):
         time.sleep(0.01)
 
@@ -125,14 +116,9 @@ More complex transcoding example
     from ffpyplayer.writer import MediaWriter
     import time, weakref
 
-    def callback(selector, value):
-        if selector == 'quit':
-            print 'quitting'
-
     # only video, output yuv420p frames
     ff_opts={'an':True, 'sync':'video', 'out_fmt':'yuv420p'}
-    player = MediaPlayer(filename, callback=weakref.ref(callback),
-                         ff_opts=ff_opts)
+    player = MediaPlayer(filename, ff_opts=ff_opts)
     # wait for size to be initialized
     while player.get_metadata()['src_vid_size'] == (0, 0):
         time.sleep(0.01)

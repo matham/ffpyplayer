@@ -119,6 +119,7 @@ cdef class FrameQueue(object):
         return 0
 
     cdef int frame_queue_prev(self) nogil:
+        # TODO: https://github.com/FFmpeg/FFmpeg/commit/37d201aad9f7e7f233955345aee1198421a68f5e
         # jump back to the previous frame if available by resetting rindex_shown
         cdef int ret = self.rindex_shown
         self.rindex_shown = 0

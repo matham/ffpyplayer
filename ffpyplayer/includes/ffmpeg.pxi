@@ -239,7 +239,9 @@ cdef:
             AVInputFormat *iformat
             AVOutputFormat *oformat
             AVStream **streams
+            AVProgram **programs
             unsigned int nb_streams
+            unsigned int nb_programs
             char filename[1024]
             AVIOContext *pb
             AVDictionary *metadata
@@ -252,7 +254,6 @@ cdef:
             AVChapter **chapters
         struct AVStream:
             int index
-            AVCodecContext *codec
             AVRational time_base
             int64_t start_time
             AVDiscard discard
@@ -261,7 +262,9 @@ cdef:
             AVRational avg_frame_rate
             AVRational r_frame_rate
             AVDictionary *metadata
+            AVCodecParameters *codecpar
         struct AVProgram:
+            int id
             unsigned int nb_stream_indexes
             unsigned int *stream_index
         enum  AVPacketSideDataType:
@@ -355,7 +358,7 @@ cdef:
         void av_rdft_calc(RDFTContext *, FFTSample *)
 
     extern from "libavcodec/version.h" nogil:
-        int FF_API_EMU_EDGE
+        pass
 
     extern from "libswresample/swresample.h" nogil:
         struct SwrContext:
@@ -368,12 +371,11 @@ cdef:
         int swr_convert(SwrContext *, uint8_t **, int, const uint8_t ** , int)
 
     extern from "libavcodec/avcodec.h" nogil:
-        int CODEC_FLAG_EMU_EDGE
         int AV_CODEC_FLAG2_FAST
         int AV_CODEC_CAP_DR1
-        int CODEC_FLAG_GLOBAL_HEADER
+        int AV_CODEC_FLAG_GLOBAL_HEADER
         int AV_PKT_FLAG_KEY
-        int CODEC_CAP_DELAY
+        int AV_CODEC_CAP_DELAY
         struct AVCodec:
             const char *name
             int capabilities
@@ -404,8 +406,13 @@ cdef:
             AVSampleFormat sample_fmt
             AVPixelFormat pix_fmt
             AVFrame *coded_frame
-            int me_threshold
             AVRational pkt_timebase
+        struct AVCodecParameters:
+            AVCodecID codec_id
+            AVMediaType codec_type
+            AVRational sample_aspect_ratio
+            int sample_rate
+            int channels
         struct AVSubtitle:
             uint16_t format
             uint32_t start_display_time # relative to packet pts, in ms
@@ -420,6 +427,7 @@ cdef:
             AVRational sample_aspect_ratio
             int width, height
             int format
+            int key_frame
             int64_t pts
             int64_t pkt_pts
             int64_t pkt_dts
@@ -452,6 +460,7 @@ cdef:
         int64_t av_frame_get_best_effort_timestamp(const AVFrame *)
         int av_codec_get_max_lowres(const AVCodec *)
         void av_codec_set_lowres(AVCodecContext *, int)
+        int avcodec_parameters_from_context(AVCodecParameters *, const AVCodecContext *)
         int av_dup_packet(AVPacket *)
         void av_free_packet(AVPacket *)
         void avsubtitle_free(AVSubtitle *)
@@ -462,6 +471,8 @@ cdef:
         void avcodec_flush_buffers(AVCodecContext *)
         int av_lockmgr_register(lockmgr_func)
         void av_init_packet(AVPacket *)
+        int avcodec_parameters_to_context(AVCodecContext *, const AVCodecParameters *)
+        void av_codec_set_pkt_timebase(AVCodecContext *, AVRational)
         enum AVLockOp:
             AV_LOCK_CREATE,
             AV_LOCK_OBTAIN,
@@ -481,6 +492,8 @@ cdef:
         AVCodec *avcodec_find_encoder_by_name(const char *)
         AVCodec *avcodec_find_decoder_by_name(const char *)
         const AVClass *avcodec_get_class()
+        AVCodecContext *avcodec_alloc_context3(const AVCodec *)
+        void avcodec_free_context(AVCodecContext **)
         int avcodec_open2(AVCodecContext *, const AVCodec *, AVDictionary **)
         enum AVDiscard:
             AVDISCARD_DEFAULT,
@@ -523,6 +536,7 @@ cdef:
         struct AVFilter:
             pass
         void avfilter_register_all()
+        int avfilter_link_get_channels(AVFilterLink *)
         AVFilterInOut *avfilter_inout_alloc()
         void avfilter_inout_free(AVFilterInOut **)
         int avfilter_graph_parse_ptr(AVFilterGraph *, const char *,
@@ -540,6 +554,11 @@ cdef:
 
     extern from "libavfilter/buffersink.h" nogil:
         int av_buffersink_get_frame_flags(AVFilterContext *, AVFrame *, int)
+        AVRational av_buffersink_get_time_base(const AVFilterContext *)
+        AVRational av_buffersink_get_frame_rate(const AVFilterContext *)
+        int av_buffersink_get_sample_rate(const AVFilterContext *)
+        int av_buffersink_get_channels(const AVFilterContext *)
+        uint64_t av_buffersink_get_channel_layout(const AVFilterContext *)
 
     extern from "libavfilter/buffersrc.h" nogil:
         int av_buffersrc_add_frame(AVFilterContext *, AVFrame *)

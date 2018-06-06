@@ -469,8 +469,10 @@ cdef class Image(object):
         frame.width = self.frame.width
         frame.height = self.frame.height
         if av_frame_copy_props(frame, self.frame) < 0:
+            av_frame_free(&frame)
             raise Exception('Cannot copy frame properties.')
         if av_frame_get_buffer(frame, 32) < 0:
+            av_frame_free(&frame)
             raise Exception('Cannot allocate frame buffers.')
 
         img = Image.__new__(Image, no_create=True)
@@ -479,6 +481,7 @@ cdef class Image(object):
                           self.frame.linesize, <AVPixelFormat>frame.format,
                           frame.width, frame.height)
             img.cython_init(frame)
+            av_frame_free(&frame)
         return img
 
     cpdef is_ref(Image self):
@@ -513,6 +516,15 @@ cdef class Image(object):
             True
         '''
         return self.frame.buf[0] != NULL
+
+    cpdef is_key_frame(Image self):
+        '''Returns whether the image is a key frame.
+
+        :returns:
+
+            bool: True if the image was a key frame.
+        '''
+        return self.frame.key_frame == 1
 
     cpdef get_linesizes(Image self, keep_align=False):
         '''Returns the linesize of each plane.
@@ -956,7 +968,10 @@ cdef class ImageLoader(object):
         fname = self.filename = filename.encode('utf8')
         self.format_ctx = NULL
         self.codec = NULL
-        self.codec_ctx = NULL
+        self.codec_ctx = avcodec_alloc_context3(NULL)
+        if self.codec_ctx == NULL:
+            raise MemoryError()
+
         self.frame = NULL
         self.eof = 0
         av_init_packet(&self.pkt)
@@ -967,7 +982,11 @@ cdef class ImageLoader(object):
             raise Exception("Failed to open input file {}: {}".format(filename,
                             tcode(emsg(ret, self.msg, sizeof(self.msg)))))
 
-        self.codec_ctx = self.format_ctx.streams[0].codec
+        ret = avcodec_parameters_to_context(self.codec_ctx, self.format_ctx.streams[0].codecpar)
+        if ret < 0:
+            raise Exception("Failed to open input file {}: {}".format(filename,
+                            tcode(emsg(ret, self.msg, sizeof(self.msg)))))
+
         self.codec = avcodec_find_decoder(self.codec_ctx.codec_id)
         if self.codec is NULL:
             raise Exception("Failed to find supported codec for file {}"
@@ -989,8 +1008,9 @@ cdef class ImageLoader(object):
         with nogil:
             av_free_packet(&self.pkt)
             av_frame_free(&self.frame)
-            avcodec_close(self.codec_ctx)
             avformat_close_input(&self.format_ctx)
+            if self.codec_ctx != NULL:
+                avcodec_free_context(&self.codec_ctx)
 
     def __iter__(self):
         while True:

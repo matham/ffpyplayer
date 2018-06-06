@@ -218,13 +218,17 @@ cdef class MediaWriter(object):
             if s[r].codec == NULL:
                 self.clean_up()
                 raise Exception('Codec %s not found.' % config['codec'])
-            s[r].av_stream = avformat_new_stream(self.fmt_ctx, s[r].codec);
+            s[r].av_stream = avformat_new_stream(self.fmt_ctx, NULL);
             if s[r].av_stream == NULL:
                 self.clean_up()
                 raise Exception("Couldn't create stream %d." % r)
             s[r].index = s[r].av_stream.index
 
-            s[r].codec_ctx = s[r].av_stream.codec
+            s[r].codec_ctx = avcodec_alloc_context3(s[r].codec)
+            if s[r].codec_ctx == NULL:
+                self.clean_up()
+                raise MemoryError("Couldn't create stream %d." % r)
+
             s[r].codec_ctx.width = s[r].width_out
             s[r].codec_ctx.height = s[r].height_out
             supported_rates = get_supported_framerates(config['codec'], (s[r].num, s[r].den))
@@ -251,7 +255,7 @@ cdef class MediaWriter(object):
                                     % (k, v, r, tcode(emsg(res, msg, sizeof(msg)))))
             # Some formats want stream headers to be separate
             if self.fmt_ctx.oformat.flags & AVFMT_GLOBALHEADER:
-                s[r].codec_ctx.flags |= CODEC_FLAG_GLOBAL_HEADER
+                s[r].codec_ctx.flags |= AV_CODEC_FLAG_GLOBAL_HEADER
 
             supported_fmts = get_supported_pixfmts(config['codec'], config['pix_fmt_out'])
             if supported_fmts and supported_fmts[0] != config['pix_fmt_out'].decode('utf8'):
@@ -297,6 +301,11 @@ cdef class MediaWriter(object):
             if res < 0:
                 self.clean_up()
                 raise Exception('Failed to open codec for stream %d; %s' % (r, tcode(emsg(res, msg, sizeof(msg)))))
+
+            res = avcodec_parameters_from_context(s[r].av_stream.codecpar, s[r].codec_ctx)
+            if res < 0:
+                self.clean_up()
+                raise Exception('Failed to initialize stream parameters for stream %d; %s' % (r, tcode(emsg(res, msg, sizeof(msg)))))
 
             s[r].pts = 0
             if self.fmt_ctx.oformat.flags & AVFMT_VARIABLE_FPS:
@@ -360,10 +369,7 @@ cdef class MediaWriter(object):
                     return
 
             for r in range(self.n_streams):
-                if ((not self.streams[r].count) or
-                    (self.streams[r].codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO and
-                     (self.fmt_ctx.oformat.flags & AVFMT_RAWPICTURE) and
-                     self.streams[r].codec_ctx.codec.id == AV_CODEC_ID_RAWVIDEO)):
+                if not self.streams[r].count:
                     continue
                 wrote = 1
                 while 1:
@@ -475,52 +481,33 @@ cdef class MediaWriter(object):
                 pkt.data = NULL
                 pkt.size = 0
 
-                if self.fmt_ctx.oformat.flags & AVFMT_RAWPICTURE and s.codec.id == AV_CODEC_ID_RAWVIDEO:
-                    ''' raw pictures are written as AVPicture structure to
-                    avoid any copies. We support temporarily the older
-                    method. '''
-                    s.codec_ctx.coded_frame.interlaced_frame = frame_out.interlaced_frame
-                    s.codec_ctx.coded_frame.top_field_first = frame_out.top_field_first
-                    pkt.data = <uint8_t *>frame_out
-                    pkt.size = sizeof(AVPicture)
-                    pkt.pts = av_rescale_q(s.pts, s.codec_ctx.time_base, s.av_stream.time_base)
-                    pkt.flags |= AV_PKT_FLAG_KEY
+                got_pkt = 0
+                pict_type_src = frame_out.pict_type
+                pts_src = frame_out.pts
+                frame_out.pict_type = AV_PICTURE_TYPE_NONE
+                frame_out.pts = s.pts
+                res = avcodec_encode_video2(s.codec_ctx, &pkt, frame_out, &got_pkt)
+                if res < 0:
+                    with gil:
+                        raise Exception('Error encoding frame: ' + tcode(emsg(res, msg, sizeof(msg))))
+
+                if got_pkt:
+                    if pkt.pts == AV_NOPTS_VALUE and not (s.codec_ctx.codec.capabilities & AV_CODEC_CAP_DELAY):
+                        pkt.pts = s.pts
+                    if pkt.pts != AV_NOPTS_VALUE:
+                        pkt.pts = av_rescale_q(pkt.pts, s.codec_ctx.time_base, s.av_stream.time_base)
+                    if pkt.dts != AV_NOPTS_VALUE:
+                        pkt.dts = av_rescale_q(pkt.dts, s.codec_ctx.time_base, s.av_stream.time_base)
+                    if s.sync_fmt == VSYNC_DROP:
+                        pkt.pts = pkt.dts = AV_NOPTS_VALUE
                     pkt.stream_index = s.av_stream.index
-                    # will the original data be freed?
+                    self.total_size += pkt.size
                     res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
                     if res < 0:
                         with gil:
                             raise Exception('Error writing frame: ' + tcode(emsg(res, msg, sizeof(msg))))
-                    self.total_size += sizeof(AVPicture)
-                else:
-                    got_pkt = 0
-                    pict_type_src = frame_out.pict_type
-                    pts_src = frame_out.pts
-                    if not s.codec_ctx.me_threshold:
-                        frame_out.pict_type = AV_PICTURE_TYPE_NONE
-                    frame_out.pts = s.pts
-                    res = avcodec_encode_video2(s.codec_ctx, &pkt, frame_out, &got_pkt)
-                    if res < 0:
-                        with gil:
-                            raise Exception('Error encoding frame: ' + tcode(emsg(res, msg, sizeof(msg))))
-
-                    if got_pkt:
-                        if pkt.pts == AV_NOPTS_VALUE and not (s.codec_ctx.codec.capabilities & CODEC_CAP_DELAY):
-                            pkt.pts = s.pts
-                        if pkt.pts != AV_NOPTS_VALUE:
-                            pkt.pts = av_rescale_q(pkt.pts, s.codec_ctx.time_base, s.av_stream.time_base)
-                        if pkt.dts != AV_NOPTS_VALUE:
-                            pkt.dts = av_rescale_q(pkt.dts, s.codec_ctx.time_base, s.av_stream.time_base)
-                        if s.sync_fmt == VSYNC_DROP:
-                            pkt.pts = pkt.dts = AV_NOPTS_VALUE
-                        pkt.stream_index = s.av_stream.index
-                        self.total_size += pkt.size
-                        res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
-                        if res < 0:
-                            with gil:
-                                raise Exception('Error writing frame: ' + tcode(emsg(res, msg, sizeof(msg))))
-                    frame_out.pts = pts_src
-                    frame_out.pict_type = pict_type_src
+                frame_out.pts = pts_src
+                frame_out.pict_type = pict_type_src
 
                 s.pts += 1
                 s.count += 1
@@ -569,6 +556,8 @@ cdef class MediaWriter(object):
                 self.streams[r].sws_ctx= NULL
             if self.streams[r].codec_opts:
                 av_dict_free(&self.streams[r].codec_opts)
+            if self.streams[r].codec_ctx:
+                avcodec_free_context(&self.streams[r].codec_ctx)
         free(self.streams)
         self.streams = NULL
         self.n_streams = 0

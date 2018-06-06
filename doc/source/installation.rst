@@ -7,7 +7,7 @@ Installation
 Using binary wheels
 -------------------
 
-On windows 7+, compiled ffpyplayer binaries can be installed for python 2.7 and 3.4,
+On windows 7+ and linux, compiled ffpyplayer binaries can be installed for python 2.7 and 3.3+,
 on either a 32 or 64 bit system using::
 
     pip install ffpyplayer
@@ -15,7 +15,7 @@ on either a 32 or 64 bit system using::
 .. warning::
 
     Although the ffpyplayer source code is licensed under the LGPL, the ffpyplayer wheels
-    for Windows on PYPI are distributed under the GPL because the pre-compiled FFmpeg binaries
+    on PYPI are distributed under the GPL because the  FFmpeg binaries
     are GPL'd. For LGPL builds you can compile FFmpeg yourself using LGPL options.
 
 For other OSs or to compile with master see below.

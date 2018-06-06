@@ -113,7 +113,10 @@ cdef extern from * nogil:
     SDL_Overlay * SDL_CreateYUVOverlay(int, int, uint32_t, SDL_Surface *)
 
     void SDL_WM_SetCaption(const char *, const char *)
-    int SDL_putenv(const char *)
+    IF HAS_SDL2:
+        int SDL_setenv(const char *, const char *, int)
+    ELSE:
+        int SDL_putenv(const char *)
     char * SDL_getenv(const char *)
 
     SDL_Surface *SDL_SetVideoMode(int, int, int, uint32_t)

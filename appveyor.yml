@@ -2,183 +2,200 @@ version: 1.0.{build}
 environment:
   FF_BUILD_DIR: C:\ff_build
   FFMPEG_VERSION: latest
-  SDL_VERSION: 2.0.4
-  SDL_MIXER_VERSION: 2.0.1
+  SDL_VERSION: 2.0.8
+  SDL_MIXER_VERSION: 2.0.2
   USE_SDL2_MIXER: 1
   access_token:
     secure: H8F1UMqC4QixM9NbnHewuineXTu860e3WhkpgMzui6xQmCv2qyXd4BDonVrrW5Iv
   matrix:
-  - PYVER: 27
-    BITTNESS: 32
-  - PYVER: 34
-    BITTNESS: 32
-  - PYVER: 27
+  - PYVER: 36
     BITTNESS: 64
-  - PYVER: 34
+    COMPILER: conda
+  - PYVER: 35
+    BITTNESS: 32
+    COMPILER: msvc
+  - PYVER: 36
+    BITTNESS: 32
+    COMPILER: msvc
+  - PYVER: 35
     BITTNESS: 64
+    COMPILER: msvc
+  - PYVER: 36
+    BITTNESS: 64
+    COMPILER: msvc
 build_script:
 - ps: >-
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
-
 
     $old_pypath = $env:PYTHONPATH
 
     $env:PYTHONPATH = "$env:APPVEYOR_BUILD_FOLDER;$env:PYTHONPATH"
 
-
-    if ($env:BITTNESS -eq "64") {
-      $PYTHON_ROOT = "C:\Python$env:PYVER-x64"
-    } else {
-      $PYTHON_ROOT = "C:\Python$env:PYVER"
-    }
-
-    $env:PATH = "$PYTHON_ROOT;$PYTHON_ROOT\Scripts;$env:PATH;C:\Program Files\7-Zip"
-
-    python -c "import sys;print('Python version is {}'.format(sys.version))"
-
-    Check-Error
-
-
-    mkdir "$env:FF_BUILD_DIR"
-
-    Check-Error
-
-    cd "$env:FF_BUILD_DIR"
-
-    echo "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.7z"
-
-    Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.7z" -OutFile "shared.7z"
-
-    Check-Error
-
-    Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/dev/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.7z" -OutFile "dev.7z"
-
-    Check-Error
-
-
-    7z x "shared.7z"
-
-    Check-Error
-
-    ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared" "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev"
-
-    Check-Error
-
-
-    7z x "dev.7z" -y
-
-    Check-Error
-
-    ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev" ffmpeg
-
-    Check-Error
-
-
-    Invoke-WebRequest "https://www.libsdl.org/release/SDL2-devel-$env:SDL_VERSION-mingw.tar.gz" -OutFile "SDL2-devel-$env:SDL_VERSION-mingw.tar.gz"
-
-    Check-Error
-
-    7z x "SDL2-devel-$env:SDL_VERSION-mingw.tar.gz"
-
-    Check-Error
-
-    7z x "SDL2-devel-$env:SDL_VERSION-mingw.tar"
-
-    Check-Error
-
-
-    Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz"
-
-    Check-Error
-
-    7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz"
-
-    Check-Error
-
-    7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar"
-
-    Check-Error
-
-
-    if ($env:BITTNESS -eq "64") {
-      Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\bin"
-      Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\bin"
-      Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\x86_64-w64-mingw32\*" -destination "SDL2-$env:SDL_VERSION\x86_64-w64-mingw32\" -Recurse -Force
-
-      $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION\x86_64-w64-mingw32"
-    } else {
-      Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\bin"
-      Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\bin"
-      Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\i686-w64-mingw32\*" -destination "SDL2-$env:SDL_VERSION\i686-w64-mingw32\" -Recurse -Force
-
-      $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION\i686-w64-mingw32"
-    }
-
-
-    $env:FFMPEG_ROOT="$env:FF_BUILD_DIR\ffmpeg"
-
-    cd "$env:APPVEYOR_BUILD_FOLDER"
-
-
-    python -c "with open(r'$PYTHON_ROOT\Lib\distutils\distutils.cfg', 'wb') as fh: fh.write(b'[build]\ncompiler = mingw32\n')"
-
-    Check-Error
-
-    python -m pip install pip wheel setuptools --upgrade
-
-    Check-Error
-
-    pip install -i https://pypi.anaconda.org/carlkl/simple mingwpy
-
-    Check-Error
-
-    pip install cython nose
-
-    Check-Error
-
-
-    mkdir deploy
-
-    python setup.py bdist_wheel -d "deploy"
-
-    Check-Error
-
-    if ($env:BITTNESS -eq "64" -and $env:PYVER -eq "34") {
-      python setup.py sdist -d "deploy"
+    if ($env:COMPILER -ne "conda") {
+      if ($env:BITTNESS -eq "64") {
+        $PYTHON_ROOT = "C:\Python$env:PYVER-x64"
+      } else {
+        $PYTHON_ROOT = "C:\Python$env:PYVER"
+      }
+      $env:PATH = "$PYTHON_ROOT;$PYTHON_ROOT\Scripts;$env:PATH;C:\Program Files\7-Zip"
+      python -c "import sys;print('Python version is {}'.format(sys.version))"
       Check-Error
+
+      mkdir "$env:FF_BUILD_DIR"
+      Check-Error
+      cd "$env:FF_BUILD_DIR"
+      echo "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip"
+      Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip" -OutFile "shared.zip"
+      Check-Error
+      Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/dev/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.zip" -OutFile "dev.zip"
+      Check-Error
+
+      7z x "shared.zip"
+      Check-Error
+      ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared" "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev"
+      Check-Error
+
+      7z x "dev.zip" -y
+      Check-Error
+      ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev" ffmpeg
+      Check-Error
+
+      if ($env:COMPILER -eq "mingw") {
+        Invoke-WebRequest "https://www.libsdl.org/release/SDL2-devel-$env:SDL_VERSION-mingw.tar.gz" -OutFile "SDL2-devel-$env:SDL_VERSION-mingw.tar.gz"
+        Check-Error
+        7z x "SDL2-devel-$env:SDL_VERSION-mingw.tar.gz"
+        Check-Error
+        7z x "SDL2-devel-$env:SDL_VERSION-mingw.tar"
+        Check-Error
+
+        Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz"
+        Check-Error
+        7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar.gz"
+        Check-Error
+        7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-mingw.tar"
+        Check-Error
+
+        if ($env:BITTNESS -eq "64") {
+          $mingw_bit="x86_64-w64"
+        } else {
+          $mingw_bit="i686-w64"
+        }
+        Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\$mingw_bit-mingw32\bin"
+        Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\$mingw_bit-mingw32\bin"
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\$mingw_bit-mingw32\*" -destination "SDL2-$env:SDL_VERSION\$mingw_bit-mingw32\" -Recurse -Force
+
+        $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION\$mingw_bit-mingw32"
+      } else {
+        Invoke-WebRequest "https://www.libsdl.org/release/SDL2-devel-$env:SDL_VERSION-VC.zip" -OutFile "SDL2-devel-$env:SDL_VERSION-VC.zip"
+        Check-Error
+        7z x "SDL2-devel-$env:SDL_VERSION-VC.zip"
+        Check-Error
+
+        Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
+        Check-Error
+        7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
+        Check-Error
+
+        if ($env:BITTNESS -eq "64") {
+          $vc_bit="x64"
+        } else {
+          $vc_bit="x86"
+        }
+
+        mkdir "SDL2-$env:SDL_VERSION\bin"
+        mkdir "SDL2-$env:SDL_VERSION\include\SDL2"
+
+        Copy-Item "SDL2-$env:SDL_VERSION\COPYING.txt" -destination "SDL2-$env:SDL_VERSION\bin"
+        Copy-Item "SDL2-$env:SDL_VERSION\README-SDL.txt" -destination "SDL2-$env:SDL_VERSION\bin"
+
+        Copy-Item "SDL2-$env:SDL_VERSION\lib\$vc_bit\*.dll" -destination "SDL2-$env:SDL_VERSION\bin" -Recurse -Force
+        Copy-Item "SDL2-$env:SDL_VERSION\lib\$vc_bit\*.lib" -destination "SDL2-$env:SDL_VERSION\lib" -Recurse -Force
+
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$vc_bit\*.dll" -destination "SDL2-$env:SDL_VERSION\bin" -Recurse -Force
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$vc_bit\*.lib" -destination "SDL2-$env:SDL_VERSION\lib" -Recurse -Force
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\include\*" -destination "SDL2-$env:SDL_VERSION\include" -Recurse -Force
+
+        Copy-Item "SDL2-$env:SDL_VERSION\include\*.h" -destination "SDL2-$env:SDL_VERSION\include\SDL2" -Recurse -Force
+
+        $env:SDL_ROOT="$env:FF_BUILD_DIR\SDL2-$env:SDL_VERSION"
+      }
+
+      $env:FFMPEG_ROOT="$env:FF_BUILD_DIR\ffmpeg"
+      cd "$env:APPVEYOR_BUILD_FOLDER"
+
+      python -m pip install pip wheel setuptools --upgrade
+      Check-Error
+
+      if ($env:COMPILER -eq "mingw") {
+        python -c "with open(r'$PYTHON_ROOT\Lib\distutils\distutils.cfg', 'wb') as fh: fh.write(b'[build]\ncompiler = mingw32\n')"
+        Check-Error
+        pip install -i https://pypi.anaconda.org/carlkl/simple mingwpy
+        Check-Error
+      }
+
+      pip install cython nose
+      Check-Error
+
+      mkdir deploy
+      python setup.py bdist_wheel -d "deploy"
+      Check-Error
+
+      if ($env:BITTNESS -eq "64" -and $env:PYVER -eq "35") {
+        python setup.py sdist -d "deploy"
+        Check-Error
+      }
+      $env:PYTHONPATH = $old_pypath
+    } else {
+      if ($env:BITTNESS -eq "64") {
+        $CONDA_ROOT = "C:\Miniconda$env:PYVER-x64"
+      } else {
+        $CONDA_ROOT = "C:\Miniconda$env:PYVER"
+      }
+
+      cd "$env:APPVEYOR_BUILD_FOLDER"
+      #https://github.com/Anaconda-Platform/anaconda-project/blob/master/appveyor.yml
+      $env:PATH = "$CONDA_ROOT;$CONDA_ROOT\Scripts;$CONDA_ROOT\Library\bin;$env:PATH"
+      python -c "import sys;print('Python version is {}'.format(sys.version))"
+      Check-Error
+      echo "$env:path"
+
+      conda config --set always_yes yes
+      conda update -n base conda
+      activate.bat root
+      conda config --add channels conda-forge
+
+      python -c "import sys;print('Python version is {}'.format(sys.version))"
+      conda install --yes --quiet pip nose cython sdl2 sdl2_mixer ffmpeg pkgconfig libflac libvorbis
+      
+      dir "c:\projects\ffpyplayer\ffpyplayer\player"
+      $env:SDL_ROOT="$CONDA_ROOT" + "\Library"
+      $env:FFMPEG_ROOT="$CONDA_ROOT" + "\Library"
+      python setup.py build_ext --inplace
+
+      nosetests "ffpyplayer/tests"
+      Write-Host "Success!"
     }
-
-
-    $env:PYTHONPATH = $old_pypath
 test_script:
 - ps: >-
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/check_error.ps1'))
 
+    if ($env:COMPILER -ne "conda") {
+      cd "$env:APPVEYOR_BUILD_FOLDER\deploy"
+      $name = python -c "import glob;print(glob.glob('*.whl')[0])"
+      Check-Error
+      echo $name
+      python -m wheel install "$name"
+      Check-Error
 
-    cd "$env:APPVEYOR_BUILD_FOLDER\deploy"
-
-    $name = python -c "import glob;print(glob.glob('*.whl')[0])"
-
-    Check-Error
-
-    echo $name
-
-    python -m wheel install "$name"
-
-    Check-Error
-
-
-    $env:FFPYPLAYER_TEST_DIRS = "$env:APPVEYOR_BUILD_FOLDER\ffpyplayer\tests;$env:APPVEYOR_BUILD_FOLDER\examples"
-
-    $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
-
-    Check-Error
-
-    echo $name
-
-    python -m nose.core "$name\tests"
-
-    Check-Error
+      $env:FFPYPLAYER_TEST_DIRS = "$env:APPVEYOR_BUILD_FOLDER\ffpyplayer\tests;$env:APPVEYOR_BUILD_FOLDER\examples"
+      $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
+      Check-Error
+      echo $name
+      python -m nose.core "$name\tests"
+      Check-Error
+    } else {
+      echo "nothing"
+    }
 artifacts:
 - path: deploy\*
   name: wheels
