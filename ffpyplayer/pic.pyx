@@ -243,7 +243,7 @@ cdef class SWScale(object):
         if self.sws_ctx != NULL:
             sws_freeContext(self.sws_ctx)
 
-    def scale(self, Image src, Image dst=None):
+    def scale(self, Image src, Image dst=None, int _flip=False):
         '''Scales a image into another image format and/or size as specified by the
         instance initialization parameters.
 
@@ -258,6 +258,10 @@ cdef class SWScale(object):
                 of this instance. An exception is raised if the Image doesn't match.
                 If specified, the output image will be converted directly into this Image.
                 If not specified, a new Image will be created and returned.
+            `_flip`: bool, defaults to False
+                Whether the image will be flipped before scaling. This only works
+                for pixel formats whose color planes are the same size (e.g. rgb), so
+                use with caution.
 
         :returns:
 
@@ -272,8 +276,16 @@ cdef class SWScale(object):
             dst = Image.__new__(Image, pix_fmt=self.dst_pix_fmt_s,
                                 size=(self.dst_w, self.dst_h))
         with nogil:
+            if _flip:
+                for i in range(4):
+                    (<uint8_t * *>src.frame.data)[i] += src.frame.linesize[i] * (src.frame.height - 1)
+                    src.frame.linesize[i] = -src.frame.linesize[i]
             sws_scale(self.sws_ctx, <const uint8_t *const *>src.frame.data, src.frame.linesize,
                           0, src.frame.height, dst.frame.data, dst.frame.linesize)
+            if _flip:
+                for i in range(4):
+                    src.frame.linesize[i] = -src.frame.linesize[i]
+                    (<uint8_t * *>src.frame.data)[i] -= src.frame.linesize[i] * (src.frame.height - 1)
         return dst
 
 
