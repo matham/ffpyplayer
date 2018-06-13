@@ -201,6 +201,6 @@ artifacts:
   name: wheels
 on_success:
 - ps: >-
-    if ($env:BITTNESS -eq "64" -and $env:PYVER -eq "34") {
+    if ($env:BITTNESS -eq "64" -and $env:PYVER -eq "36" -and $env:COMPILER -eq "msvc") {
         iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/matham/packaging/master/cpl_appveyor_gh_docs.ps1'))
     }
