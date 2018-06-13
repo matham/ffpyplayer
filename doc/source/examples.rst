@@ -8,8 +8,6 @@ Examples
 Converting Image formats
 ------------------------
 
-:
-
 .. code-block:: python
 
     from ffpyplayer.pic import Image, SWScale
@@ -69,10 +67,44 @@ devices and their option for playing. For example:
     # NOTE, by default the output was rgb24. To keep the output format the
     # same as the input, do ff_opts['out_fmt'] = 'yuv420p'
 
+
+Saving an image to disk
+-----------------------
+
+.. code-block:: python
+
+    from ffpyplayer.pic import Image, SWScale
+    from ffpyplayer.tools import get_supported_pixfmts
+
+    # create image
+    w, h = 500, 100
+    fmt = 'rgb24'
+    size = w * h * 3
+    buf = bytearray([int(x * 255 / size) for x in range(size)])
+    img = Image(plane_buffers=[buf], pix_fmt=fmt, size=(w, h))
+    codec = 'tiff'  # we'll encode it using the tiff codec
+
+    # make sure the output codec supports the input pixel format type
+    # otherwise, convert it to the best pixel format
+    ofmt = get_supported_pixfmts(codec, fmt)[0]
+    if ofmt != fmt:
+        sws = SWScale(w, h, fmt, ofmt=ofmt)
+        img = sws.scale(img)
+        fmt = ofmt
+
+    out_opts = {'pix_fmt_in': fmt, 'width_in': w, 'height_in': h,
+                'frame_rate': (30, 1), 'codec': codec}
+    writer = MediaWriter('myfile.tiff', [out_opts])
+    writer.write_frame(img=img, pts=0, stream=0)
+    writer.close()
+
+    # to save the file as a compressed tiff using lzw
+    writer = MediaWriter('myfile.tiff', [out_opts], lib_opts={'compression_algo': 'lzw'})
+    writer.write_frame(img=img, pts=0, stream=0)
+    writer.close()
+
 Simple transcoding example
 --------------------------
-
-:
 
 .. code-block:: python
 
@@ -106,8 +138,6 @@ Simple transcoding example
 
 More complex transcoding example
 --------------------------------
-
-:
 
 .. code-block:: python
 
@@ -145,8 +175,6 @@ More complex transcoding example
 
 Writing video to file
 ---------------------
-
-:
 
 .. code-block:: python
 
