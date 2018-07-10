@@ -15,7 +15,7 @@ matrix:
     - language: generic
       env: PY=3
       os: osx
-      env: PYVERS="3.5.4 3.6.5"
+      env: PYVERS="3.5.4 3.6.5 3.7.0"
     - language: generic
       env: PY=3
       os: osx
@@ -109,7 +109,7 @@ install:
       ls $HOME/ffpy_miniconda;
       ls $HOME/ffpy_miniconda/bin;
       ls /;
-      
+
       conda config --add channels conda-forge;
       conda update --yes --quiet conda;
       conda create -n testenv --yes --quiet pip python=3;
