@@ -158,7 +158,7 @@ test_script:
       $name = python -c "import glob;print(glob.glob('*.whl')[0])"
       Check-Error
       echo $name
-      python -m wheel install "$name"
+      python -m pip install "$name"
       Check-Error
 
       $env:FFPYPLAYER_TEST_DIRS = "$env:APPVEYOR_BUILD_FOLDER\ffpyplayer\tests;$env:APPVEYOR_BUILD_FOLDER\examples"
