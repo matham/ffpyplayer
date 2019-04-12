@@ -91,7 +91,7 @@ install:
       brew update;
       brew install sdl2;
       brew install sdl2_mixer;
-      travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
+      travis_wait 30 brew install ffmpeg;
     fi;
   - if [ "${TEST_CONDA}" == "1" ]; then
       if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
