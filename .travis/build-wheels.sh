@@ -109,9 +109,9 @@ make
 make install
 
 cd ~/ffmpeg_sources
-curl -LO https://archive.mozilla.org/pub/opus/opus-1.3.tar.gz
-tar xzvf opus-1.3.tar.gz
-cd opus-1.3
+curl -LO https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz
+tar xzvf opus-1.3.1.tar.gz
+cd opus-1.3.1
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared
 make
 make install
