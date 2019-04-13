@@ -17,6 +17,8 @@ except ImportError:
     build_ext = object
 
 
+src_path = build_path = dirname(__file__)
+
 # select which ffmpeg libraries will be available
 c_options = {
     # If true, filters will be used'
@@ -57,6 +59,14 @@ c_options['config_avformat'] = c_options['config_swresample'] = True
 
 
 class FFBuildExt(build_ext):
+
+    def finalize_options(self):
+        retval = super(FFBuildExt, self).finalize_options()
+        global build_path
+        if (self.build_lib is not None and exists(self.build_lib) and
+                not self.inplace):
+            build_path = self.build_lib
+        return retval
 
     def build_extensions(self):
         compiler = self.compiler.compiler_type
@@ -254,9 +264,9 @@ else:
 
 
 print('Generating ffconfig.h')
-if not exists(join('ffpyplayer', 'includes')):
-    mkdir(join('ffpyplayer', 'includes'))
-with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'w') as f:
+if not exists(join(src_path, 'ffpyplayer', 'includes')):
+    mkdir(join(src_path, 'ffpyplayer', 'includes'))
+with open(join(src_path, 'ffpyplayer', 'includes', 'ffconfig.h'), 'w') as f:
     f.write('''
 #ifndef _FFCONFIG_H
 #define _FFCONFIG_H
@@ -290,17 +300,17 @@ with open(join('ffpyplayer', 'includes', 'ffconfig.h'), 'w') as f:
 ''')
 
 print('Generating ffconfig.pxi')
-with open(join('ffpyplayer', 'includes', 'ffconfig.pxi'), 'w') as f:
+with open(join(src_path, 'ffpyplayer', 'includes', 'ffconfig.pxi'), 'w') as f:
     for k, v in c_options.items():
         f.write('DEF %s = %d\n' % (k.upper(), int(v)))
 
 include_dirs.extend(
-    [join(abspath(dirname(__file__)), 'ffpyplayer'),
-     join(abspath(dirname(__file__)), 'ffpyplayer', 'includes')])
+    [join(src_path, 'ffpyplayer'),
+     join(src_path, 'ffpyplayer', 'includes')])
 ext_modules = [Extension(
     'ffpyplayer.' + src_file.replace('/', '.'),
-    sources=[join('ffpyplayer', *(src_file + mod_suffix).split('/')),
-             join('ffpyplayer', 'clib', 'misc.c')],
+    sources=[join(src_path, 'ffpyplayer', *(src_file + mod_suffix).split('/')),
+             join(src_path, 'ffpyplayer', 'clib', 'misc.c')],
     libraries=libraries,
     include_dirs=include_dirs,
     library_dirs=library_dirs)
@@ -324,11 +334,9 @@ setup(name='ffpyplayer',
                    'Topic :: Multimedia :: Video :: Display',
                    'Topic :: Multimedia :: Sound/Audio :: Players',
                    'Topic :: Multimedia :: Sound/Audio :: Players :: MP3',
-                   'Programming Language :: Python :: 2.7',
-                   'Programming Language :: Python :: 3.3',
-                   'Programming Language :: Python :: 3.4',
                    'Programming Language :: Python :: 3.5',
                    'Programming Language :: Python :: 3.6',
+                   'Programming Language :: Python :: 3.7',
                    'Operating System :: MacOS :: MacOS X',
                    'Operating System :: Microsoft :: Windows',
                    'Operating System :: POSIX :: BSD :: FreeBSD',
@@ -339,3 +347,4 @@ setup(name='ffpyplayer',
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=['cython'])
+
