@@ -9,7 +9,7 @@ fname = join(dirname(__file__), 'test_video.avi')
 class PicTestCase(unittest.TestCase):
 
     def test_play(self):
-        import ffpyplayer.tests.common
+        import .common
         from ffpyplayer.writer import MediaWriter
         from ffpyplayer.tools import get_supported_pixfmts, get_supported_framerates
         from ffpyplayer.pic import Image
