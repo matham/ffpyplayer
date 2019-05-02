@@ -5,7 +5,7 @@ import unittest
 class PicTestCase(unittest.TestCase):
 
     def test_play(self):
-        from ffpyplayer.tests.common import get_media
+        from .common import get_media
         from ffpyplayer.player import MediaPlayer
         import time
 

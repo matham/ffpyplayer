@@ -23,7 +23,7 @@ matrix:
     - sudo: required
       services:
         - docker
-      env: DOCKER_IMAGE=markrwilliams/manylinux2:x86_64
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux2010_x86_64
 
 install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ] && [ "${DOCKER_IMAGE}" == "" ] && [ "${TEST_CONDA}" != "1" ]; then
@@ -91,7 +91,7 @@ install:
       brew update;
       brew install sdl2;
       brew install sdl2_mixer;
-      travis_wait 30 brew install ffmpeg --with-freetype --with-libass --with-libvorbis --with-libvpx --with-libmp3lame --with-x264 --with-libtheora;
+      travis_wait 30 brew install ffmpeg;
     fi;
   - if [ "${TEST_CONDA}" == "1" ]; then
       if [ "${TRAVIS_OS_NAME}" == "linux" ]; then

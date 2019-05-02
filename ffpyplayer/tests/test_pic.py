@@ -13,7 +13,6 @@ class PicTestCase(unittest.TestCase):
         return Image(plane_buffers=[buf], pix_fmt='rgb24', size=(w, h))
 
     def test_pic(self):
-        import ffpyplayer.tests.common
         from ffpyplayer.pic import Image, SWScale
 
         size = w, h = 500, 100
