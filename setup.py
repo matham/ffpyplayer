@@ -19,6 +19,8 @@ if kivy_ios_root is not None:
     platform = 'ios'
 
 # ensure Cython is installed for desktop app
+have_cython = False
+cmdclass = {}
 if platform in ('android', 'ios'):
     need_cython = False
     print('Cython import ignored')
@@ -31,8 +33,6 @@ else:
         cmdclass = {'build_ext': build_ext}
     except ImportError:
         have_cython = False
-        cmdclass = {}
-        build_ext = object
 
 src_path = build_path = dirname(__file__)
 
