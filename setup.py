@@ -41,14 +41,6 @@ if platform in ('ios', 'android'):
 else:
     declare_cython = True
 
-# ensure Cython is installed for desktop app
-# have_cython = False
-if platform in ('android', 'ios'):
-    need_cython = False
-    print('Cython import ignored')
-else:
-    need_cython = True
-
 src_path = build_path = dirname(__file__)
 
 # select which ffmpeg libraries will be available
