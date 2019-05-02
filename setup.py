@@ -5,17 +5,34 @@ except ImportError:
     from distutils.extension import Extension
 from os.path import join, exists, isdir, dirname, abspath
 from os import environ, listdir, mkdir
+import sys
 import ffpyplayer
-try:
-    import Cython.Compiler.Options
-    from Cython.Distutils import build_ext
-    have_cython = True
-    cmdclass = {'build_ext': build_ext}
-except ImportError:
-    have_cython = False
-    cmdclass = {}
-    build_ext = object
 
+# detect Python for android project (http://github.com/kivy/python-for-android)
+# or kivy-ios (http://github.com/kivy/kivy-ios)
+platform = sys.platform
+ndkplatform = environ.get('NDKPLATFORM')
+if ndkplatform is not None and environ.get('LIBLINK'):
+    platform = 'android'
+kivy_ios_root = environ.get('KIVYIOSROOT', None)
+if kivy_ios_root is not None:
+    platform = 'ios'
+
+# ensure Cython is installed for desktop app
+if platform in ('android', 'ios'):
+    need_cython = False
+    print('Cython import ignored')
+else:
+    need_cython = True
+    try:
+        import Cython.Compiler.Options
+        from Cython.Distutils import build_ext
+        have_cython = True
+        cmdclass = {'build_ext': build_ext}
+    except ImportError:
+        have_cython = False
+        cmdclass = {}
+        build_ext = object
 
 src_path = build_path = dirname(__file__)
 
@@ -346,5 +363,5 @@ setup(name='ffpyplayer',
       package_data={'ffpyplayer': ['clib/misc.h']},
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
-      setup_requires=['cython'])
+      setup_requires=['cython' if need_cython else ''])
 
