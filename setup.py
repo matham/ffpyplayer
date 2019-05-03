@@ -1,21 +1,45 @@
+from os.path import join, exists, isdir, dirname, abspath
+from os import environ, listdir, mkdir
+from distutils.command.build_ext import build_ext
+import sys
+import ffpyplayer
+
 try:
     from setuptools import setup, Extension
+    print('Using setuptools')
 except ImportError:
     from distutils.core import setup
     from distutils.extension import Extension
-from os.path import join, exists, isdir, dirname, abspath
-from os import environ, listdir, mkdir
-import ffpyplayer
-try:
-    import Cython.Compiler.Options
-    from Cython.Distutils import build_ext
-    have_cython = True
-    cmdclass = {'build_ext': build_ext}
-except ImportError:
-    have_cython = False
-    cmdclass = {}
-    build_ext = object
+    print('Using distutils')
 
+
+# Determine on which platform we are
+platform = sys.platform
+
+# detect Python for android project (http://github.com/kivy/python-for-android)
+# or kivy-ios (http://github.com/kivy/kivy-ios)
+ndkplatform = environ.get('NDKPLATFORM')
+if ndkplatform is not None and environ.get('LIBLINK'):
+    platform = 'android'
+kivy_ios_root = environ.get('KIVYIOSROOT', None)
+if kivy_ios_root is not None:
+    platform = 'ios'
+
+
+# There are issues with using cython at all on some platforms;
+# exclude them from using or declaring cython.
+
+# This determines whether Cython specific functionality may be used.
+can_use_cython = True
+# This sets whether or not Cython gets added to setup_requires.
+declare_cython = False
+
+if platform in ('ios', 'android'):
+    # NEVER use or declare cython on these platforms
+    print('Not using cython on %s' % platform)
+    can_use_cython = False
+else:
+    declare_cython = True
 
 src_path = build_path = dirname(__file__)
 
@@ -58,7 +82,28 @@ c_options['config_avutil'] = c_options['config_avutil'] = True
 c_options['config_avformat'] = c_options['config_swresample'] = True
 
 
-class FFBuildExt(build_ext):
+class FFBuildExt(build_ext, object):
+    
+    def __new__(cls, *a, **kw):
+        # Note how this class is declared as a subclass of distutils
+        # build_ext as the Cython version may not be available in the
+        # environment it is initially started in. However, if Cython
+        # can be used, setuptools will bring Cython into the environment
+        # thus its version of build_ext will become available.
+        # The reason why this is done as a __new__ rather than through a
+        # factory function is because there are distutils functions that check
+        # the values provided by cmdclass with issublcass, and so it would
+        # result in an exception.
+        # The following essentially supply a dynamically generated subclass
+        # that mix in the cython version of build_ext so that the
+        # functionality provided will also be executed.
+        if can_use_cython:
+            from Cython.Distutils import build_ext as cython_build_ext
+            build_ext_cls = type(
+                'FFBuildExt', (FFBuildExt, cython_build_ext), {})
+            return super(FFBuildExt, cls).__new__(build_ext_cls)
+        else:
+            return super(FFBuildExt, cls).__new__(cls)
 
     def finalize_options(self):
         retval = super(FFBuildExt, self).finalize_options()
@@ -76,10 +121,10 @@ class FFBuildExt(build_ext):
             args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
         for ext in self.extensions:
             ext.extra_compile_args = args
-        build_ext.build_extensions(self)
+        super(FFBuildExt, self).build_extensions()
 
-if have_cython:
-    cmdclass = {'build_ext': FFBuildExt}
+
+cmdclass = {'build_ext': FFBuildExt}
 
 
 def getoutput(cmd):
@@ -257,11 +302,11 @@ mods = [
 c_options['has_sdl2'] = sdl == 'SDL2'
 c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
 
-if have_cython:
+
+if can_use_cython:
     mod_suffix = '.pyx'
 else:
     mod_suffix = '.c'
-
 
 print('Generating ffconfig.h')
 if not exists(join(src_path, 'ffpyplayer', 'includes')):
@@ -321,6 +366,10 @@ for e in ext_modules:
 
 with open('README.rst') as fh:
     long_description = fh.read()
+    
+setup_requires = []
+if declare_cython:
+    setup_requires.append('cython')
 
 setup(name='ffpyplayer',
       version=ffpyplayer.__version__,
@@ -346,5 +395,5 @@ setup(name='ffpyplayer',
       package_data={'ffpyplayer': ['clib/misc.h']},
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
-      setup_requires=['cython'])
+      setup_requires=setup_requires)
 
