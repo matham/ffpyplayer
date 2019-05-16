@@ -9,7 +9,7 @@ import platform
 
 __all__ = ('dep_bins', )
 
-__version__ = '4.2.0.dev0'
+__version__ = '4.2.0'
 version = __version__
 
 # the ffmpeg src git version tested and upto date with,
