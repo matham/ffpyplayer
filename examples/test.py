@@ -76,7 +76,7 @@ class PlayerApp(App):
         self.next_frame = None
         self._done = False
         self._lock = RLock()
-        self._thread = Thread(target=self._next_frame, name='Next frame')
+        self._thread = Thread(target=self._next_frame, daemon=True, name='Next frame')
         self._trigger = Clock.create_trigger(self.redraw)
         self._force_refresh = False
 
