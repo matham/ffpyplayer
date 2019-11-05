@@ -65,7 +65,7 @@ jobs:
 
         Copy-Item "SDL2\include\*.h" -destination "SDL2\include\SDL2" -Recurse -Force
     - name: Make sdist
-      if: matrix.arch == 'x64' && matrix.python == '3.8'
+      if: matrix.arch == 'x64' && matrix.python == '3.7'
       run: |
         python -m pip install --upgrade pip virtualenv wheel setuptools
         python setup.py sdist

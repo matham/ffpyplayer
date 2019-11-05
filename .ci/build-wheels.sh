@@ -8,7 +8,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 cd ~/ffmpeg_sources;
 wget https://www.libsdl.org/release/SDL2-2.0.10.tar.gz;
 tar xzf SDL2-2.0.10.tar.gz;
-cd SDL2-2.0.10.tar.gz;
+cd SDL2-2.0.10;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 make;
 make install;
