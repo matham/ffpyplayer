@@ -6,8 +6,9 @@ mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
 cd ~/ffmpeg_sources;
-git clone --depth 1 https://github.com/spurious/SDL-mirror.git
-cd SDL-mirror;
+wget https://www.libsdl.org/release/SDL2-2.0.10.tar.gz;
+tar xzf SDL2-2.0.10.tar.gz;
+cd SDL2-2.0.10.tar.gz;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 make;
 make install;
@@ -23,9 +24,9 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget https://www.openssl.org/source/openssl-1.1.1b.tar.gz;
-tar xzf openssl-1.1.1b.tar.gz;
-cd openssl-1.1.1b;
+wget https://www.openssl.org/source/openssl-1.1.1d.tar.gz;
+tar xzf openssl-1.1.1d.tar.gz;
+cd openssl-1.1.1d;
 ./config -fpic shared --prefix="$HOME/ffmpeg_build";
 make;
 make install;
@@ -67,9 +68,9 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources
-curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.5/fribidi-1.0.5.tar.bz2
-tar xjf fribidi-1.0.5.tar.bz2
-cd fribidi-1.0.5
+curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.7/fribidi-1.0.7.tar.bz2
+tar xjf fribidi-1.0.7.tar.bz2
+cd fribidi-1.0.7
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared;
 make
 make install
@@ -83,9 +84,9 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources
-wget --no-check-certificate http://www.cmake.org/files/v3.14/cmake-3.14.0.tar.gz
-tar xzf cmake-3.14.0.tar.gz
-cd cmake-3.14.0
+wget --no-check-certificate http://www.cmake.org/files/v3.15/cmake-3.15.5.tar.gz
+tar xzf cmake-3.15.5.tar.gz
+cd cmake-3.15.5
 ./configure --prefix=/usr/local/cmake-3.14.0
 gmake
 make
@@ -100,7 +101,7 @@ make
 make install
 
 cd ~/ffmpeg_sources
-git clone https://github.com/mstorsjo/fdk-aac.git
+git clone --depth 1 --branch v2.0.1 https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
 git apply /io/.travis/fdk.patch
 autoreconf -fiv
@@ -117,9 +118,9 @@ make
 make install
 
 cd ~/ffmpeg_sources
-curl -LO http://downloads.xiph.org/releases/ogg/libogg-1.3.3.tar.gz
-tar xzvf libogg-1.3.3.tar.gz
-cd libogg-1.3.3
+curl -LO http://downloads.xiph.org/releases/ogg/libogg-1.3.4.tar.gz
+tar xzvf libogg-1.3.4.tar.gz
+cd libogg-1.3.4
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared
 make
 make install
@@ -141,16 +142,16 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources
-git clone --depth 1 https://chromium.googlesource.com/webm/libvpx.git
+git clone --depth 1 --branch v1.8.1 https://chromium.googlesource.com/webm/libvpx.git
 cd libvpx
 PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --disable-examples  --as=yasm --enable-shared --disable-unit-tests
 PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources;
-wget http://ffmpeg.org/releases/ffmpeg-4.1.3.tar.bz2;
-tar xjf ffmpeg-4.1.3.tar.bz2;
-cd ffmpeg-4.1.3;
+wget http://ffmpeg.org/releases/ffmpeg-4.2.1.tar.bz2;
+tar xjf ffmpeg-4.2.1.tar.bz2;
+cd ffmpeg-4.2.1;
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig:/usr/lib/pkgconfig/" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-openssl --enable-shared;
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
@@ -162,12 +163,11 @@ for PYBIN in /opt/python/*3*/bin; do
     if [[ $PYBIN != *"34"* ]]; then
         "${PYBIN}/pip" install --upgrade setuptools pip
         "${PYBIN}/pip" install --upgrade cython nose
-        USE_SDL2_MIXER=1 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
+        USE_SDL2_MIXER=1 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w dist/
     fi
 done
 
 # Bundle external shared libraries into the wheels
-for whl in wheelhouse/*.whl; do
-    auditwheel repair --plat manylinux2010_x86_64 "$whl" -w /io/wheelhouse/
+for whl in dist/*.whl; do
+    auditwheel repair --plat manylinux2010_x86_64 "$whl" -w /io/dist/
 done
-

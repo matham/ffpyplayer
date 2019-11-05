@@ -1,0 +1,173 @@
+name: Python application
+
+on: [push, pull_request]
+env:
+  FFMPEG_VERSION: 4.2.1
+  SDL_VERSION: 2.0.10
+  SDL_MIXER_VERSION: 2.0.4
+  USE_SDL2_MIXER: 1
+  FF_BUILD_DIR: ~/ff_deps
+  SDL_ROOT: ~/ff_deps/SDL2
+  FFMPEG_ROOT: ~/ff_deps/ffmpeg
+
+jobs:
+  windows_wheels_tests:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python: [ '3.6', '3.7', '3.8' ]
+        arch: ['x64', 'x86']
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+        architecture: ${{ matrix.arch }}
+    - name: Get dependencies
+      env:
+        FF_ARCH: ${{ matrix.arch }}
+      run: |
+        if ("${{ matrix.arch }}" -eq "x64") {
+          $env:BITTNESS = 64
+        } else {
+          $env:BITTNESS = 32
+        }
+
+        mkdir "$env:FF_BUILD_DIR"
+        cd "$env:FF_BUILD_DIR"
+
+        Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip" -OutFile "shared.zip"
+        Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/dev/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.zip" -OutFile "dev.zip"
+        7z x "shared.zip"
+        ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared" "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev"
+        7z x "dev.zip" -y
+        ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev" ffmpeg
+
+        Invoke-WebRequest "https://www.libsdl.org/release/SDL2-devel-$env:SDL_VERSION-VC.zip" -OutFile "SDL2-devel-$env:SDL_VERSION-VC.zip"
+        7z x "SDL2-devel-$env:SDL_VERSION-VC.zip"
+        ren "SDL2-$env:SDL_VERSION" SDL2
+        Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
+        7z x "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
+
+        mkdir "SDL2\bin"
+        mkdir "SDL2\include\SDL2"
+
+        Copy-Item "SDL2\COPYING.txt" -destination "SDL2\bin"
+        Copy-Item "SDL2\README-SDL.txt" -destination "SDL2\bin"
+
+        Copy-Item "SDL2\lib\$env:FF_ARCH\*.dll" -destination "SDL2\bin" -Recurse -Force
+        Copy-Item "SDL2\lib\$env:FF_ARCH\*.lib" -destination "SDL2\lib" -Recurse -Force
+
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$env:FF_ARCH\*.dll" -destination "SDL2\bin" -Recurse -Force
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$env:FF_ARCH\*.lib" -destination "SDL2\lib" -Recurse -Force
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\include\*" -destination "SDL2\include" -Recurse -Force
+
+        Copy-Item "SDL2\include\*.h" -destination "SDL2\include\SDL2" -Recurse -Force
+    - name: Make sdist
+      if: matrix.arch == 'x64' && matrix.python == '3.8'
+      run: |
+        python -m pip install --upgrade pip virtualenv wheel setuptools
+        python setup.py sdist
+    - name: Install pip deps
+      run: |
+        python -m pip install --upgrade pip virtualenv wheel setuptools pytest cython nose
+    - name: Make wheel
+      run: |
+        python setup.py bdist_wheel
+    - name: Upload wheel
+      uses: actions/upload-artifact@master
+      with:
+        name: py_wheel
+        path: dist
+    - name: Test
+      env:
+        FFPYPLAYER_TEST_DIRS: ffpyplayer/tests;examples
+      run: |
+        python -m pip install (get-item dist\*.whl).FullName
+        $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
+        echo $name
+        python -m nose.core "$name\tests"
+
+  linux_test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+      - name: Install
+        run: |
+          sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
+          sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
+          sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
+
+          python -m pip install --upgrade pip virtualenv wheel setuptools cython nose
+          python -m pip install -e .
+      - name: Test
+        run: |
+          python -m nose.core ffpyplayer/tests
+
+  linux_wheels:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build docker
+        run: |
+          docker info
+          docker pull quay.io/pypa/manylinux2010_x86_64
+          mkdir dist
+
+          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/.ci/build-wheels.sh
+      - name: Upload wheel
+        uses: actions/upload-artifact@master
+        with:
+          name: py_wheel
+          path: dist
+
+  docs:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+      - name: Install
+        run: |
+          sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
+          sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
+          sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
+
+          python -m pip install --upgrade pip virtualenv wheel setuptools sphinx sphinx_rtd_theme
+          python -m pip install -e .
+      - name: Generate docs
+        run: |
+          cd doc
+          make html
+      - name: gh-pages upload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp -r doc/build/html ~/docs_temp
+
+          git config --global user.email "moiein2000@gmail.com"
+          git config --global user.name "Matthew Einhorn"
+          git remote rm origin || true
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/matham/ffpyplayer.git"
+
+          git checkout --orphan gh-pages
+          cp -r .git ~/docs_git
+          cd ..
+          rm -rf ffpyplayer
+          mkdir ffpyplayer
+          cd ffpyplayer
+          cp -r ~/docs_git .git
+          cp -r ~/docs_temp/* .
+          touch .nojekyll
+
+          git add .
+          git commit -a -m "Docs for git-$GITHUB_SHA"
+          git push origin gh-pages -f
