@@ -87,11 +87,13 @@ jobs:
         name: py_wheel
         path: dist
     - name: Test
-      env:
-        FFPYPLAYER_TEST_DIRS: ffpyplayer/ffpyplayer/tests;ffpyplayer/examples
       run: |
-        cd ..
-        python -m pip install (get-item ffpyplayer\dist\*.whl).FullName
+        $dist_path=(get-item dist).FullName
+        $root=(get-item .).FullName
+        $env:FFPYPLAYER_TEST_DIRS="$root\ffpyplayer\tests;$root\examples"
+        cd ~/
+
+        python -m pip install --no-index --find-links=$dist_path ffpyplayer
         $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
         echo $name
         pytest "$name\tests"
@@ -120,6 +122,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
       - name: Build docker
         run: |
           docker info
@@ -132,6 +138,18 @@ jobs:
         with:
           name: py_wheel
           path: dist
+      - name: Test
+        run: |
+          root=`pwd`
+          dist_path=$root/dist
+          export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
+          cd ~/
+
+          python -m pip install --upgrade pip virtualenv wheel setuptools pytest
+          python -m pip install --no-index --find-links=$dist_path ffpyplayer
+          name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
+          echo $name
+          pytest "$name/tests"
 
   docs:
     runs-on: ubuntu-18.04
