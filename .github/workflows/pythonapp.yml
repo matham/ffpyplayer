@@ -164,9 +164,11 @@ jobs:
       - name: Brew setup
         run: |
           brew update
+          brew install pkg-config
           brew install sdl2
           brew install sdl2_mixer
           brew install ffmpeg
+          pkg-config --libs --cflags libavcodec
       - name: Building wheels
         run: |
           mkdir ~/ffpyplayer_wheels
