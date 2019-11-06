@@ -157,11 +157,13 @@ def pkgconfig(*packages, **kw):
 
 def get_paths(name):
     root = environ.get('{}_ROOT'.format(name))
+    print('{}_ROOT: "{}"'.format(name, root))
     if root is not None and not isdir(root):
         root = None
 
     if root is not None:
-        include = environ.get('{}_INCLUDE_DIR'.format(name), join(root, 'include'))
+        include = environ.get(
+            '{}_INCLUDE_DIR'.format(name), join(root, 'include'))
         lib = environ.get('{}_LIB_DIR'.format(name), join(root, 'lib'))
     else:
         include = environ.get('{}_INCLUDE_DIR'.format(name))
@@ -388,6 +390,7 @@ setup(name='ffpyplayer',
                    'Programming Language :: Python :: 3.5',
                    'Programming Language :: Python :: 3.6',
                    'Programming Language :: Python :: 3.7',
+                   'Programming Language :: Python :: 3.8',
                    'Operating System :: MacOS :: MacOS X',
                    'Operating System :: Microsoft :: Windows',
                    'Operating System :: POSIX :: BSD :: FreeBSD',

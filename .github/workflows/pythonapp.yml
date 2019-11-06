@@ -64,6 +64,10 @@ jobs:
         Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\include\*" -destination "SDL2\include" -Recurse -Force
 
         Copy-Item "SDL2\include\*.h" -destination "SDL2\include\SDL2" -Recurse -Force
+
+        echo "Dependency paths are:"
+        ls $env:SDL_ROOT
+        ls $env:FFMPEG_ROOT
     - name: Make sdist
       if: matrix.arch == 'x64' && matrix.python == '3.7'
       run: |
