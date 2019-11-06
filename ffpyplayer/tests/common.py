@@ -10,6 +10,7 @@ import logging
 set_log_callback(logger=logging, default_only=True)
 set_loglevel('trace')
 
+
 def get_media(fname):
     if exists(fname):
         return abspath(fname)
