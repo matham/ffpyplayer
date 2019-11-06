@@ -168,28 +168,28 @@ jobs:
           brew install sdl2_mixer
           brew install ffmpeg
       - name: Building wheels
-          run: |
-            mkdir ~/ffpyplayer_wheels
+        run: |
+          mkdir ~/ffpyplayer_wheels
 
-            for pyver in $OSX_PYVERS; do
-               git reset --hard
-               git clean -d -x -f
-               pyver_short=${pyver:0:3}
+          for pyver in $OSX_PYVERS; do
+             git reset --hard
+             git clean -d -x -f
+             pyver_short=${pyver:0:3}
 
-               curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.9.pkg
-               sudo installer -package python-$pyver-macosx10.9.pkg -target /
-               curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-               python$pyver_short get-pip.py --user
-               python$pyver_short -m pip install --upgrade --user pip
-               python$pyver_short -m pip install --upgrade --user cython pytest wheel
-               python$pyver_short -m pip install --upgrade delocate
+             curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.9.pkg
+             sudo installer -package python-$pyver-macosx10.9.pkg -target /
+             curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+             python$pyver_short get-pip.py --user
+             python$pyver_short -m pip install --upgrade --user pip
+             python$pyver_short -m pip install --upgrade --user cython pytest wheel
+             python$pyver_short -m pip install --upgrade delocate
 
-               python$pyver_short setup.py bdist_wheel
+             python$pyver_short setup.py bdist_wheel
 
-               /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-wheel dist/*.whl
-               /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 dist/*.whl
-               cp dist/*.whl ~/ffpyplayer_wheels
-            done
+             /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-wheel dist/*.whl
+             /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 dist/*.whl
+             cp dist/*.whl ~/ffpyplayer_wheels
+          done
       - name: Upload wheel
         uses: actions/upload-artifact@master
         with:
