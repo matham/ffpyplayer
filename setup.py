@@ -159,6 +159,7 @@ def get_paths(name):
     root = environ.get('{}_ROOT'.format(name))
     print('{}_ROOT: "{}"'.format(name, root))
     if root is not None and not isdir(root):
+        print('Root directory "{}" is not valid'.format(root))
         root = None
 
     if root is not None:
@@ -170,10 +171,13 @@ def get_paths(name):
         lib = environ.get('{}_LIB_DIR'.format(name))
 
     if include is not None and not isdir(include):
+        print('Include directory "{}" is not valid'.format(include))
         include = None
     if lib is not None and not isdir(lib):
+        print('Lib directory "{}" is not valid'.format(lib))
         lib = None
     return lib, include
+
 
 libraries = []
 library_dirs = []
