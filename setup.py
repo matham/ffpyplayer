@@ -120,7 +120,7 @@ class FFBuildExt(build_ext, object):
             args = []
         else:
             args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
-            if sys.prefix == 'darwin':
+            if platform == 'darwin':
                 args.append('-headerpad_max_install_names')
         print('Using compiler args: {}'.format(args))
         for ext in self.extensions:
