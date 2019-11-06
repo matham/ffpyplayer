@@ -1334,7 +1334,7 @@ cdef class VideoState(object):
     cdef int update_sample_display(VideoState self, int16_t *samples, int samples_size) nogil except 1:
         cdef int size, len
 
-        size = samples_size / sizeof(short)
+        size = samples_size // sizeof(short)
         while size > 0:
             len = SAMPLE_ARRAY_SIZE - self.sample_array_index
             if len > size:
@@ -1368,8 +1368,8 @@ cdef class VideoState(object):
                     avg_diff = self.audio_diff_cum * (1.0 - self.audio_diff_avg_coef)
                     if fabs(avg_diff) >= self.audio_diff_threshold:
                         wanted_nb_samples = nb_samples + <int>(diff * self.audio_src.freq)
-                        min_nb_samples = nb_samples * (100 - SAMPLE_CORRECTION_PERCENT_MAX) / 100
-                        max_nb_samples = nb_samples * (100 + SAMPLE_CORRECTION_PERCENT_MAX) / 100
+                        min_nb_samples = nb_samples * (100 - SAMPLE_CORRECTION_PERCENT_MAX) // 100
+                        max_nb_samples = nb_samples * (100 + SAMPLE_CORRECTION_PERCENT_MAX) // 100
                         wanted_nb_samples = av_clip(wanted_nb_samples, min_nb_samples, max_nb_samples)
                     if self.player.loglevel >= AV_LOG_TRACE:
                         av_log(NULL, AV_LOG_TRACE, b"diff=%f adiff=%f sample_diff=%d apts=%0.3f %f\n",
@@ -1457,7 +1457,7 @@ cdef class VideoState(object):
         if self.swr_ctx != NULL:
             input = <const uint8_t **>af.frame.extended_data
             out = &self.audio_buf1
-            out_count = <int64_t>wanted_nb_samples * self.audio_tgt.freq / af.frame.sample_rate + 256
+            out_count = <int64_t>wanted_nb_samples * self.audio_tgt.freq // af.frame.sample_rate + 256
             out_size  = av_samples_get_buffer_size(NULL, self.audio_tgt.channels, out_count, self.audio_tgt.fmt, 0)
             if out_size < 0:
                 if self.player.loglevel >= AV_LOG_ERROR:
@@ -1466,8 +1466,8 @@ cdef class VideoState(object):
 
             if wanted_nb_samples != af.frame.nb_samples:
                 if swr_set_compensation(self.swr_ctx, (wanted_nb_samples - af.frame.nb_samples)\
-                * self.audio_tgt.freq / af.frame.sample_rate, wanted_nb_samples *\
-                self.audio_tgt.freq / af.frame.sample_rate) < 0:
+                * self.audio_tgt.freq // af.frame.sample_rate, wanted_nb_samples *\
+                self.audio_tgt.freq // af.frame.sample_rate) < 0:
                     if self.player.loglevel >= AV_LOG_ERROR:
                         av_log(NULL, AV_LOG_ERROR, b"swr_set_compensation() failed\n")
                     return -1
@@ -1526,7 +1526,7 @@ cdef class VideoState(object):
                 if audio_size < 0:
                     # if error, just output silence
                     self.audio_buf = NULL
-                    self.audio_buf_size = SDL_AUDIO_MIN_BUFFER_SIZE / self.audio_tgt.frame_size * self.audio_tgt.frame_size
+                    self.audio_buf_size = SDL_AUDIO_MIN_BUFFER_SIZE // self.audio_tgt.frame_size * self.audio_tgt.frame_size
                 else:
 #                     if self.show_mode != SHOW_MODE_VIDEO:
 #                         self.update_sample_display(<int16_t *>self.audio_buf, audio_size)
@@ -1588,7 +1588,7 @@ cdef class VideoState(object):
                     spec.channels = channels
 
                 if not error:
-                    spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC))
+                    spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(spec.freq // AUDIO_MAX_CALLBACKS_PER_SEC))
                     spec.size = spec.samples * 2 * spec.channels
                     memcpy(&spec_used, spec, sizeof(spec_used))
 
@@ -1602,7 +1602,7 @@ cdef class VideoState(object):
                 return error
 
             memset(self.chunk_buf, 0, sizeof(self.chunk_buf))
-            self.chunk = Mix_QuickLoad_RAW(self.chunk_buf, sizeof(self.chunk_buf) / sizeof(uint8_t))
+            self.chunk = Mix_QuickLoad_RAW(self.chunk_buf, sizeof(self.chunk_buf) // sizeof(uint8_t))
             if self.chunk == NULL:
                 return -1
 
@@ -1649,7 +1649,7 @@ cdef class VideoState(object):
 
         wanted_spec.format = AUDIO_S16SYS
         wanted_spec.silence = 0
-        wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC))
+        wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq // AUDIO_MAX_CALLBACKS_PER_SEC))
         wanted_spec.callback = <void (*)(void *, uint8_t *, int) nogil>self.sdl_audio_callback
         wanted_spec.userdata = self.self_id
 

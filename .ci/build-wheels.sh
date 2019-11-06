@@ -103,7 +103,7 @@ make install
 cd ~/ffmpeg_sources
 git clone --depth 1 --branch v2.0.1 https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
-git apply /io/.travis/fdk.patch
+git apply /io/.ci/fdk.patch
 autoreconf -fiv
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared
 make

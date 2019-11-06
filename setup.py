@@ -83,7 +83,7 @@ c_options['config_avformat'] = c_options['config_swresample'] = True
 
 
 class FFBuildExt(build_ext, object):
-    
+
     def __new__(cls, *a, **kw):
         # Note how this class is declared as a subclass of distutils
         # build_ext as the Cython version may not be available in the
@@ -352,6 +352,8 @@ with open(join(src_path, 'ffpyplayer', 'includes', 'ffconfig.pxi'), 'w') as f:
 include_dirs.extend(
     [join(src_path, 'ffpyplayer'),
      join(src_path, 'ffpyplayer', 'includes')])
+print('Include directories: {}'.format(include_dirs))
+print('Library directories: {}'.format(library_dirs))
 ext_modules = [Extension(
     'ffpyplayer.' + src_file.replace('/', '.'),
     sources=[join(src_path, 'ffpyplayer', *(src_file + mod_suffix).split('/')),
@@ -362,11 +364,11 @@ ext_modules = [Extension(
                for src_file in mods]
 
 for e in ext_modules:
-    e.cython_directives = {"embedsignature": True}
+    e.cython_directives = {"embedsignature": True, 'language_level': 3}
 
 with open('README.rst') as fh:
     long_description = fh.read()
-    
+
 setup_requires = []
 if declare_cython:
     setup_requires.append('cython')
