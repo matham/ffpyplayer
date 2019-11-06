@@ -78,6 +78,8 @@ jobs:
         python -m pip install --upgrade pip virtualenv wheel setuptools pytest cython nose
     - name: Make wheel
       run: |
+        $env:SDL_ROOT=(get-item $env:SDL_ROOT).FullName
+        $env:FFMPEG_ROOT=(get-item $env:FFMPEG_ROOT).FullName
         python setup.py bdist_wheel
     - name: Upload wheel
       uses: actions/upload-artifact@master
