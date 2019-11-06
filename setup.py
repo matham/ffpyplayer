@@ -116,15 +116,20 @@ class FFBuildExt(build_ext, object):
     def build_extensions(self):
         compiler = self.compiler.compiler_type
         print('Using compiler "{}"'.format(compiler))
-        if compiler == 'msvc':
-            args = []
-        else:
-            args = ["-O3", '-fno-strict-aliasing', '-Wno-error']
+
+        args = []
+        link_args = []
+        if compiler != 'msvc':
+            args += ["-O3", '-fno-strict-aliasing', '-Wno-error']
+
             if platform == 'darwin':
-                args.append('-headerpad_max_install_names')
+                link_args.append('-headerpad_max_install_names')
         print('Using compiler args: {}'.format(args))
+        print('Using linker args: {}'.format(link_args))
+
         for ext in self.extensions:
             ext.extra_compile_args = args
+            ext.extra_link_args = link_args
         super(FFBuildExt, self).build_extensions()
 
 
