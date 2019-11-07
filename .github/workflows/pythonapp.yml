@@ -188,11 +188,15 @@ jobs:
              /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 dist/*.whl
              cp dist/*.whl ~/ffpyplayer_wheels
           done
+
+          git reset --hard
+          git clean -d -x -f
+          cp ~/ffpyplayer_wheels dist
       - name: Upload wheel
         uses: actions/upload-artifact@master
         with:
           name: py_wheel
-          path: ~/ffpyplayer_wheels
+          path: dist
       - name: Set up Python 3.x
         uses: actions/setup-python@v1
         with:
@@ -204,7 +208,7 @@ jobs:
           cd ~/
 
           python -m pip install --upgrade pip virtualenv wheel setuptools pytest
-          python -m pip install --no-index --find-links=~/ffpyplayer_wheels ffpyplayer
+          python -m pip install --no-index --find-links=dist ffpyplayer
           name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
           echo $name
           pytest "$name/tests"
