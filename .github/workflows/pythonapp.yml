@@ -191,7 +191,7 @@ jobs:
 
           git reset --hard
           git clean -d -x -f
-          cp ~/ffpyplayer_wheels dist
+          cp -r ~/ffpyplayer_wheels dist
       - name: Upload wheel
         uses: actions/upload-artifact@master
         with:
