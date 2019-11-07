@@ -157,10 +157,6 @@ jobs:
     runs-on: macOS-10.14
     steps:
       - uses: actions/checkout@v1
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.x
       - name: Brew setup
         run: |
           brew update
@@ -197,6 +193,10 @@ jobs:
         with:
           name: py_wheel
           path: ~/ffpyplayer_wheels
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
       - name: Test
         run: |
           root=`pwd`
