@@ -88,8 +88,14 @@ jobs:
         name: py_wheel
         path: dist
     - name: Test
-      if: matrix.arch == 'testing is failing due to missing dll on ci for some reason'
       run: |
+        Invoke-WebRequest  "https://github.com/matham/ffpyplayer/releases/download/v4.1.0/ffmpeg_win_dll_container_deps.zip"  -OutFile "ffmpeg_win_dll_container_deps.zip"
+        7z x "ffmpeg_win_dll_container_deps.zip"
+        $env:PATH="$env:PATH;$env:GITHUB_WORKSPACE\ffpyplayer\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
+        echo $env:PATH
+        ls "$env:GITHUB_WORKSPACE\ffpyplayer"
+        ls "$env:GITHUB_WORKSPACE\ffpyplayer\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
+
         $dist_path=(get-item dist).FullName
         $root=(get-item .).FullName
         $env:FFPYPLAYER_TEST_DIRS="$root\ffpyplayer\tests;$root\examples"
