@@ -89,12 +89,16 @@ jobs:
         path: dist
     - name: Test
       run: |
+        # see https://social.msdn.microsoft.com/Forums/security/en-US/0c13bd1a-388f-48cf-a190-7259d39a080f/ffmpeg-doesnt-work-from-inside-a-container-but-works-on-the-host?forum=windowscontainers
+        # https://trac.ffmpeg.org/ticket/6875, https://stackoverflow.com/questions/46147012/opencv-import-failed-in-windows-container-on-windows-server-2016
+        # and https://social.msdn.microsoft.com/Forums/en-US/a95032d2-c469-494a-b3f9-521b1389a6c9/cant-use-opencvpython-package-in-windows-container-windows-server-2016-standard?forum=windowscontainers
+        # for the reason we need to manually copy some missing dlls to the PATH
         Invoke-WebRequest  "https://github.com/matham/ffpyplayer/releases/download/v4.1.0/ffmpeg_win_dll_container_deps.zip"  -OutFile "ffmpeg_win_dll_container_deps.zip"
         7z x "ffmpeg_win_dll_container_deps.zip"
-        $env:PATH="$env:PATH;$env:GITHUB_WORKSPACE\ffpyplayer\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
+        $env:PATH="$env:PATH;$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
         echo $env:PATH
         ls "$env:GITHUB_WORKSPACE\ffpyplayer"
-        ls "$env:GITHUB_WORKSPACE\ffpyplayer\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
+        ls "$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
 
         $dist_path=(get-item dist).FullName
         $root=(get-item .).FullName
