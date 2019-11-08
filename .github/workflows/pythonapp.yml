@@ -96,9 +96,6 @@ jobs:
         Invoke-WebRequest  "https://github.com/matham/ffpyplayer/releases/download/v4.1.0/ffmpeg_win_dll_container_deps.zip"  -OutFile "ffmpeg_win_dll_container_deps.zip"
         7z x "ffmpeg_win_dll_container_deps.zip"
         $env:PATH="$env:PATH;$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
-        echo $env:PATH
-        ls "$env:GITHUB_WORKSPACE\ffpyplayer"
-        ls "$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
 
         $dist_path=(get-item dist).FullName
         $root=(get-item .).FullName
@@ -108,7 +105,7 @@ jobs:
         python -m pip install --no-index --find-links=$dist_path ffpyplayer
         $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
         echo $name
-        pytest "$name\tests"
+        pytest -Wignore "$name\tests"
 
   linux_test:
     runs-on: ubuntu-18.04
