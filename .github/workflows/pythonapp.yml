@@ -107,10 +107,7 @@ jobs:
         $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
         echo $name
         try {pytest -Wignore "$name\tests"}
-        catch {echo "hit error"}
-
-        echo "error is"
-        echo $Error
+        catch {echo "hit error $_.ScriptStackTrace... $_.Exception... $_.ErrorDetails"}
 
   linux_test:
     runs-on: ubuntu-18.04
