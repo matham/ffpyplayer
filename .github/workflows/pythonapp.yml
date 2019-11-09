@@ -106,7 +106,7 @@ jobs:
         python -m pip install --no-index --find-links=$dist_path ffpyplayer
         $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
         echo $name
-        $res=(pytest -Wignore "$name\tests")
+        $res=(pytest -Wignore "$name\tests" 2>&1)
 
         echo "error is"
         echo $Error
