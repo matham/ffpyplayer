@@ -106,8 +106,16 @@ jobs:
         python -m pip install --no-index --find-links=$dist_path ffpyplayer
         $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
         echo $name
-        try {pytest "$name\tests"}
-        catch {echo "$?; $LastExitCode"}
+        # powershell interprets writing to stderr as an error, so only raise error if the return code is none-zero
+        try {
+          pytest "$name\tests"
+        } catch {
+          if ($LastExitCode -ne 0) {
+            throw $_
+          } else {
+            echo $_
+          }
+        }
 
   linux_test:
     runs-on: ubuntu-18.04
