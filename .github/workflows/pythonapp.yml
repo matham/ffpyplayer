@@ -106,7 +106,12 @@ jobs:
         python -m pip install --no-index --find-links=$dist_path ffpyplayer
         $name = python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"
         echo $name
-        pytest -Wignore "$name\tests"
+        $res=(pytest -Wignore "$name\tests")
+
+        echo "error is"
+        echo $Error
+        echo "result is"
+        echo $res
 
   linux_test:
     runs-on: ubuntu-18.04
