@@ -22,6 +22,7 @@ cdef extern from "math.h" nogil:
 
 cdef extern from "errno.h" nogil:
     int ENOENT
+    int EAGAIN
 
 from ffpyplayer.pic cimport Image
 
@@ -36,6 +37,7 @@ DEF VSYNC_VFR = 2
 DEF VSYNC_DROP = 0xff
 
 cdef int AV_ENOENT = ENOENT if ENOENT < 0 else -ENOENT
+cdef int AV_EAGAIN = EAGAIN if EAGAIN < 0 else -EAGAIN
 
 
 cdef class MediaWriter(object):
@@ -214,11 +216,11 @@ cdef class MediaWriter(object):
             s[r].pix_fmt_in = av_get_pix_fmt(config['pix_fmt_in'])
             s[r].pix_fmt_out = av_get_pix_fmt(config['pix_fmt_out'])
 
-            s[r].codec = avcodec_find_encoder(s[r].codec_id);
+            s[r].codec = avcodec_find_encoder(s[r].codec_id)
             if s[r].codec == NULL:
                 self.clean_up()
                 raise Exception('Codec %s not found.' % config['codec'])
-            s[r].av_stream = avformat_new_stream(self.fmt_ctx, NULL);
+            s[r].av_stream = avformat_new_stream(self.fmt_ctx, NULL)
             if s[r].av_stream == NULL:
                 self.clean_up()
                 raise Exception("Couldn't create stream %d." % r)
@@ -356,7 +358,8 @@ cdef class MediaWriter(object):
             After calling this method, calling any other class method on this instance may
             result in a crash or program corruption.
         '''
-        cdef int r, got_pkt, res, wrote = 0
+        cdef int r, res, wrote = 0
+        cdef char msg[256]
         cdef AVPacket pkt
         if self.closed:
             return
@@ -372,23 +375,36 @@ cdef class MediaWriter(object):
                 if not self.streams[r].count:
                     continue
                 wrote = 1
-                while 1:
-                    av_init_packet(&pkt)
-                    pkt.data = NULL
-                    pkt.size = 0
-                    # flush
-                    res = avcodec_encode_video2(self.streams[r].codec_ctx, &pkt, NULL, &got_pkt)
-                    if res < 0 or not got_pkt:
+
+                av_init_packet(&pkt)
+                pkt.data = NULL
+                pkt.size = 0
+
+                # flush
+                res = avcodec_send_frame(self.streams[r].codec_ctx, NULL)
+                if res < 0:
+                    with gil:
+                        raise Exception('Error sending NULL frame: ' + tcode(emsg(res, msg, sizeof(msg))))
+
+                while True:
+                    res = avcodec_receive_packet(self.streams[r].codec_ctx, &pkt)
+                    if res < 0:
+                        if res != AVERROR_EOF:
+                            with gil:
+                                raise Exception('Error getting encoded packet: ' + tcode(emsg(res, msg, sizeof(msg))))
                         break
+
                     if pkt.pts != AV_NOPTS_VALUE:
-                        pkt.pts = av_rescale_q(pkt.pts, self.streams[r].codec_ctx.time_base,
-                                               self.streams[r].av_stream.time_base)
+                        pkt.pts = av_rescale_q(pkt.pts, self.streams[r].codec_ctx.time_base, self.streams[r].av_stream.time_base)
                     if pkt.dts != AV_NOPTS_VALUE:
-                        pkt.dts = av_rescale_q(pkt.dts, self.streams[r].codec_ctx.time_base,
-                                               self.streams[r].av_stream.time_base)
+                        pkt.dts = av_rescale_q(pkt.dts, self.streams[r].codec_ctx.time_base, self.streams[r].av_stream.time_base)
                     pkt.stream_index = self.streams[r].av_stream.index
-                    if av_interleaved_write_frame(self.fmt_ctx, &pkt) < 0:
-                        break
+                    self.total_size += pkt.size
+
+                    res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
+                    if res < 0:
+                        with gil:
+                            raise Exception('Error writing packet: ' + tcode(emsg(res, msg, sizeof(msg))))
             if wrote:
                 av_write_trailer(self.fmt_ctx)
             self.clean_up()
@@ -434,15 +450,15 @@ cdef class MediaWriter(object):
 
         See :ref:`examples` for its usage.
         '''
-        cdef int res = 0, count = 1, i, got_pkt
+        cdef int res = 0, got_pkt
+        cdef int frame_cloned = 0
         cdef AVFrame *frame_in = img.frame
         cdef AVFrame *frame_out
         cdef MediaStream *s
         cdef double ipts, dpts
+        cdef int64_t rounded_pts
         cdef AVPacket pkt
         cdef char msg[256]
-        cdef AVPictureType pict_type_src
-        cdef int64_t pts_src
         if stream >= self.n_streams:
             raise Exception('Invalid stream number %d' % stream)
         s = self.streams + stream
@@ -456,61 +472,55 @@ cdef class MediaWriter(object):
                 sws_scale(s.sws_ctx, <const uint8_t *const *>frame_in.data, frame_in.linesize,
                           0, frame_in.height, frame_out.data, frame_out.linesize)
             else:
-                frame_out = frame_in
-
-            ipts = pts / av_q2d(s.codec_ctx.time_base)
-            if s.sync_fmt != VSYNC_PASSTHROUGH and s.sync_fmt != VSYNC_DROP:
-                dpts = ipts - <double>s.pts
-                if dpts < -1.1:
-                    count = 0
-                elif s.sync_fmt == VSYNC_VFR:
-                    if dpts <= -0.6:
-                        count = 0
-                    elif dpts > 0.6:
-                        s.pts = <int64_t>floor(dpts + 0.5)
-                elif dpts > 1.1:
-                    count = <int>floor(dpts + 0.5)
-            else:
-                s.pts = <int64_t>floor(ipts + 0.5)
-            if count <= 0:
-                with gil:
-                    raise Exception('Received bad timestamp.')
-
-            for i in range(count):
-                av_init_packet(&pkt)
-                pkt.data = NULL
-                pkt.size = 0
-
-                got_pkt = 0
-                pict_type_src = frame_out.pict_type
-                pts_src = frame_out.pts
-                frame_out.pict_type = AV_PICTURE_TYPE_NONE
-                frame_out.pts = s.pts
-                res = avcodec_encode_video2(s.codec_ctx, &pkt, frame_out, &got_pkt)
-                if res < 0:
+                frame_out = av_frame_clone(frame_in)
+                frame_cloned = 1
+                if frame_out == NULL:
                     with gil:
-                        raise Exception('Error encoding frame: ' + tcode(emsg(res, msg, sizeof(msg))))
+                        raise MemoryError
 
-                if got_pkt:
-                    if pkt.pts == AV_NOPTS_VALUE and not (s.codec_ctx.codec.capabilities & AV_CODEC_CAP_DELAY):
-                        pkt.pts = s.pts
-                    if pkt.pts != AV_NOPTS_VALUE:
-                        pkt.pts = av_rescale_q(pkt.pts, s.codec_ctx.time_base, s.av_stream.time_base)
-                    if pkt.dts != AV_NOPTS_VALUE:
-                        pkt.dts = av_rescale_q(pkt.dts, s.codec_ctx.time_base, s.av_stream.time_base)
-                    if s.sync_fmt == VSYNC_DROP:
-                        pkt.pts = pkt.dts = AV_NOPTS_VALUE
-                    pkt.stream_index = s.av_stream.index
-                    self.total_size += pkt.size
-                    res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
-                    if res < 0:
+            rounded_pts = <int64_t>floor(pts / av_q2d(s.codec_ctx.time_base) + 0.5)
+            frame_out.pict_type = AV_PICTURE_TYPE_NONE
+            frame_out.pts = rounded_pts
+
+            av_init_packet(&pkt)
+            pkt.data = NULL
+            pkt.size = 0
+
+            res = avcodec_send_frame(s.codec_ctx, frame_out)
+            if res < 0:
+                if frame_cloned:
+                    av_frame_free(&frame_out)
+                with gil:
+                    raise Exception('Error sending frame: ' + tcode(emsg(res, msg, sizeof(msg))))
+
+            while True:
+                res = avcodec_receive_packet(s.codec_ctx, &pkt)
+                if res < 0:
+                    if frame_cloned:
+                        av_frame_free(&frame_out)
+                    if res != AVERROR_EOF and res != AV_EAGAIN:
                         with gil:
-                            raise Exception('Error writing frame: ' + tcode(emsg(res, msg, sizeof(msg))))
-                frame_out.pts = pts_src
-                frame_out.pict_type = pict_type_src
+                            raise Exception('Error getting encoded packet: ' + tcode(emsg(res, msg, sizeof(msg))))
+                    break
 
-                s.pts += 1
-                s.count += 1
+                if pkt.pts != AV_NOPTS_VALUE:
+                    pkt.pts = av_rescale_q(pkt.pts, s.codec_ctx.time_base, s.av_stream.time_base)
+                if pkt.dts != AV_NOPTS_VALUE:
+                    pkt.dts = av_rescale_q(pkt.dts, s.codec_ctx.time_base, s.av_stream.time_base)
+                pkt.stream_index = s.av_stream.index
+                self.total_size += pkt.size
+
+                res = av_interleaved_write_frame(self.fmt_ctx, &pkt)
+                if res < 0:
+                    if frame_cloned:
+                        av_frame_free(&frame_out)
+                    with gil:
+                        raise Exception('Error writing packet: ' + tcode(emsg(res, msg, sizeof(msg))))
+
+            s.pts += 1
+            s.count += 1
+            if frame_cloned:
+                av_frame_free(&frame_out)
         return self.total_size
 
     def get_configuration(self):

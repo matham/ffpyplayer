@@ -37,7 +37,7 @@ cdef:
             pass
         int av_compare_ts(int64_t, AVRational, int64_t, AVRational)
         const char* av_get_media_type_string(AVMediaType)
-        inline const int av_log2(unsigned int)
+        const int av_log2(unsigned int)
         void av_packet_unref(AVPacket *)
 
     extern from "libavformat/avio.h" nogil:
@@ -53,7 +53,7 @@ cdef:
             int (*callback)(void*)
             void *opaque
         int avio_feof(AVIOContext *)
-        inline int64_t avio_tell(AVIOContext *)
+        int64_t avio_tell(AVIOContext *)
 
     extern from "libavutil/eval.h" nogil:
         double av_strtod(const char *, char **)
@@ -129,7 +129,7 @@ cdef:
         struct AVRational:
             int num #///< numerator
             int den #///< denominator
-        inline double av_q2d(AVRational)
+        double av_q2d(AVRational)
         int av_find_nearest_q_idx(AVRational, const AVRational*)
 
         int AV_LOG_QUIET
@@ -191,7 +191,7 @@ cdef:
         int AVERROR_OPTION_NOT_FOUND
         int av_strerror(int, char *, size_t)
 
-        inline void *av_x_if_null(const void *p, const void *x)
+        void *av_x_if_null(const void *p, const void *x)
 
         int64_t AV_TIME_BASE
         AVRational AV_TIME_BASE_Q
@@ -514,6 +514,8 @@ cdef:
         AVCodec *av_codec_next(const AVCodec *)
         int av_codec_is_encoder(const AVCodec *)
         int av_codec_is_decoder(const AVCodec *)
+        int avcodec_send_frame(AVCodecContext *, const AVFrame *)
+        int avcodec_receive_packet(AVCodecContext *, AVPacket *)
 
     extern from "libavfilter/avfilter.h" nogil:
         struct AVFilterContext:
