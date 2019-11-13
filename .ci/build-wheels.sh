@@ -19,15 +19,6 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.4.tar.gz;
-tar xzf SDL2_mixer-2.0.4.tar.gz;
-cd SDL2_mixer-2.0.4;
-PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
-PATH="$HOME/ffmpeg_build/bin:$PATH" make;
-make install;
-make distclean;
-
-cd ~/ffmpeg_sources;
 wget https://www.openssl.org/source/openssl-1.1.1d.tar.gz;
 tar xzf openssl-1.1.1d.tar.gz;
 cd openssl-1.1.1d;
@@ -167,7 +158,7 @@ for PYBIN in /opt/python/*3*/bin; do
     if [[ $PYBIN != *"34"* ]]; then
         "${PYBIN}/pip" install --upgrade setuptools pip
         "${PYBIN}/pip" install --upgrade cython nose
-        USE_SDL2_MIXER=1 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w dist/
+        USE_SDL2_MIXER=0 PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" "${PYBIN}/pip" wheel /io/ -w dist/
     fi
 done
 
