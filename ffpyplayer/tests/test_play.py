@@ -26,6 +26,7 @@ def test_play():
             img, t = frame
             i += 1
 
+    player.close_player()
     if error[0]:
         raise Exception('{}: {}'.format(*error[0]))
 
