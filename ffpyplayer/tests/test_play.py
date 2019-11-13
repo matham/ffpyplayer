@@ -5,6 +5,7 @@ def test_play():
     import time
 
     error = [None, ]
+
     def callback(selector, value):
         if selector.endswith('error'):
             error[0] = selector, value
@@ -14,14 +15,18 @@ def test_play():
     player = MediaPlayer(
         get_media('dw11222.mp4'), callback=callback, ff_opts=ff_opts)
 
+    i = 0
     while not error[0]:
         frame, val = player.get_frame()
         if val == 'eof':
             break
         elif frame is None:
-            time.sleep(0.01)
+            time.sleep(0.001)
         else:
             img, t = frame
+            i += 1
 
     if error[0]:
         raise Exception('{}: {}'.format(*error[0]))
+
+    assert i == 6077

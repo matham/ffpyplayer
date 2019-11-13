@@ -1,6 +1,6 @@
 
 def create_image(size):
-    from ffpyplayer.pic import Image, SWScale
+    from ffpyplayer.pic import Image
 
     w, h = size
     size = w * h * 3
@@ -9,7 +9,7 @@ def create_image(size):
 
 
 def test_pic():
-    from ffpyplayer.pic import Image, SWScale
+    from ffpyplayer.pic import SWScale
 
     size = w, h = 500, 100
     img = create_image(size)
