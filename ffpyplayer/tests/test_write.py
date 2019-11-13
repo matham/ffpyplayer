@@ -19,7 +19,8 @@ def get_gray_image_with_val(w, h, val):
     # Construct images
     size = w * h
     buf = bytearray([int(val)] * size)
-    img = Image(plane_buffers=[buf], pix_fmt='gray', size=(w, h))
+    buf2 = bytearray([0] * size)
+    img = Image(plane_buffers=[buf, buf2], pix_fmt='gray', size=(w, h))
     return img
 
 
