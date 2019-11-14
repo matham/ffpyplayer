@@ -134,7 +134,7 @@ jobs:
 
           python -m pip install --upgrade pip virtualenv wheel setuptools cython pytest
           python setup.py sdist
-          python -m pip install sdist/ffpyplayer*.tar.gz
+          python -m pip install `ls sdist/ffpyplayer*.tar.gz`
       - name: Test
         run: |
           pytest ffpyplayer/tests
