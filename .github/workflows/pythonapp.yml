@@ -136,9 +136,15 @@ jobs:
           python setup.py sdist
           python -m pip install `ls dist/ffpyplayer*.tar.gz`
       - name: Test
-        run: |
-          pytest ffpyplayer/tests
+        run: | 
+          root=`pwd`
+          dist_path=$root/dist
+          export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
+          cd ~/
 
+          name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
+          echo $name
+          pytest "$name/tests"
   linux_wheels:
     runs-on: ubuntu-18.04
     steps:
