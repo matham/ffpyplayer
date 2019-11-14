@@ -130,13 +130,21 @@ jobs:
           sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
           sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
           sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
+          export FFPYPLAYER_TEST_DIRS="`pwd`/ffpyplayer/tests:`pwd`/examples"
 
           python -m pip install --upgrade pip virtualenv wheel setuptools cython pytest
-          python -m pip install -e .
+          python setup.py sdist
+          python -m pip install `ls dist/ffpyplayer*.tar.gz`
       - name: Test
-        run: |
-          pytest ffpyplayer/tests
+        run: | 
+          root=`pwd`
+          dist_path=$root/dist
+          export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
+          cd ~/
 
+          name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
+          echo $name
+          pytest "$name/tests"
   linux_wheels:
     runs-on: ubuntu-18.04
     steps:

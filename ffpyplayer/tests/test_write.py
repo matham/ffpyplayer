@@ -47,10 +47,12 @@ def verify_frames(filename, timestamps, frame_vals=None):
                 time.sleep(0.01)
             else:
                 img, t = frame
+                print(i, t)
                 if i < 0:
                     i += 1
                     continue
 
+                print(i, t, timestamps[i])
                 read_timestamps.add(t)
                 assert math.isclose(t, timestamps[i], rel_tol=.1)
 
