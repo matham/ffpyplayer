@@ -33,18 +33,16 @@ It is read only.
 
 _ffmpeg = join(sys.prefix, 'share', 'ffpyplayer', 'ffmpeg', 'bin')
 if isdir(_ffmpeg):
+    os.environ["PATH"] += os.pathsep + _ffmpeg
     if hasattr(os, 'add_dll_directory'):
         os.add_dll_directory(_ffmpeg)
-    else:
-        os.environ["PATH"] += os.pathsep + _ffmpeg
     dep_bins.append(_ffmpeg)
 
 _sdl = join(sys.prefix, 'share', 'ffpyplayer', 'sdl', 'bin')
 if isdir(_sdl):
+    os.environ["PATH"] += os.pathsep + _sdl
     if hasattr(os, 'add_dll_directory'):
         os.add_dll_directory(_sdl)
-    else:
-        os.environ["PATH"] += os.pathsep + _sdl
     dep_bins.append(_sdl)
 
 if 'SDL_AUDIODRIVER' not in os.environ and platform.system() == 'Windows':
