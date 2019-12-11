@@ -2181,7 +2181,7 @@ cdef class VideoState(object):
 
             ret = av_read_frame(ic, pkt)
             if ret < 0:
-                if ret == AVERROR_EOF or avio_feof(ic.pb) and not self.eof:
+                if (ret == AVERROR_EOF or avio_feof(ic.pb)) and not self.eof:
                     self.auddec.set_seek_pos(-1)
                     self.viddec.set_seek_pos(-1)
                     if self.video_stream >= 0:
