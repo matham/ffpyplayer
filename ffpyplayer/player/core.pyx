@@ -235,8 +235,8 @@ cdef int is_realtime(AVFormatContext *s) nogil:
        (not strcmp(s.iformat.name, b"rtsp")) or
        not strcmp(s.iformat.name, b"sdp")):
         return 1
-    if s.pb and ((not strncmp(s.url, b"rtp:", 4)) or
-                 not strncmp(s.url, b"udp:", 4)):
+    if s.pb and ((not strncmp(s.filename, b"rtp:", 4)) or
+                 not strncmp(s.filename, b"udp:", 4)):
         return 1
     return 0
 
@@ -2114,7 +2114,7 @@ cdef class VideoState(object):
                 if ret < 0:
                     if self.player.loglevel >= AV_LOG_ERROR:
                         av_log(NULL, AV_LOG_ERROR, b"%s: error while seeking\n",
-                           self.ic.url)
+                           self.ic.filename)
                 else:
                     if self.audio_stream >= 0:
                         self.audioq.packet_queue_flush()
