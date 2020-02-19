@@ -14,7 +14,7 @@ version = __version__
 
 # the ffmpeg src git version tested and upto date with,
 # not including this commit
-_ffmpeg_git = '915bb7881555c4966738b7ee78b28845c4665a40'
+_ffmpeg_git = 'ebee8085952de079946d903f0cc6e37aee3bc035'
 # skipped all show modes and subtitle display related functionality commits
 
 # TODO:

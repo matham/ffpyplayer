@@ -244,6 +244,12 @@ cdef class MediaPlayer(object):
                 Defaults to True.
             `volume`: float
                 The default volume. A value between 0.0 - 1.0.
+            `find_stream_info`: bool
+                Read and decode the streams to fill missing information with heuristics.
+                Defaults to True.
+            `filter_threads`: int
+                The number of filter threads per graph. Defaults to zero
+                (determined by the number of available CPUs).
 
     For example, a simple player:
 
@@ -319,6 +325,8 @@ cdef class MediaPlayer(object):
         settings.start_time = ff_opts['ss'] * 1000000 if 'ss' in ff_opts else AV_NOPTS_VALUE
         settings.duration = ff_opts['t'] * 1000000 if 't' in ff_opts else AV_NOPTS_VALUE
         settings.autorotate = bool(ff_opts.get('autorotate', 1))
+        settings.find_stream_info = bool(ff_opts.get('find_stream_info', 1))
+        settings.filter_threads = int(ff_opts.get('filter_threads', 0))
         settings.seek_by_bytes = -1
         settings.file_iformat = NULL
         if 'f' in ff_opts:
@@ -622,8 +630,8 @@ cdef class MediaPlayer(object):
                 numerator and denominator. src and sink video sizes correspond to
                 the frame size of the original video, and the frames returned by
                 :meth:`get_frame`, respectively. `src_pix_fmt` is the pixel format
-                of the original input stream. 'aspect_ratio' is the source to 
-                display aspect ratio as a numerator and denominator. Duration 
+                of the original input stream. 'aspect_ratio' is the source to
+                display aspect ratio as a numerator and denominator. Duration
                 is the file duration and defaults to None until updated.
 
         :

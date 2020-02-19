@@ -1066,7 +1066,7 @@ cdef class ImageLoader(object):
         if ret < 0 or not frame_decoded:
             raise Exception("Failed to decode image from file")
 
-        self.frame.pts = av_frame_get_best_effort_timestamp(self.frame)
+        self.frame.pts = self.frame.best_effort_timestamp
         if self.frame.pts == AV_NOPTS_VALUE:
             t = 0.
         else:
@@ -1100,7 +1100,7 @@ cdef class ImageLoader(object):
             av_frame_free(&self.frame)
             return None, 0
 
-        self.frame.pts = av_frame_get_best_effort_timestamp(self.frame)
+        self.frame.pts = self.frame.best_effort_timestamp
         if self.frame.pts == AV_NOPTS_VALUE:
             t = 0.
         else:

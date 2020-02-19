@@ -9,7 +9,6 @@ from ffpyplayer.player.frame_queue cimport FrameQueue
 cdef class Decoder(object):
     cdef:
         AVPacket pkt
-        AVPacket pkt_temp
         FFPacketQueue queue
         AVCodecContext *avctx
         int pkt_serial
@@ -32,5 +31,5 @@ cdef class Decoder(object):
     cdef void set_seek_pos(self, double seek_req_pos) nogil
     cdef int is_seeking(self) nogil
     cdef int decoder_abort(self, FrameQueue fq) nogil except 1
-    cdef int decoder_start(self, int_void_func func, void *arg) nogil except 1
+    cdef int decoder_start(self, int_void_func func, const char *thread_name, void *arg) nogil except 1
     cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2
