@@ -45,8 +45,8 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://download.videolan.org/pub/x264/snapshots/last_x264.tar.bz2;
-tar xjf last_x264.tar.bz2;
+wget http://download.videolan.org/pub/x264/snapshots/x264-snapshot-20191217-2245-stable.tar.bz2;
+tar xjf x264-snapshot-20191217-2245-stable.tar.bz2;
 cd x264-snapshot*;
 PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --enable-shared --extra-cflags="-fPIC";
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
