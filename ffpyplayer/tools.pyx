@@ -61,24 +61,10 @@ def _initialize_ffmpeg():
         av_log_set_flags(AV_LOG_SKIP_REPEATED)
         IF CONFIG_AVDEVICE:
             avdevice_register_all()
-        IF CONFIG_AVFILTER:
-            avfilter_register_all()
-        av_register_all()
         avformat_network_init()
         ffmpeg_initialized = 1
 _initialize_ffmpeg()
 
-
-def _set_ffmpeg_lockmagr():
-    '''Sets the default lockmanager for ffmpeg.
-    Called automatically when importing this module.
-    '''
-    cdef int res
-    with nogil:
-        res = av_lockmgr_register(get_lib_lockmgr(SDL_MT))
-    if res:
-        raise ValueError('Could not initialize lock manager.')
-_set_ffmpeg_lockmagr()
 
 def _get_item0(x):
     return x[0]

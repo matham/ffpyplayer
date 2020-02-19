@@ -38,7 +38,9 @@ cdef:
         int av_compare_ts(int64_t, AVRational, int64_t, AVRational)
         const char* av_get_media_type_string(AVMediaType)
         const int av_log2(unsigned int)
+        int av_packet_ref(AVPacket *, const AVPacket *)
         void av_packet_unref(AVPacket *)
+        void av_packet_move_ref(AVPacket *, AVPacket *)
 
     extern from "libavformat/avio.h" nogil:
         int AVIO_FLAG_WRITE
@@ -252,6 +254,7 @@ cdef:
             int64_t duration
             unsigned int nb_chapters
             AVChapter **chapters
+            char *url
         struct AVStream:
             int index
             AVRational time_base
@@ -270,7 +273,6 @@ cdef:
         enum  AVPacketSideDataType:
             AV_PKT_DATA_DISPLAYMATRIX
         void av_format_inject_global_side_data(AVFormatContext *)
-        void av_register_all()
         int avformat_network_init()
         int avformat_network_deinit()
         AVInputFormat *av_find_input_format(const char *)
@@ -435,8 +437,11 @@ cdef:
             int nb_samples
             uint64_t channel_layout
             uint8_t **extended_data
+            int64_t best_effort_timestamp
             uint8_t **data
             int *linesize
+            int channels
+            int64_t pkt_pos
             AVBufferRef **buf
         struct AVPicture:
             uint8_t **data
@@ -468,6 +473,8 @@ cdef:
         void avcodec_register_all()
         int avcodec_close(AVCodecContext *)
         int avcodec_decode_video2(AVCodecContext *, AVFrame *, int *, const AVPacket *)
+        int avcodec_send_packet(AVCodecContext *, const AVPacket *)
+        int avcodec_receive_frame(AVCodecContext *, AVFrame *)
         void avcodec_flush_buffers(AVCodecContext *)
         int av_lockmgr_register(lockmgr_func)
         void av_init_packet(AVPacket *)
@@ -530,6 +537,7 @@ cdef:
             char *scale_sws_opts
             unsigned nb_filters
             AVFilterContext **filters
+            int nb_threads
         struct AVFilterInOut:
             char *name
             AVFilterContext *filter_ctx
@@ -537,7 +545,6 @@ cdef:
             AVFilterInOut *next
         struct AVFilter:
             pass
-        void avfilter_register_all()
         int avfilter_link_get_channels(AVFilterLink *)
         AVFilterInOut *avfilter_inout_alloc()
         void avfilter_inout_free(AVFilterInOut **)

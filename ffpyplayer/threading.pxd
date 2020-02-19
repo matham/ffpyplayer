@@ -33,7 +33,7 @@ cdef class MTThread(object):
     cdef MT_lib lib
     cdef void* thread
 
-    cdef int create_thread(MTThread self, int_void_func func, void *arg) nogil except 2
+    cdef int create_thread(MTThread self, int_void_func func, const char *thread_name, void *arg) nogil except 2
     cdef int wait_thread(MTThread self, int *status) nogil except 2
 
 

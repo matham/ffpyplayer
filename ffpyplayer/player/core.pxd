@@ -213,6 +213,8 @@ cdef struct VideoSettings:
     char *avfilters
 
     int autorotate
+    int find_stream_info
+    int filter_threads
 
     #/* current context */
     int64_t audio_callback_time
