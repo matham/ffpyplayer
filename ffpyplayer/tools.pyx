@@ -709,7 +709,7 @@ def list_dshow_devices():
     apname = re.compile(' *\[dshow *@ *[\w]+\] *Alternative name *"(.+)"\\n.*')
     m = m2 = None
     for msg, level in res:
-        message = msg.decode('utf8') if PY3 else msg
+        message = msg.decode('utf8')
 
         switched = False
         # check whether we switch to audio/video opts
@@ -750,8 +750,7 @@ def list_dshow_devices():
         else:
             m = m_temp
             if not m:
-                msg2 = message.decode('utf8') if PY3 else message
-                av_log(NULL, loglevels[level], '%s', msg2)
+                av_log(NULL, loglevels[level], '%s', message)
     if m:
         curr[m.group(1)] = []
         name_map[m.group(1)] = m.group(1)
