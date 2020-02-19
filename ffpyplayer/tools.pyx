@@ -736,7 +736,8 @@ def list_dshow_devices():
         else:
             m = m_temp
             if not m:
-                av_log(NULL, loglevels[level], '%s', message)
+                msg2 = message.encode('utf8')
+                av_log(NULL, loglevels[level], '%s', msg2)
     if m:
         curr[m.group(1)] = []
         name_map[m.group(1)] = m.group(1)
