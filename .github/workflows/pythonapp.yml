@@ -127,6 +127,8 @@ jobs:
           python-version: 3.x
       - name: Install
         run: |
+          sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y
+          sudo apt update
           sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
           sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
           sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
