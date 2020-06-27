@@ -51,7 +51,7 @@ c_options = {
     'config_swscale': True,
     'config_rtsp_demuxer': True,
     'config_mmsh_protocol': True,
-    'config_postproc':True,
+    'config_postproc': platform != 'win32',
     # whether sdl is included as an option
     'config_sdl': True, # not implemented yet
     'has_sdl2': False,
