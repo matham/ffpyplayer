@@ -10,9 +10,9 @@ mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
 cd ~/ffmpeg_sources;
-wget https://www.libsdl.org/release/SDL2-2.0.10.tar.gz;
-tar xzf SDL2-2.0.10.tar.gz;
-cd SDL2-2.0.10;
+wget https://www.libsdl.org/release/SDL2-2.0.12.tar.gz;
+tar xzf SDL2-2.0.12.tar.gz;
+cd SDL2-2.0.12;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
 make;
 make install;
@@ -144,9 +144,9 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources;
-wget http://ffmpeg.org/releases/ffmpeg-4.2.1.tar.bz2;
-tar xjf ffmpeg-4.2.1.tar.bz2;
-cd ffmpeg-4.2.1;
+wget http://ffmpeg.org/releases/ffmpeg-4.3.tar.bz2;
+tar xjf ffmpeg-4.3.tar.bz2;
+cd ffmpeg-4.3;
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig:/usr/lib/pkgconfig/" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-openssl --enable-shared;
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
