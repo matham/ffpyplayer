@@ -239,7 +239,7 @@ jobs:
              python$pyver_short get-pip.py --user
              python$pyver_short -m pip install --upgrade --user pip
              python$pyver_short -m pip install --upgrade --user cython pytest wheel
-             python$pyver_short -m pip install --upgrade delocate
+             python$pyver_short -m pip install --upgrade https://github.com/matthew-brett/delocate/archive/master.zip
 
              python$pyver_short setup.py bdist_wheel
 
