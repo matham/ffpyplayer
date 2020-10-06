@@ -10,14 +10,14 @@ env:
   FF_BUILD_DIR: ~/ff_deps
   SDL_ROOT: ~/ff_deps/SDL2
   FFMPEG_ROOT: ~/ff_deps/ffmpeg
-  OSX_PYVERS: 3.6.8 3.7.5 3.8.0
+  OSX_PYVERS: 3.6.8 3.7.9 3.8.6 3.9.0
 
 jobs:
   windows_wheels_tests:
     runs-on: windows-latest
     strategy:
       matrix:
-        python: [ '3.6', '3.7', '3.8' ]
+        python: [ '3.6', '3.7', '3.8', '3.9' ]
         arch: ['x64', 'x86']
     steps:
     - uses: actions/checkout@v1
