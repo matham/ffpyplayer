@@ -22,7 +22,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
         architecture: ${{ matrix.arch }}
@@ -138,7 +138,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Install
@@ -169,7 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Build docker
@@ -273,7 +273,7 @@ jobs:
           python -m pip install twine
           twine upload dist/*
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Test
@@ -293,7 +293,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Install
