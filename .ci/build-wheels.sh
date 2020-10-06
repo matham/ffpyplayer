@@ -90,7 +90,7 @@ make install
 cd ~/ffmpeg_sources
 wget https://bitbucket.org/multicoreware/x265_git/downloads/x265_3.3.tar.gz
 tar xzf x265_3.3.tar.gz
-cd x265-*/build/linux
+cd x265_*/build/linux
 PATH="/usr/local/cmake-2.8.10.2/bin:$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED:bool=on ../../source
 make
 make install
