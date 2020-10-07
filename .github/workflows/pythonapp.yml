@@ -3,26 +3,26 @@ name: Python application
 on: [push, pull_request]
 
 env:
-  FFMPEG_VERSION: 4.3
+  FFMPEG_VERSION: 4.3.1
   SDL_VERSION: 2.0.12
   SDL_MIXER_VERSION: 2.0.4
   USE_SDL2_MIXER: 1
   FF_BUILD_DIR: ~/ff_deps
   SDL_ROOT: ~/ff_deps/SDL2
   FFMPEG_ROOT: ~/ff_deps/ffmpeg
-  OSX_PYVERS: 3.6.8 3.7.5 3.8.0
+  OSX_PYVERS: 3.6.8 3.7.9 3.8.6 3.9.0
 
 jobs:
   windows_wheels_tests:
     runs-on: windows-latest
     strategy:
       matrix:
-        python: [ '3.6', '3.7', '3.8' ]
+        python: [ '3.6', '3.7', '3.8', '3.9' ]
         arch: ['x64', 'x86']
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
         architecture: ${{ matrix.arch }}
@@ -39,8 +39,8 @@ jobs:
         mkdir "$env:FF_BUILD_DIR"
         cd "$env:FF_BUILD_DIR"
 
-        Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/shared/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip" -OutFile "shared.zip"
-        Invoke-WebRequest "http://ffmpeg.zeranoe.com/builds/win$env:BITTNESS/dev/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.zip" -OutFile "dev.zip"
+        Invoke-WebRequest "https://github.com/matham/ffpyplayer/releases/download/v4.3.1/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip" -OutFile "shared.zip"
+        Invoke-WebRequest "https://github.com/matham/ffpyplayer/releases/download/v4.3.1/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.zip" -OutFile "dev.zip"
         7z x "shared.zip"
         ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared" "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev"
         7z x "dev.zip" -y
@@ -138,7 +138,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Install
@@ -169,7 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Build docker
@@ -273,7 +273,7 @@ jobs:
           python -m pip install twine
           twine upload dist/*
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Test
@@ -293,7 +293,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Install
