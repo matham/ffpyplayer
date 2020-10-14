@@ -4,6 +4,7 @@ from distutils.command.build_ext import build_ext
 import sys
 import ffpyplayer
 
+
 try:
     from setuptools import setup, Extension
     print('Using setuptools')
@@ -206,8 +207,10 @@ elif "NDKPLATFORM" in environ:
     ffmpeg_lib, ffmpeg_include = get_paths('FFMPEG')
     libraries.extend([
         'avcodec', 'avdevice', 'avfilter', 'avformat',
-        'avutil', 'swscale', 'swresample', 'postproc', 'm'
+        'avutil', 'swscale', 'swresample', 'm'
     ])
+    if environ.get('CONFIG_POSTPROC') != '0':
+        libraries.extend(['postproc'])
     library_dirs.append(ffmpeg_lib)
     include_dirs.append(ffmpeg_include)
 
@@ -234,8 +237,12 @@ elif "NDKPLATFORM" in environ:
 else:
 
     # ffmpeg
-    objects = ['avcodec', 'avdevice', 'avfilter', 'avformat',
-                   'avutil', 'swscale', 'swresample', 'postproc']
+    objects = [
+        'avcodec', 'avdevice', 'avfilter', 'avformat',
+        'avutil', 'swscale', 'swresample'
+    ]
+    if environ.get('CONFIG_POSTPROC') != '0':
+        objects.extend(['postproc'])
     for libname in objects[:]:
         for key, val in c_options.items():
             if key.endswith(libname) and not val:
@@ -417,4 +424,3 @@ setup(name='ffpyplayer',
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=setup_requires)
-
