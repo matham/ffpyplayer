@@ -1,9 +1,9 @@
 FFPyPlayer is a python binding for the FFmpeg library for playing and writing
 media files.
 
-For more information: http://matham.github.io/ffpyplayer/index.html
+For more information: https://matham.github.io/ffpyplayer/index.html
 
-To install: http://matham.github.io/ffpyplayer/installation.html
+To install: https://matham.github.io/ffpyplayer/installation.html
 
 .. image:: https://travis-ci.org/matham/ffpyplayer.svg?branch=master
     :target: https://travis-ci.org/matham/ffpyplayer
