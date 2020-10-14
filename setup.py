@@ -209,8 +209,8 @@ elif "NDKPLATFORM" in environ:
         'avcodec', 'avdevice', 'avfilter', 'avformat',
         'avutil', 'swscale', 'swresample', 'm'
     ])
-    if environ.get('CONFIG_POSTPROC') != '0':
-        libraries.extend(['postproc'])
+    if c_options['config_postproc']:
+        libraries.append('postproc')
     library_dirs.append(ffmpeg_lib)
     include_dirs.append(ffmpeg_include)
 
@@ -241,8 +241,8 @@ else:
         'avcodec', 'avdevice', 'avfilter', 'avformat',
         'avutil', 'swscale', 'swresample'
     ]
-    if environ.get('CONFIG_POSTPROC') != '0':
-        objects.extend(['postproc'])
+    if c_options['config_postproc']:
+        objects.append('postproc')
     for libname in objects[:]:
         for key, val in c_options.items():
             if key.endswith(libname) and not val:
