@@ -317,10 +317,12 @@ cpdef get_fmts(int input=False, int output=False):
     cdef list fmts = [], full_names = [], exts = []
     cdef AVOutputFormat *ofmt = NULL
     cdef AVInputFormat *ifmt = NULL
+    cdef void *ifmt_opaque = NULL
+    cdef void *ofmt_opaque = NULL
     cdef object names, full_name, ext
 
     if output:
-        ofmt = av_oformat_next(ofmt)
+        ofmt = av_muxer_iterate(&ofmt_opaque)
         while ofmt != NULL:
             if ofmt.name != NULL:
                 names = tcode(ofmt.name).split(',')
@@ -330,10 +332,10 @@ cpdef get_fmts(int input=False, int output=False):
                 fmts.extend(names)
                 full_names.extend([full_name, ] * len(names))
                 exts.extend([ext, ] * len(names))
-            ofmt = av_oformat_next(ofmt)
+            ofmt = av_muxer_iterate(&ofmt_opaque)
 
     if input:
-        ifmt = av_iformat_next(ifmt)
+        ifmt = av_demuxer_iterate(&ifmt_opaque)
         while ifmt != NULL:
             if ifmt.name != NULL:
                 names = tcode(ifmt.name).split(',')
@@ -343,7 +345,7 @@ cpdef get_fmts(int input=False, int output=False):
                 fmts.extend(names)
                 full_names.extend([full_name, ] * len(names))
                 exts.extend([ext, ] * len(names))
-            ifmt = av_iformat_next(ifmt)
+            ifmt = av_demuxer_iterate(&ifmt_opaque)
 
     exts = [x for (y, x) in sorted(zip(fmts, exts), key=_get_item0)]
     full_names = [x for (y, x) in sorted(zip(fmts, full_names), key=_get_item0)]
