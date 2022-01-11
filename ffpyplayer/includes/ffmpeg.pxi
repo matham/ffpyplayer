@@ -299,8 +299,8 @@ cdef:
         int av_interleaved_write_frame(AVFormatContext *, AVPacket *)
         void avformat_free_context(AVFormatContext *)
         uint8_t *av_stream_get_side_data (AVStream *, AVPacketSideDataType, int *)
-        AVOutputFormat *av_oformat_next(AVOutputFormat *)
-        AVInputFormat *av_iformat_next(AVInputFormat  *)
+        const AVOutputFormat *av_muxer_iterate(void **)
+        const AVInputFormat *av_demuxer_iterate(void **)
 
     extern from "libavdevice/avdevice.h" nogil:
         void avdevice_register_all()
