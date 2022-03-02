@@ -221,45 +221,29 @@ jobs:
           twine upload dist/*
 
   osx_wheels:
-    runs-on: macos-latest
+    runs-on: macos-11
+    env:
+      CIBW_BUILD: "cp37-macosx_x86_64"
+      CIBW_ARCHS_MACOS: "x86_64"
+      CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+        DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
+        DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
     steps:
-      - uses: actions/checkout@v1
-      - name: Brew setup
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Build universal Kivy dependencies
         run: |
-          brew update
-          brew install pkg-config
-          brew install sdl2
-          brew install sdl2_mixer
-          brew install ffmpeg
-          pkg-config --libs --cflags libavcodec
-      - name: Building wheels
+          bash .ci/build_wheels_osx.sh
+      - name: Install cibuildwheel
         run: |
-          mkdir ~/ffpyplayer_wheels
-
-          for pyver in $OSX_PYVERS; do
-             git reset --hard
-             git clean -d -x -f
-             pyver_short=${pyver:0:3}
-
-             curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.9.pkg
-             sudo installer -package python-$pyver-macosx10.9.pkg -target /
-             curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-             python$pyver_short get-pip.py --user
-             python$pyver_short -m pip install --upgrade --user pip
-             python$pyver_short -m pip install --upgrade --user cython pytest wheel
-             python$pyver_short -m pip install --upgrade https://github.com/matthew-brett/delocate/archive/master.zip
-
-             python$pyver_short setup.py bdist_wheel
-
-             ls dist/
-             /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-wheel dist/*.whl
-             /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 dist/*.whl
-             cp dist/*.whl ~/ffpyplayer_wheels
-          done
-
-          git reset --hard
-          git clean -d -x -f
-          cp -r ~/ffpyplayer_wheels dist
+          python -m pip install cibuildwheel==2.3.1
+      - name: Build wheels
+        run: |
+          export REPAIR_LIBRARY_PATH=$HOME/ffmpeg_build/lib
+          python -m cibuildwheel --output-dir dist
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
