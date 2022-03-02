@@ -132,14 +132,14 @@ jobs:
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
-          sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
-          sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
+          sudo apt install -y ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
+          sudo apt install -y libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
+          sudo apt install -y libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
           export FFPYPLAYER_TEST_DIRS="`pwd`/ffpyplayer/tests:`pwd`/examples"
 
           python -m pip install --upgrade pip virtualenv wheel setuptools cython pytest
           python setup.py sdist --formats=gztar
-          python -m pip install `ls dist/ffpyplayer*.tar.gz`
+          python -m pip install `ls dist/ffpyplayer*.tar.gz` -v -v -v
       - name: Test
         run: |
           root=`pwd`
