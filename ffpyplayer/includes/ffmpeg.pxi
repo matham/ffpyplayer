@@ -116,6 +116,11 @@ cdef:
         int av_usleep(unsigned)
         int64_t av_gettime_relative()
 
+    extern from "libavutil/cpu.h" nogil:
+        int av_get_cpu_flags()
+        int av_parse_cpu_caps(unsigned *, const char *)
+        void av_force_cpu_flags(int)
+
     extern from * nogil:
         void av_free(void *)
         void av_freep(void *)
@@ -165,9 +170,6 @@ cdef:
 
         void av_max_alloc(size_t)
 
-        int av_get_cpu_flags()
-        int av_parse_cpu_caps(unsigned *, const char *)
-        void av_force_cpu_flags(int)
         void *av_mallocz(size_t)
 
         int AVERROR(int)
