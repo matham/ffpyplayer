@@ -7,6 +7,11 @@ pkgconfig zlib-devel enca-devel fontconfig-devel openssl openssl-devel wget open
 libpng libpng-devel libtiff libtiff-devel libwebp libwebp-devel dbus-devel dbus ibus-devel ibus libsamplerate-devel \
 libsamplerate libmodplug-devel libmodplug flac-devel flac \
 libjpeg-turbo-devel libjpeg-turbo pulseaudio pulseaudio-libs-devel alsa-lib alsa-lib-devel ca-certificates
+
+# fix lets encrypt expiration
+trust dump --filter "pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10" | openssl x509 | sudo tee /etc/pki/ca-trust/source/blacklist/DST-Root-CA-X3.pem
+update-ca-trust extract
+
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
