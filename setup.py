@@ -43,6 +43,7 @@ else:
     declare_cython = True
 
 src_path = build_path = dirname(__file__)
+print(f'Source/build path: {src_path}')
 
 # select which ffmpeg libraries will be available
 c_options = {
@@ -112,6 +113,7 @@ class FFBuildExt(build_ext, object):
         if (self.build_lib is not None and exists(self.build_lib) and
                 not self.inplace):
             build_path = self.build_lib
+            print(f'Build path changed to: {src_path}')
         return retval
 
     def build_extensions(self):
@@ -402,20 +404,22 @@ setup(name='ffpyplayer',
       description='A cython implementation of an ffmpeg based player.',
       url='https://matham.github.io/ffpyplayer/',
       long_description=long_description,
-      classifiers=['License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
-                   'Topic :: Multimedia :: Video',
-                   'Topic :: Multimedia :: Video :: Display',
-                   'Topic :: Multimedia :: Sound/Audio :: Players',
-                   'Topic :: Multimedia :: Sound/Audio :: Players :: MP3',
-                   'Programming Language :: Python :: 3.5',
-                   'Programming Language :: Python :: 3.6',
-                   'Programming Language :: Python :: 3.7',
-                   'Programming Language :: Python :: 3.8',
-                   'Operating System :: MacOS :: MacOS X',
-                   'Operating System :: Microsoft :: Windows',
-                   'Operating System :: POSIX :: BSD :: FreeBSD',
-                   'Operating System :: POSIX :: Linux',
-                   'Intended Audience :: Developers'],
+      classifiers=[
+        'License :: OSI Approved :: GNU Lesser General Public License v3 '
+        '(LGPLv3)',
+        'Topic :: Multimedia :: Video',
+        'Topic :: Multimedia :: Video :: Display',
+        'Topic :: Multimedia :: Sound/Audio :: Players',
+        'Topic :: Multimedia :: Sound/Audio :: Players :: MP3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX :: BSD :: FreeBSD',
+        'Operating System :: POSIX :: Linux',
+        'Intended Audience :: Developers'],
       packages=['ffpyplayer', 'ffpyplayer.player', 'ffpyplayer.tests'],
       package_data={
         'ffpyplayer': [
