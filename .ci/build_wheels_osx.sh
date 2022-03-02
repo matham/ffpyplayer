@@ -3,31 +3,31 @@ set -e -x
 
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
+export CC=/usr/bin/clang
 
-SDL_VERSION=2.0.20
 SDL_VERSION=2.0.20
 ARCH=x86_64
 
-config_args=("--cc=/usr/bin/clang" ""${config_args[@]}"" "--target-os=darwin" "--enable-cross-compile" \
+config_args=("--arch=$ARCH" "--target-os=darwin" "--enable-cross-compile" \
 "--extra-cflags=\"-arch $ARCH -fno-stack-check\"" "--extra-cxxflags=\"-arch $ARCH\"" \
 "--extra-objcflags=\"-arch $ARCH\"" "--extra-ldflags=\"-arch $ARCH\"")
 
-cd ~/ffmpeg_sources;
-curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
-tar xzf "SDL2-$SDL_VERSION.tar.gz"
-cd "SDL2-$SDL_VERSION"
-./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" "${config_args[@]}"
-make
-make install
-make distclean
-
-cd ~/ffmpeg_sources
-curl -sLO "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
-tar xzf "openssl-1.1.1m.tar.gz"
-cd "openssl-1.1.1m"
-./config -fpic shared --prefix="$HOME/ffmpeg_build"
-make
-make install
+#cd ~/ffmpeg_sources;
+#curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
+#tar xzf "SDL2-$SDL_VERSION.tar.gz"
+#cd "SDL2-$SDL_VERSION"
+#./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" "${config_args[@]}"
+#make
+#make install
+#make distclean
+#
+#cd ~/ffmpeg_sources
+#curl -sLO "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
+#tar xzf "openssl-1.1.1m.tar.gz"
+#cd "openssl-1.1.1m"
+#./config -fpic shared --prefix="$HOME/ffmpeg_build"
+#make
+#make install
 
 cd ~/ffmpeg_sources
 curl -sLO http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz
