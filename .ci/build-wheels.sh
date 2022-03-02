@@ -84,7 +84,7 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources
-curl -sLO --no-check-certificate http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
+curl -sLO http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
 tar xzf cmake-3.22.2.tar.gz
 cd cmake-3.22.2
 ./configure --prefix=/usr/local/cmake-3.14.0
