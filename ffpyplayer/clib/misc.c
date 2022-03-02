@@ -159,8 +159,7 @@ int get_plane_sizes(int size[4], int required_plane[4], enum AVPixelFormat pix_f
         return AVERROR(EINVAL);
     size[0] = linesizes[0] * height;
 
-    if (desc->flags & AV_PIX_FMT_FLAG_PAL ||
-        desc->flags & AV_PIX_FMT_FLAG_PSEUDOPAL) {
+    if (desc->flags & AV_PIX_FMT_FLAG_PAL) {
         size[1] = 256 * 4;
         required_plane[0] = 1;
         return size[0] + size[1];
