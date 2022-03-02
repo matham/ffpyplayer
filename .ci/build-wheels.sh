@@ -8,10 +8,6 @@ libpng libpng-devel libtiff libtiff-devel libwebp libwebp-devel dbus-devel dbus 
 libsamplerate libmodplug-devel libmodplug flac-devel flac \
 libjpeg-turbo-devel libjpeg-turbo pulseaudio pulseaudio-libs-devel alsa-lib alsa-lib-devel ca-certificates
 
-# fix lets encrypt expiration
-trust dump --filter "pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10" | openssl x509 | tee /etc/pki/ca-trust/source/blacklist/DST-Root-CA-X3.pem
-update-ca-trust extract
-
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 
@@ -19,7 +15,7 @@ SDL_VERSION=2.0.20
 SDL_VERSION=2.0.20
 
 cd ~/ffmpeg_sources;
-wget "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
+curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
 tar xzf "SDL2-$SDL_VERSION.tar.gz"
 cd "SDL2-$SDL_VERSION"
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
@@ -28,7 +24,7 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
+curl -sLO "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
 tar xzf "openssl-1.1.1m.tar.gz"
 cd "openssl-1.1.1m"
 ./config -fpic shared --prefix="$HOME/ffmpeg_build";
@@ -36,7 +32,7 @@ make;
 make install;
 
 cd ~/ffmpeg_sources;
-wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
+curl -sLO http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz;
 tar xzf yasm-1.3.0.tar.gz;
 cd yasm-1.3.0;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
@@ -45,7 +41,7 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.gz;
+curl -sLO http://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.gz;
 tar -xvzf nasm-2.15.05.tar.gz;
 cd nasm-2.15.05;
 ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin";
@@ -54,7 +50,7 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-wget http://download.videolan.org/pub/x264/snapshots/x264-snapshot-20191217-2245-stable.tar.bz2;
+curl -sLO http://download.videolan.org/pub/x264/snapshots/x264-snapshot-20191217-2245-stable.tar.bz2;
 tar xjf x264-snapshot-20191217-2245-stable.tar.bz2;
 cd x264-snapshot*;
 PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --enable-shared --extra-cflags="-fPIC";
@@ -88,7 +84,7 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources
-wget --no-check-certificate http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
+curl -sLO --no-check-certificate http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
 tar xzf cmake-3.22.2.tar.gz
 cd cmake-3.22.2
 ./configure --prefix=/usr/local/cmake-3.14.0
@@ -97,7 +93,7 @@ make
 make install
 
 cd ~/ffmpeg_sources
-wget https://bitbucket.org/multicoreware/x265_git/downloads/x265_3.5.tar.gz
+curl -sLO https://bitbucket.org/multicoreware/x265_git/downloads/x265_3.5.tar.gz
 tar xzf x265_3.5.tar.gz
 cd x265_*/build/linux
 PATH="/usr/local/cmake-2.8.10.2/bin:$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED:bool=on ../../source
@@ -153,7 +149,7 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources;
-wget http://ffmpeg.org/releases/ffmpeg-5.0.tar.bz2;
+curl -sLO http://ffmpeg.org/releases/ffmpeg-5.0.tar.bz2;
 tar xjf ffmpeg-5.0.tar.bz2;
 cd ffmpeg-5.0;
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig:/usr/lib/pkgconfig/" ./configure --prefix="$HOME/ffmpeg_build" --extra-cflags="-I$HOME/ffmpeg_build/include -fPIC" --extra-ldflags="-L$HOME/ffmpeg_build/lib" --bindir="$HOME/ffmpeg_build/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-openssl --enable-shared;
