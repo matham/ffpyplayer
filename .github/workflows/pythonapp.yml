@@ -138,13 +138,12 @@ jobs:
           export FFPYPLAYER_TEST_DIRS="`pwd`/ffpyplayer/tests:`pwd`/examples"
 
           python3 -m pip install --upgrade pip pytest
-          python3 setup.py sdist --formats=gztar
-          cd ..
-          python3 -m pip install `ls ffpyplayer/dist/ffpyplayer*.tar.gz` -v -v -v
+          # python3 setup.py sdist --formats=gztar
+          # python3 -m pip install `ls dist/ffpyplayer*.tar.gz` -v -v -v
+          python3 -m pip install .
       - name: Test
         run: |
           root=`pwd`
-          dist_path=$root/dist
           export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
           cd ~/
 

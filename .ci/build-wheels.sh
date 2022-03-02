@@ -68,8 +68,8 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources
-curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.11/fribidi-1.0.11.tar.bz2
-tar xjf fribidi-1.0.11.tar.bz2
+curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.11/fribidi-1.0.11.tar.xz
+tar xf fribidi-1.0.11.tar.xz
 cd fribidi-1.0.11
 ./configure --prefix="$HOME/ffmpeg_build" --enable-shared;
 make
