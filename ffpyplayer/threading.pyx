@@ -181,18 +181,18 @@ cdef class MTThread(object):
 cdef int_cls_method mutex_lock = <int_cls_method>MTMutex.lock
 cdef int_cls_method mutex_release = <int_cls_method>MTMutex.unlock
 
-cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
+cdef int _SDL_lockmgr_py(void ** mtx, int op) with gil:
     cdef bytes msg
     cdef int res = 1
     cdef MTMutex mutex
 
     try:
-        if op == AV_LOCK_CREATE:
+        if op == FF_LOCK_CREATE:
             mutex = MTMutex.__new__(MTMutex, SDL_MT)
             Py_INCREF(<PyObject *>mutex)
             mtx[0] = <PyObject *>mutex
             res = 0
-        elif op == AV_LOCK_DESTROY:
+        elif op == FF_LOCK_DESTROY:
             if mtx[0] != NULL:
                 Py_DECREF(<PyObject *>mtx[0])
             res = 0
@@ -201,32 +201,32 @@ cdef int _SDL_lockmgr_py(void ** mtx, AVLockOp op) with gil:
         av_log(NULL, AV_LOG_ERROR, '%s', msg)
     return res
 
-cdef int SDL_lockmgr(void ** mtx, AVLockOp op) nogil:
-    if op == AV_LOCK_OBTAIN:
+cdef int SDL_lockmgr(void ** mtx, int op) nogil:
+    if op == FF_LOCK_OBTAIN:
         return not not mutex_lock(mtx[0])
-    elif op == AV_LOCK_RELEASE:
+    elif op == FF_LOCK_RELEASE:
         return not not mutex_release(mtx[0])
     else:
         return _SDL_lockmgr_py(mtx, op)
 
-cdef int Py_lockmgr(void ** mtx, AVLockOp op) with gil:
+cdef int Py_lockmgr(void ** mtx, int op) with gil:
     cdef int res = 1
     cdef bytes msg
     cdef MTMutex mutex
 
     try:
-        if op == AV_LOCK_CREATE:
+        if op == FF_LOCK_CREATE:
             mutex = MTMutex.__new__(MTMutex, Py_MT)
             Py_INCREF(<PyObject *>mutex)
             mtx[0] = <PyObject *>mutex
             res = 0
-        elif op == AV_LOCK_OBTAIN:
+        elif op == FF_LOCK_OBTAIN:
             mutex = <MTMutex>mtx[0]
             res = not not mutex.lock() # force it to 0, or 1
-        elif op == AV_LOCK_RELEASE:
+        elif op == FF_LOCK_RELEASE:
             mutex = <MTMutex>mtx[0]
             res = not not mutex.unlock()
-        elif op == AV_LOCK_DESTROY:
+        elif op == FF_LOCK_DESTROY:
             if mtx[0] != NULL:
                 Py_DECREF(<PyObject *>mtx[0])
             res = 0

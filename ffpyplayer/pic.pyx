@@ -992,9 +992,6 @@ cdef class ImageLoader(object):
             raise Exception("Failed to find supported codec for file {}"
                             .format(filename))
 
-        if self.codec_ctx.codec_type == AVMEDIA_TYPE_VIDEO:
-            av_dict_set(&opts, "refcounted_frames", "1", 0)
-
         with nogil:
             ret = avcodec_open2(self.codec_ctx, self.codec, &opts)
         if ret < 0:
@@ -1006,7 +1003,7 @@ cdef class ImageLoader(object):
 
     def __dealloc__(self):
         with nogil:
-            av_free_packet(&self.pkt)
+            av_packet_unref(&self.pkt)
             av_frame_free(&self.frame)
             avformat_close_input(&self.format_ctx)
             if self.codec_ctx != NULL:
@@ -1062,8 +1059,14 @@ cdef class ImageLoader(object):
             raise MemoryError("Failed to alloc frame")
 
         with nogil:
-            ret = avcodec_decode_video2(self.codec_ctx, self.frame, &frame_decoded, &self.pkt)
-        if ret < 0 or not frame_decoded:
+            ret = avcodec_send_packet(self.codec_ctx, &self.pkt)
+            if ret >= 0:
+                ret = avcodec_receive_frame(self.codec_ctx, self.frame)
+        if ret < 0:
+            if ret == AVERROR_EOF:
+                self.eof = 1
+                self.pkt.data = NULL
+                return self.eof_frame()
             raise Exception("Failed to decode image from file")
 
         self.frame.pts = self.frame.best_effort_timestamp
@@ -1075,14 +1078,14 @@ cdef class ImageLoader(object):
         image = Image(no_create=True)
         image.cython_init(self.frame)
 
-        av_free_packet(&self.pkt)
+        av_packet_unref(&self.pkt)
         av_frame_free(&self.frame)
         return image, t
 
     cdef inline object eof_frame(self):
         '''Used to flush the remaining frames until no more cached.
         '''
-        cdef int frame_decoded, ret = 0
+        cdef int ret = 0
         cdef Image image
         cdef double t = 0
         if self.eof == 2:
@@ -1094,8 +1097,10 @@ cdef class ImageLoader(object):
             raise MemoryError("Failed to alloc frame")
 
         with nogil:
-            ret = avcodec_decode_video2(self.codec_ctx, self.frame, &frame_decoded, &self.pkt)
-        if ret < 0 or not frame_decoded:
+            ret = avcodec_send_packet(self.codec_ctx, &self.pkt)
+            if ret >= 0:
+                ret = avcodec_receive_frame(self.codec_ctx, self.frame)
+        if ret < 0:
             self.eof = 2
             av_frame_free(&self.frame)
             return None, 0

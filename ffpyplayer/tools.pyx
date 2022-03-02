@@ -265,7 +265,8 @@ cpdef get_codecs(
     '''
     cdef list codecs = []
     cdef AVCodec *codec = NULL
-    codec = av_codec_next(codec)
+    cdef void *iter_codec = NULL
+    codec = av_codec_iterate(&iter_codec)
 
     while codec != NULL:
         if ((encode and av_codec_is_encoder(codec) or
@@ -277,7 +278,7 @@ cpdef get_codecs(
              attachment and codec.type == AVMEDIA_TYPE_ATTACHMENT or
              other)):
             codecs.append(tcode(codec.name))
-        codec = av_codec_next(codec)
+        codec = av_codec_iterate(&iter_codec)
     return sorted(codecs)
 
 cdef list list_pixfmts():
