@@ -235,8 +235,8 @@ cdef int is_realtime(AVFormatContext *s) nogil:
        (not strcmp(s.iformat.name, b"rtsp")) or
        not strcmp(s.iformat.name, b"sdp")):
         return 1
-    if s.pb and ((not strncmp(s.filename, b"rtp:", 4)) or
-                 not strncmp(s.filename, b"udp:", 4)):
+    if s.pb and ((not strncmp(s.url, b"rtp:", 4)) or
+                 not strncmp(s.url, b"udp:", 4)):
         return 1
     return 0
 
@@ -1776,8 +1776,6 @@ cdef class VideoState(object):
             av_dict_set(&opts, b"threads", b"auto", 0)
         if stream_lowres:
             av_dict_set_int(&opts, b"lowres", stream_lowres, 0)
-        if avctx.codec_type == AVMEDIA_TYPE_VIDEO or avctx.codec_type == AVMEDIA_TYPE_AUDIO:
-            av_dict_set(&opts, b"refcounted_frames", b"1", 0)
         if avcodec_open2(avctx, codec, &opts) < 0:
             avcodec_free_context(&avctx)
             av_dict_free(&opts)
@@ -2114,7 +2112,7 @@ cdef class VideoState(object):
                 if ret < 0:
                     if self.player.loglevel >= AV_LOG_ERROR:
                         av_log(NULL, AV_LOG_ERROR, b"%s: error while seeking\n",
-                           self.ic.filename)
+                           self.ic.url)
                 else:
                     if self.audio_stream >= 0:
                         self.audioq.packet_queue_flush()

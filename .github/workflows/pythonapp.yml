@@ -3,50 +3,38 @@ name: Python application
 on: [push, pull_request]
 
 env:
-  FFMPEG_VERSION: 4.3.1
-  SDL_VERSION: 2.0.12
+  FFMPEG_VERSION: "5.0"
+  SDL_VERSION: 2.0.20
   SDL_MIXER_VERSION: 2.0.4
   USE_SDL2_MIXER: 1
-  FF_BUILD_DIR: ~/ff_deps
-  SDL_ROOT: ~/ff_deps/SDL2
-  FFMPEG_ROOT: ~/ff_deps/ffmpeg
-  OSX_PYVERS: 3.6.8 3.7.9 3.8.6 3.9.0
+  OSX_PYVERS: 3.7.9 3.8.10 3.9.10
 
 jobs:
   windows_wheels_tests:
     runs-on: windows-latest
+    env:
+      FF_BUILD_DIR: ~/ff_deps
+      SDL_ROOT: ~/ff_deps/SDL2
+      FFMPEG_ROOT: ~/ff_deps/ffmpeg
     strategy:
       matrix:
-        python: [ '3.6', '3.7', '3.8', '3.9' ]
-        arch: ['x64', 'x86']
+        python: [ '3.7', '3.8', '3.9', '3.10']
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-        architecture: ${{ matrix.arch }}
     - name: Get dependencies
-      env:
-        FF_ARCH: ${{ matrix.arch }}
       run: |
-        if ("${{ matrix.arch }}" -eq "x64") {
-          $env:BITTNESS = 64
-        } else {
-          $env:BITTNESS = 32
-        }
-
         mkdir "$env:FF_BUILD_DIR"
         cd "$env:FF_BUILD_DIR"
 
-        Invoke-WebRequest "https://github.com/matham/ffpyplayer/releases/download/v4.3.1/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared.zip" -OutFile "shared.zip"
-        Invoke-WebRequest "https://github.com/matham/ffpyplayer/releases/download/v4.3.1/ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev.zip" -OutFile "dev.zip"
+        Invoke-WebRequest "https://github.com/GyanD/codexffmpeg/releases/download/$env:FFMPEG_VERSION/ffmpeg-$env:FFMPEG_VERSION-full_build-shared.zip" -OutFile "shared.zip"
         7z x "shared.zip"
-        ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-shared" "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev"
-        7z x "dev.zip" -y
-        ren "ffmpeg-$env:FFMPEG_VERSION-win$env:BITTNESS-dev" ffmpeg
+        ren "ffmpeg-$env:FFMPEG_VERSION-full_build-shared" ffmpeg
 
-        Invoke-WebRequest "https://www.libsdl.org/release/SDL2-devel-$env:SDL_VERSION-VC.zip" -OutFile "SDL2-devel-$env:SDL_VERSION-VC.zip"
+        Invoke-WebRequest "https://github.com/libsdl-org/SDL/releases/download/release-$env:SDL_VERSION/SDL2-devel-$env:SDL_VERSION-VC.zip" -OutFile "SDL2-devel-$env:SDL_VERSION-VC.zip"
         7z x "SDL2-devel-$env:SDL_VERSION-VC.zip"
         ren "SDL2-$env:SDL_VERSION" SDL2
         Invoke-WebRequest "https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip" -OutFile "SDL2_mixer-devel-$env:SDL_MIXER_VERSION-VC.zip"
@@ -58,11 +46,11 @@ jobs:
         Copy-Item "SDL2\COPYING.txt" -destination "SDL2\bin"
         Copy-Item "SDL2\README-SDL.txt" -destination "SDL2\bin"
 
-        Copy-Item "SDL2\lib\$env:FF_ARCH\*.dll" -destination "SDL2\bin" -Recurse -Force
-        Copy-Item "SDL2\lib\$env:FF_ARCH\*.lib" -destination "SDL2\lib" -Recurse -Force
+        Copy-Item "SDL2\lib\x64\*.dll" -destination "SDL2\bin" -Recurse -Force
+        Copy-Item "SDL2\lib\x64\*.lib" -destination "SDL2\lib" -Recurse -Force
 
-        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$env:FF_ARCH\*.dll" -destination "SDL2\bin" -Recurse -Force
-        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\$env:FF_ARCH\*.lib" -destination "SDL2\lib" -Recurse -Force
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\x64\*.dll" -destination "SDL2\bin" -Recurse -Force
+        Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\lib\x64\*.lib" -destination "SDL2\lib" -Recurse -Force
         Copy-Item "SDL2_mixer-$env:SDL_MIXER_VERSION\include\*" -destination "SDL2\include" -Recurse -Force
 
         Copy-Item "SDL2\include\*.h" -destination "SDL2\include\SDL2" -Recurse -Force
@@ -71,7 +59,7 @@ jobs:
         ls $env:SDL_ROOT
         ls $env:FFMPEG_ROOT
     - name: Make sdist
-      if: matrix.arch == 'x64' && matrix.python == '3.8'
+      if: matrix.python == '3.10'
       run: |
         python -m pip install --upgrade pip virtualenv wheel setuptools
         python setup.py sdist --formats=gztar
@@ -111,8 +99,8 @@ jobs:
         # for the reason we need to manually copy some missing dlls to the PATH
         Invoke-WebRequest  "https://github.com/matham/ffpyplayer/releases/download/v4.1.0/ffmpeg_win_dll_container_deps.zip"  -OutFile "ffmpeg_win_dll_container_deps.zip"
         7z x "ffmpeg_win_dll_container_deps.zip"
-        $env:PATH="$env:PATH;$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
-        ls "$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\${{ matrix.arch }}"
+        $env:PATH="$env:PATH;$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\x64"
+        ls "$env:GITHUB_WORKSPACE\ffmpeg_win_dll_container_deps\x64"
 
         $dist_path=(get-item dist).FullName
         $root=(get-item .).FullName
@@ -133,33 +121,66 @@ jobs:
           }
         }
 
-  linux_test:
+  linux_test_src:
     runs-on: ubuntu-latest
+    needs: windows_wheels_tests
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
+      - uses: actions/download-artifact@v2
+        with:
+          name: py_wheel
+          path: dist
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
-          sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
-          sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev
-          export FFPYPLAYER_TEST_DIRS="`pwd`/ffpyplayer/tests:`pwd`/examples"
+          sudo apt install -y ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
+          sudo apt install -y libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
+          sudo apt install -y libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev python3
 
-          python -m pip install --upgrade pip virtualenv wheel setuptools cython pytest
-          python setup.py sdist --formats=gztar
-          python -m pip install `ls dist/ffpyplayer*.tar.gz`
+          python3 -m pip install --upgrade pip pytest
+          root=`pwd`
+          cd ~/
+          python3 -m pip install --no-index --find-links=$root/dist ffpyplayer --no-binary ffpyplayer
       - name: Test
         run: |
           root=`pwd`
-          dist_path=$root/dist
           export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
           cd ~/
 
-          name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
+          name=`python3 -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
+          echo $name
+          pytest "$name/tests"
+
+  linux_test_wheel:
+    runs-on: ubuntu-latest
+    needs: linux_wheels
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+      - uses: actions/download-artifact@v2
+        with:
+          name: py_wheel
+          path: dist
+      - name: Install
+        run: |
+          python3 -m pip install --upgrade pip pytest
+          root=`pwd`
+          cd ~/
+          python3 -m pip install --no-index --find-links=$root/dist ffpyplayer
+      - name: Test
+        run: |
+          root=`pwd`
+          export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
+          cd ~/
+
+          name=`python3 -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
           echo $name
           pytest "$name/tests"
 
@@ -174,10 +195,10 @@ jobs:
       - name: Build docker
         run: |
           docker info
-          docker pull quay.io/pypa/manylinux2010_x86_64
+          docker pull quay.io/pypa/manylinux2014_x86_64
           mkdir dist
 
-          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/.ci/build-wheels.sh
+          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 /io/.ci/build-wheels.sh
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
@@ -198,18 +219,6 @@ jobs:
         run: |
           python -m pip install twine
           twine upload dist/*
-      - name: Test
-        run: |
-          root=`pwd`
-          dist_path=$root/dist
-          export FFPYPLAYER_TEST_DIRS="$root/ffpyplayer/tests:$root/examples"
-          cd ~/
-
-          python -m pip install --upgrade pip virtualenv wheel setuptools pytest
-          python -m pip install --no-index --find-links=$dist_path ffpyplayer
-          name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
-          echo $name
-          pytest "$name/tests"
 
   osx_wheels:
     runs-on: macos-latest
@@ -271,10 +280,10 @@ jobs:
         run: |
           python -m pip install twine
           twine upload dist/*
-      - name: Set up Python 3.x
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: 3.x
+          python-version: 3.9
       - name: Test
         run: |
           root=`pwd`

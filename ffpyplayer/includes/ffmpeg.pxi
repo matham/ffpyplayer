@@ -6,7 +6,7 @@ cdef extern from "stdarg.h":
     ctypedef struct va_list:
         pass
 
-ctypedef int (*lockmgr_func)(void **, AVLockOp)
+ctypedef int (*lockmgr_func)(void **, int)
 ctypedef int (*int_void_func)(void *) except? 1
 
 ctypedef float FFTSample
@@ -116,6 +116,11 @@ cdef:
         int av_usleep(unsigned)
         int64_t av_gettime_relative()
 
+    extern from "libavutil/cpu.h" nogil:
+        int av_get_cpu_flags()
+        int av_parse_cpu_caps(unsigned *, const char *)
+        void av_force_cpu_flags(int)
+
     extern from * nogil:
         void av_free(void *)
         void av_freep(void *)
@@ -165,9 +170,6 @@ cdef:
 
         void av_max_alloc(size_t)
 
-        int av_get_cpu_flags()
-        int av_parse_cpu_caps(unsigned *, const char *)
-        void av_force_cpu_flags(int)
         void *av_mallocz(size_t)
 
         int AVERROR(int)
@@ -244,7 +246,6 @@ cdef:
             AVProgram **programs
             unsigned int nb_streams
             unsigned int nb_programs
-            char filename[1024]
             AVIOContext *pb
             AVDictionary *metadata
             AVIOInterruptCB interrupt_callback
@@ -467,24 +468,17 @@ cdef:
         void av_codec_set_lowres(AVCodecContext *, int)
         int avcodec_parameters_from_context(AVCodecParameters *, const AVCodecContext *)
         int av_dup_packet(AVPacket *)
-        void av_free_packet(AVPacket *)
+        void av_packet_unref(AVPacket *)
         void avsubtitle_free(AVSubtitle *)
         void av_fast_malloc(void *, unsigned int *, size_t)
         void avcodec_register_all()
         int avcodec_close(AVCodecContext *)
-        int avcodec_decode_video2(AVCodecContext *, AVFrame *, int *, const AVPacket *)
         int avcodec_send_packet(AVCodecContext *, const AVPacket *)
         int avcodec_receive_frame(AVCodecContext *, AVFrame *)
         void avcodec_flush_buffers(AVCodecContext *)
-        int av_lockmgr_register(lockmgr_func)
         void av_init_packet(AVPacket *)
         int avcodec_parameters_to_context(AVCodecContext *, const AVCodecParameters *)
         void av_codec_set_pkt_timebase(AVCodecContext *, AVRational)
-        enum AVLockOp:
-            AV_LOCK_CREATE,
-            AV_LOCK_OBTAIN,
-            AV_LOCK_RELEASE,
-            AV_LOCK_DESTROY,
         void av_picture_copy(AVPicture *, const AVPicture *,
                              AVPixelFormat, int, int)
         AVFrame* av_frame_alloc()
@@ -518,7 +512,7 @@ cdef:
         int avpicture_fill(AVPicture *, const uint8_t *, AVPixelFormat, int, int)
         int avcodec_encode_video2(AVCodecContext *, AVPacket *, const AVFrame *, int *)
         const char *avcodec_get_name(AVCodecID)
-        AVCodec *av_codec_next(const AVCodec *)
+        const AVCodec *av_codec_iterate(void **)
         int av_codec_is_encoder(const AVCodec *)
         int av_codec_is_decoder(const AVCodec *)
         int avcodec_send_frame(AVCodecContext *, const AVFrame *)
