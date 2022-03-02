@@ -161,10 +161,10 @@ jobs:
       - name: Build docker
         run: |
           docker info
-          docker pull quay.io/pypa/manylinux2010_x86_64
+          docker pull quay.io/pypa/manylinux2014_x86_64
           mkdir dist
 
-          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/.ci/build-wheels.sh
+          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 /io/.ci/build-wheels.sh
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
