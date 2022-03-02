@@ -7,7 +7,7 @@ env:
   SDL_VERSION: 2.0.20
   SDL_MIXER_VERSION: 2.0.4
   USE_SDL2_MIXER: 1
-  OSX_PYVERS: 3.6.8 3.7.9 3.8.6 3.9.0
+  OSX_PYVERS: 3.7.9 3.8.10 3.9.10
 
 jobs:
   windows_wheels_tests:
@@ -18,7 +18,7 @@ jobs:
       FFMPEG_ROOT: ~/ff_deps/ffmpeg
     strategy:
       matrix:
-        python: [ '3.6', '3.7', '3.8', '3.9', '3.10']
+        python: [ '3.7', '3.8', '3.9', '3.10']
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
