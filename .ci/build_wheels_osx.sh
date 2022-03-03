@@ -85,13 +85,14 @@ make install
 #PATH="$HOME/ffmpeg_build/bin:$PATH" make
 #make install
 
-cd ~/ffmpeg_sources
-curl -sLO http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
-tar xzf cmake-3.22.2.tar.gz
-cd cmake-3.22.2
-./configure --prefix=/usr/local/cmake-3.14.0 "${config_args[@]}"
-make
-make install
+#cd ~/ffmpeg_sources
+#curl -sLO http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
+#tar xzf cmake-3.22.2.tar.gz
+#cd cmake-3.22.2
+#./configure --prefix=/usr/local/cmake-3.14.0 "${config_args[@]}"
+#make
+#make install
+brew install cmake
 
 cd ~/ffmpeg_sources
 curl -sLO https://bitbucket.org/multicoreware/x265_git/downloads/x265_3.5.tar.gz
