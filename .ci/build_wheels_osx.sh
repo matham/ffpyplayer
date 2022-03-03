@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e -x
 
+base_dir="$(pwd)"
+
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 export CC=/usr/bin/clang
@@ -52,7 +54,7 @@ cd ~/ffmpeg_sources;
 curl -sLO http://download.videolan.org/pub/x264/snapshots/x264-snapshot-20191217-2245-stable.tar.bz2;
 tar xjf x264-snapshot-20191217-2245-stable.tar.bz2;
 cd x264-snapshot*;
-PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --enable-shared --extra-cflags="-fPIC"  "${config_args[@]}"
+PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --disable-shared --enable-static --extra-cflags="-fPIC"  "${config_args[@]}"
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
@@ -61,7 +63,8 @@ cd ~/ffmpeg_sources;
 curl -kLO https://cfhcable.dl.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz;
 tar xzf lame-3.100.tar.gz;
 cd lame-3.100;
-./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared  "${config_args[@]}"
+git apply "$base_dir/.ci/libmp3lame-symbols.patch"
+./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --disable-shared --enable-static  "${config_args[@]}"
 make;
 make install;
 make distclean;
