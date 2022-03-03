@@ -28,7 +28,7 @@ cd ~/ffmpeg_sources
 curl -sLO "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
 tar xzf "openssl-1.1.1m.tar.gz"
 cd "openssl-1.1.1m"
-./config -static --prefix="$HOME/ffmpeg_build"
+./config -fPIC shared --prefix="$HOME/ffmpeg_build"
 make
 make install
 
