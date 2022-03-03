@@ -85,14 +85,6 @@ make install
 #PATH="$HOME/ffmpeg_build/bin:$PATH" make
 #make install
 
-#cd ~/ffmpeg_sources
-#curl -sLO http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
-#tar xzf cmake-3.22.2.tar.gz
-#cd cmake-3.22.2
-#./configure --prefix=/usr/local/cmake-3.14.0 "${config_args[@]}"
-#make
-#make install
-brew install cmake
 
 cd ~/ffmpeg_sources
 curl -sLO https://bitbucket.org/multicoreware/x265_git/downloads/x265_3.5.tar.gz
@@ -105,7 +97,7 @@ make install
 cd ~/ffmpeg_sources
 git clone --depth 1 --branch v2.0.2 https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
-git apply /io/.ci/fdk.patch
+git apply "$base_dir/.ci/fdk.patch"
 autoreconf -fiv
 ./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
 make
