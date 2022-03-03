@@ -125,6 +125,8 @@ cd ~/ffmpeg_sources;
 curl -LO http://downloads.xiph.org/releases/theora/libtheora-1.1.1.tar.gz
 tar xzvf libtheora-1.1.1.tar.gz
 cd libtheora-1.1.1
+# https://bugs.gentoo.org/465450
+sed -i 's/png_\(sizeof\)/\1/g' examples/png2theora.c
 PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install
