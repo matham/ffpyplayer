@@ -61,7 +61,7 @@ jobs:
     - name: Make sdist
       if: matrix.python == '3.10'
       run: |
-        python -m pip install --upgrade pip virtualenv wheel setuptools==59.8.0
+        python -m pip install --upgrade pip virtualenv wheel setuptools <= 60
         python setup.py sdist --formats=gztar
     - name: Install pip deps
       run: |

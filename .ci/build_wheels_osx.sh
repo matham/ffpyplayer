@@ -28,7 +28,7 @@ cd ~/ffmpeg_sources
 curl -sLO "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
 tar xzf "openssl-1.1.1m.tar.gz"
 cd "openssl-1.1.1m"
-./config -fpic shared --prefix="$HOME/ffmpeg_build"
+./config --static -static --prefix="$HOME/ffmpeg_build"
 make
 make install
 
@@ -90,7 +90,6 @@ curl -sLO http://www.cmake.org/files/v3.22/cmake-3.22.2.tar.gz
 tar xzf cmake-3.22.2.tar.gz
 cd cmake-3.22.2
 ./configure --prefix=/usr/local/cmake-3.14.0 "${config_args[@]}"
-gmake
 make
 make install
 
