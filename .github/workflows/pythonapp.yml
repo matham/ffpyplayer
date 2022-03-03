@@ -144,7 +144,7 @@ jobs:
           python3 -m pip install --upgrade pip pytest importlib_metadata setuptools pip wheel
           root=`pwd`
           cd ~/
-          python3 -m pip install --pre --find-links=$root/dist ffpyplayer --no-binary ffpyplayer
+          python3 -m pip install `ls $root/dist/ffpyplayer*.tar.gz`
       - name: Test
         run: |
           root=`pwd`

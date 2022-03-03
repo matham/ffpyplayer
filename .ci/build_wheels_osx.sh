@@ -3,6 +3,8 @@ set -e -x
 
 base_dir="$(pwd)"
 
+brew install automake
+
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
 export CC=/usr/bin/clang
