@@ -222,7 +222,7 @@ jobs:
     runs-on: macos-11
     env:
       USE_SDL2_MIXER: 0
-      CIBW_BUILD: "cp37-macosx_x86_64"
+      CIBW_BUILD: "cp37-macosx_x86_64 cp38-macosx_x86_64 cp39-macosx_x86_64 cp310-macosx_x86_64"
       CIBW_ARCHS_MACOS: "x86_64"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
         DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
@@ -232,7 +232,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.x
       - name: Build universal Kivy dependencies
         run: |
           bash .ci/build_wheels_osx.sh
