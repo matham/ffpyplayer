@@ -21,7 +21,7 @@ cd ~/ffmpeg_sources
 curl -sLO https://zlib.net/zlib-1.2.11.tar.gz
 tar xzf zlib-1.2.11.tar.gz
 cd zlib-1.2.11
-./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" "${config_args[@]}"
+./configure --prefix="$HOME/ffmpeg_build" "${config_args[@]}"
 make
 make install
 
