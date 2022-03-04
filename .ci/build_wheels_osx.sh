@@ -3,7 +3,7 @@ set -e -x
 
 base_dir="$(pwd)"
 
-brew install automake
+brew install automake meson
 
 mkdir ~/ffmpeg_sources;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib;
@@ -16,6 +16,14 @@ config_args=("--arch=$ARCH" "--target-os=darwin" "--enable-cross-compile" \
 "--extra-cflags=\"-arch $ARCH -fno-stack-check\"" "--extra-cxxflags=\"-arch $ARCH\"" \
 "--extra-objcflags=\"-arch $ARCH\"" "--extra-ldflags=\"-arch $ARCH\"")
 config_args=()
+
+cd ~/ffmpeg_sources
+curl -sLO https://zlib.net/zlib-1.2.11.tar.gz
+tar xzf zlib-1.2.11.tar.gz
+cd zlib-1.2.11
+./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" "${config_args[@]}"
+make
+make install
 
 cd ~/ffmpeg_sources;
 curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
@@ -79,13 +87,31 @@ cd fribidi-1.0.11
 make
 make install
 
-#cd ~/ffmpeg_sources
-#curl -sLO https://github.com/libass/libass/releases/download/0.15.2/libass-0.15.2.tar.gz
-#tar xzf libass-0.15.2.tar.gz
-#cd libass-0.15.2
-#PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --disable-require-system-font-provider  "${config_args[@]}"
-#PATH="$HOME/ffmpeg_build/bin:$PATH" make
-#make install
+cd ~/ffmpeg_sources
+curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
+tar xf freetype-2.11.1.tar.xz
+cd freetype-2.11.1
+./configure --prefix="$HOME/ffmpeg_build" --enable-shared  "${config_args[@]}"
+make
+make install
+
+cd ~/ffmpeg_sources
+curl -sLO https://github.com/harfbuzz/harfbuzz/releases/download/4.0.0/harfbuzz-4.0.0.tar.xz
+tar xf harfbuzz-4.0.0.tar.xz
+cd harfbuzz-4.0.0
+meson build -Dglib=disabled -Dgobject=disabled -Dcairo=disabled -Dfreetype=enabled
+meson compile -C build
+cp src/*h "$HOME/ffmpeg_build/include"
+cp build/src/libharfbuzz* "$HOME/ffmpeg_build/lib"
+cp build/src/*h "$HOME/ffmpeg_build/include"
+
+cd ~/ffmpeg_sources
+curl -sLO https://github.com/libass/libass/releases/download/0.15.2/libass-0.15.2.tar.gz
+tar xzf libass-0.15.2.tar.gz
+cd libass-0.15.2
+PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --disable-fontconfig  "${config_args[@]}"
+PATH="$HOME/ffmpeg_build/bin:$PATH" make
+make install
 
 
 cd ~/ffmpeg_sources

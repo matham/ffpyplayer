@@ -275,7 +275,7 @@ jobs:
           cd ~/
 
           python -m pip install --upgrade pip virtualenv wheel setuptools pytest
-          python -m pip install --no-index --find-links=~/ffpyplayer_wheels ffpyplayer
+          python -m pip install --no-index --find-links=$root/dist ffpyplayer
           name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
           echo $name
           pytest "$name/tests"
