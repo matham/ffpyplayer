@@ -15,7 +15,7 @@ ARCH=x86_64
 config_args=("--arch=$ARCH" "--target-os=darwin" "--enable-cross-compile" \
 "--extra-cflags=\"-arch $ARCH -fno-stack-check\"" "--extra-cxxflags=\"-arch $ARCH\"" \
 "--extra-objcflags=\"-arch $ARCH\"" "--extra-ldflags=\"-arch $ARCH\"")
-config_args=()
+config_args=("--build=x86_64-apple-macosx" "--host=arm64-apple-macosx")
 
 cd ~/ffmpeg_sources
 curl -sLO https://zlib.net/zlib-1.2.11.tar.gz
