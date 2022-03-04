@@ -101,9 +101,11 @@ tar xf harfbuzz-4.0.0.tar.xz
 cd harfbuzz-4.0.0
 meson build -Dglib=disabled -Dgobject=disabled -Dcairo=disabled -Dfreetype=enabled
 meson compile -C build
-cp src/*h "$HOME/ffmpeg_build/include"
+mkdir "$HOME/ffmpeg_build/include/harfbuzz"
+cp src/*h "$HOME/ffmpeg_build/include/harfbuzz"
+cp build/src/*h "$HOME/ffmpeg_build/include/harfbuzz"
 cp build/src/libharfbuzz* "$HOME/ffmpeg_build/lib" || true
-cp build/src/*h "$HOME/ffmpeg_build/include"
+cp build/meson-private/*.pc "$HOME/ffmpeg_build/lib/pkgconfig"
 
 cd ~/ffmpeg_sources
 curl -sLO https://github.com/libass/libass/releases/download/0.15.2/libass-0.15.2.tar.gz
