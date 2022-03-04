@@ -240,6 +240,7 @@ jobs:
       - name: Build wheels
         run: |
           export REPAIR_LIBRARY_PATH=$HOME/ffmpeg_build/lib
+          export PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig:$PKG_CONFIG_PATH"
           python -m cibuildwheel --output-dir dist
       - name: Upload wheel
         uses: actions/upload-artifact@v2

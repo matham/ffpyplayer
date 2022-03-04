@@ -155,4 +155,4 @@ PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
 
-find .
+find "$HOME/ffmpeg_build"

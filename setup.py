@@ -392,6 +392,7 @@ if declare_cython:
 setup(name='ffpyplayer',
       version=ffpyplayer.__version__,
       author='Matthew Einhorn',
+      author_email='matt@einhorn.dev',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
       url='https://matham.github.io/ffpyplayer/',
@@ -416,7 +417,7 @@ setup(name='ffpyplayer',
       package_data={
         'ffpyplayer': [
             'player/*.pxd', 'clib/misc.h', 'includes/*.pxi', 'includes/*.h',
-            '*.pxd']},
+            '*.pxd', 'player/*.pyx', 'clib/misc.c', '*.pyx']},
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=setup_requires)
