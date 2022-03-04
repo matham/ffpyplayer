@@ -56,7 +56,7 @@ cd ~/ffmpeg_sources;
 curl -sLO http://download.videolan.org/pub/x264/snapshots/x264-snapshot-20191217-2245-stable.tar.bz2;
 tar xjf x264-snapshot-20191217-2245-stable.tar.bz2;
 cd x264-snapshot*;
-PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --disable-shared --enable-static --extra-cflags="-fPIC"  "${config_args[@]}"
+PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/ffmpeg_build/bin" --enable-shared --extra-cflags="-fPIC"  "${config_args[@]}"
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install;
 make distclean;
@@ -66,7 +66,7 @@ curl -kLO https://cfhcable.dl.sourceforge.net/project/lame/lame/3.100/lame-3.100
 tar xzf lame-3.100.tar.gz;
 cd lame-3.100;
 git apply "$base_dir/.ci/libmp3lame-symbols.patch"
-./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --disable-shared --enable-static  "${config_args[@]}"
+./configure --prefix="$HOME/ffmpeg_build" --enable-nasm --enable-shared  "${config_args[@]}"
 make;
 make install;
 make distclean;
@@ -75,7 +75,7 @@ cd ~/ffmpeg_sources
 curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.11/fribidi-1.0.11.tar.xz
 tar xf fribidi-1.0.11.tar.xz
 cd fribidi-1.0.11
-./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static  "${config_args[@]}"
+./configure --prefix="$HOME/ffmpeg_build" --enable-shared  "${config_args[@]}"
 make
 make install
 
@@ -83,7 +83,7 @@ make install
 #curl -sLO https://github.com/libass/libass/releases/download/0.15.2/libass-0.15.2.tar.gz
 #tar xzf libass-0.15.2.tar.gz
 #cd libass-0.15.2
-#PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static --disable-require-system-font-provider  "${config_args[@]}"
+#PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --enable-shared --disable-require-system-font-provider  "${config_args[@]}"
 #PATH="$HOME/ffmpeg_build/bin:$PATH" make
 #make install
 
@@ -101,7 +101,7 @@ git clone --depth 1 --branch v2.0.2 https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
 git apply "$base_dir/.ci/fdk.patch"
 autoreconf -fiv
-./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
+./configure --prefix="$HOME/ffmpeg_build" --enable-shared "${config_args[@]}"
 make
 make install
 
@@ -109,7 +109,7 @@ cd ~/ffmpeg_sources
 curl -LO https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz
 tar xzvf opus-1.3.1.tar.gz
 cd opus-1.3.1
-./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
+./configure --prefix="$HOME/ffmpeg_build" --enable-shared "${config_args[@]}"
 make
 make install
 
@@ -117,7 +117,7 @@ cd ~/ffmpeg_sources
 curl -LO http://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.gz
 tar xzvf libogg-1.3.5.tar.gz
 cd libogg-1.3.5
-./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
+./configure --prefix="$HOME/ffmpeg_build" --enable-shared "${config_args[@]}"
 make
 make install
 
@@ -127,7 +127,7 @@ tar xzvf libtheora-1.1.1.tar.gz
 cd libtheora-1.1.1
 # https://bugs.gentoo.org/465450
 sed -i "" 's/png_\(sizeof\)/\1/g' examples/png2theora.c
-PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
+PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --enable-shared "${config_args[@]}"
 PATH="$HOME/ffmpeg_build/bin:$PATH" make;
 make install
 
@@ -135,14 +135,14 @@ cd ~/ffmpeg_sources
 curl -LO http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.gz
 tar xzvf libvorbis-1.3.7.tar.gz
 cd libvorbis-1.3.7
-PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --with-ogg="$HOME/ffmpeg_build" --disable-shared --enable-static "${config_args[@]}"
+PATH="$HOME/ffmpeg_build/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure --prefix="$HOME/ffmpeg_build" --with-ogg="$HOME/ffmpeg_build" --enable-shared "${config_args[@]}"
 PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
 cd ~/ffmpeg_sources
 git clone --depth 1 --branch v1.11.0 https://chromium.googlesource.com/webm/libvpx.git
 cd libvpx
-PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --disable-examples  --as=yasm --disable-shared --enable-static --disable-unit-tests "${config_args[@]}"
+PATH="$HOME/ffmpeg_build/bin:$PATH" ./configure --prefix="$HOME/ffmpeg_build" --disable-examples  --as=yasm --enable-shared --disable-unit-tests "${config_args[@]}"
 PATH="$HOME/ffmpeg_build/bin:$PATH" make
 make install
 
