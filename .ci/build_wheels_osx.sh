@@ -104,6 +104,8 @@ meson compile -C build
 mkdir "$HOME/ffmpeg_build/include/harfbuzz"
 cp src/*h "$HOME/ffmpeg_build/include/harfbuzz"
 cp build/src/*h "$HOME/ffmpeg_build/include/harfbuzz"
+cp src/*h "$HOME/ffmpeg_build/include"
+cp build/src/*h "$HOME/ffmpeg_build/include"
 cp build/src/libharfbuzz* "$HOME/ffmpeg_build/lib" || true
 cp build/meson-private/*.pc "$HOME/ffmpeg_build/lib/pkgconfig"
 
