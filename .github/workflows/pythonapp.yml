@@ -233,9 +233,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
-      - name: Build universal Kivy dependencies
-        run: |
-          bash .ci/build_wheels_osx.sh
+      - name: Build FFmpeg arm64
+        run: bash .ci/build_wheels_osx.sh "arm64"
+      - name: Build FFmpeg x86_64
+        run: bash .ci/build_wheels_osx.sh "x86_64"
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel==2.3.1
