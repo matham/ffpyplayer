@@ -193,15 +193,16 @@ if [ "$ARCH" = "arm64" ]; then
   patch -p1 < apple_arm64_x265.patch
   cd source
   sed -i "" "s/^if(X265_LATEST_TAG)$/if(1)/g" CMakeLists.txt
-  CFLAGS= CXXFLAGS= cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on \
+  LDFLAGS="-arch arm64" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on \
     -DCMAKE_OSX_ARCHITECTURES=arm64 -DCROSS_COMPILE_ARM64:bool=on -DCMAKE_HOST_SYSTEM_PROCESSOR=aarch64 \
     -DCMAKE_APPLE_SILICON_PROCESSOR=aarch64 .
+  LDFLAGS="-arch arm64" make
 else
   cd source
   sed -i "" "s/^if(X265_LATEST_TAG)$/if(1)/g" CMakeLists.txt
   cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on .
+  make
 fi
-CFLAGS= CXXFLAGS= make
 make install
 
 
