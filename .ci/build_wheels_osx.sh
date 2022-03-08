@@ -18,8 +18,8 @@ if [ "$ARCH" = "x86_64" ]; then
   ARCH2=x86_64
 else
   ARCH2=aarch64
-  export CFLAGS="-target arm64-apple-macos11 -arch arm64"
-  export CXXFLAGS="-target arm64-apple-macos11 -arch arm64"
+  export CFLAGS="-arch arm64"
+  export CXXFLAGS="-arch arm64"
 fi
 
 SDL_VERSION=2.0.20
@@ -270,9 +270,9 @@ else
     arg=("--target=$ARCH-darwin20-gcc")
     LDFLAGS_VPX="$LDFLAGS -arch arm64"
 fi
-CXX= LDFLAGS="$LDFLAGS_VPX" ./configure --prefix="$BUILD_PATH" --disable-examples --enable-vp9-highbitdepth --enable-vp8 --enable-vp9 --enable-pic \
+CXX= CC= LDFLAGS="$LDFLAGS_VPX" ./configure --prefix="$BUILD_PATH" --disable-examples --enable-vp9-highbitdepth --enable-vp8 --enable-vp9 --enable-pic \
   --enable-postproc --enable-multithread "${arg[@]}" --enable-shared --disable-unit-tests
-make
+CXX= CC= make
 make install
 
 
