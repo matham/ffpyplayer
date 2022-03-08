@@ -26,6 +26,7 @@ SDL_VERSION=2.0.20
 
 
 brew install automake meson pkg-config cmake
+brew install --cask xquartz
 mkdir "$SRC_PATH"
 
 
