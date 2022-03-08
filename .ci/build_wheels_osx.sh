@@ -152,7 +152,6 @@ tar xf harfbuzz-4.0.0.tar.xz
 cd harfbuzz-4.0.0
 
 
-arg=()
 if [ "$ARCH" = "arm64" ]; then
   cat <<EOT > cross_file.txt
 [host_machine]
@@ -170,7 +169,8 @@ EOT
     -Dcpp_link_args="-arch arm64"
 	LDFLAGS="-arch arm64" meson compile -C build
 else
-  meson build --prefix="$BUILD_PATH" -Dglib=disabled -Dgobject=disabled -Dcairo=disabled -Dfreetype=enabled "${arg[@]}"
+  meson build --prefix="$BUILD_PATH" -Dglib=disabled -Dgobject=disabled -Dcairo=disabled -Dfreetype=enabled \
+    -Ddocs=disabled -Dtests=disabled -Dintrospection=disabled -Dbenchmark=disabled
 	meson compile -C build
 fi
 meson install -C build
