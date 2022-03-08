@@ -62,7 +62,7 @@ cd "$SRC_PATH"
 curl -sLO https://github.com/glennrp/libpng/archive/refs/tags/v1.6.37.tar.gz
 tar xzf v1.6.37.tar.gz
 cd libpng-1.6.37
-./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin"
+./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" --host=$ARCH2-darwin
 make
 make install
 
