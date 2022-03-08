@@ -270,7 +270,7 @@ else
     arg=("--target=$ARCH-darwin20-gcc")
     LDFLAGS_VPX="$LDFLAGS -arch arm64"
 fi
-LDFLAGS="$LDFLAGS_VPX" ./configure --prefix="$BUILD_PATH" --disable-examples --enable-vp9-highbitdepth --enable-vp8 --enable-vp9 --enable-pic \
+CXX= LDFLAGS="$LDFLAGS_VPX" ./configure --prefix="$BUILD_PATH" --disable-examples --enable-vp9-highbitdepth --enable-vp8 --enable-vp9 --enable-pic \
   --enable-postproc --enable-multithread "${arg[@]}" --enable-shared --disable-unit-tests
 make
 make install
