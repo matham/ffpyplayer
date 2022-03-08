@@ -4,7 +4,7 @@ set -e -x
 # can be either arm64 or x86_64
 ARCH="$1"
 SRC_PATH="$HOME/ffmpeg_sources_$ARCH"
-BUILD_PATH="$HOME/ffmpeg_build_$ARCH"
+BUILD_PATH="$HOME/$FFMPEG_BUILD_PATH_$ARCH"
 base_dir="$(pwd)"
 
 export LD_LIBRARY_PATH="$BUILD_PATH/lib:$LD_LIBRARY_PATH"
@@ -189,8 +189,7 @@ cd "$SRC_PATH"
 git clone https://bitbucket.org/multicoreware/x265_git.git --depth 1 --branch "Release_3.5"
 cd x265_git
 if [ "$ARCH" = "arm64" ]; then
-  curl -sLO https://raw.githubusercontent.com/Vargol/ffmpeg-apple-arm64-build/master/build/apple_arm64_x265.patch
-  patch -p1 < apple_arm64_x265.patch
+  patch -p1 < "$base_dir/.ci/apple_arm64_x265.patch"
   cd source
   sed -i "" "s/^if(X265_LATEST_TAG)$/if(1)/g" CMakeLists.txt
   CXX= LDFLAGS="-arch arm64" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on \
@@ -200,8 +199,8 @@ if [ "$ARCH" = "arm64" ]; then
 else
   cd source
   sed -i "" "s/^if(X265_LATEST_TAG)$/if(1)/g" CMakeLists.txt
-  cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on .
-  make
+  CXX= cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on .
+  CXX= make
 fi
 make install
 
