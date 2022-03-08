@@ -25,7 +25,7 @@ fi
 SDL_VERSION=2.0.20
 
 
-brew install automake meson pkg-config
+brew install automake meson pkg-config cmake
 mkdir "$SRC_PATH"
 
 
@@ -42,7 +42,7 @@ cd "$SRC_PATH";
 curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
 tar xzf "SDL2-$SDL_VERSION.tar.gz"
 cd "SDL2-$SDL_VERSION"
-./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" CC="sh build-scripts/clang-fat.sh" CFLAGS="" CXXFLAGS=""
+CFLAGS= CXXFLAGS= ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" CC="sh build-scripts/clang-fat.sh"
 make
 make install
 make distclean
