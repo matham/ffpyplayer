@@ -138,6 +138,15 @@ make install
 
 
 cd "$SRC_PATH"
+curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
+tar xf freetype-2.11.1.tar.xz
+cd freetype-2.11.1
+./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
+make
+make install
+
+
+cd "$SRC_PATH"
 curl -sLO https://github.com/harfbuzz/harfbuzz/releases/download/4.0.0/harfbuzz-4.0.0.tar.xz
 tar xf harfbuzz-4.0.0.tar.xz
 cd harfbuzz-4.0.0
@@ -165,15 +174,6 @@ else
 	meson compile -C build
 fi
 meson install -C build
-
-
-cd "$SRC_PATH"
-curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
-tar xf freetype-2.11.1.tar.xz
-cd freetype-2.11.1
-./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
-make
-make install
 
 
 cd "$SRC_PATH"
