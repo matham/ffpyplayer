@@ -15,11 +15,11 @@ export CXX="/usr/bin/clang"
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
 if [ "$ARCH" = "x86_64" ]; then
-    ARCH2=x86_64
+  ARCH2=x86_64
 else
-    ARCH2=aarch64
-    export CFLAGS="-target arm64-apple-macos11 -arch arm64"
-    export CXXFLAGS="-target arm64-apple-macos11 -arch arm64"
+  ARCH2=aarch64
+  export CFLAGS="-target arm64-apple-macos11 -arch arm64"
+  export CXXFLAGS="-target arm64-apple-macos11 -arch arm64"
 fi
 
 SDL_VERSION=2.0.20
@@ -56,6 +56,25 @@ cd "openssl-1.1.1m"
 ./configure darwin64-$ARCH-cc -fPIC shared --prefix="$BUILD_PATH"
 make
 make install
+
+
+cd "$SRC_PATH"
+curl -sLO https://github.com/glennrp/libpng/archive/refs/tags/v1.6.37.tar.gz
+tar xzf v1.6.37.tar.gz
+cd libpng-1.6.37.tar
+./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin"
+make
+make install
+
+
+cd "$SRC_PATH"
+curl -sLO "https://github.com/google/brotli/archive/refs/tags/v1.0.9.tar.gz"
+tar xzf v1.0.9.tar.gz
+cd brotli-1.0.9
+mkdir out
+cd out
+cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DCMAKE_OSX_ARCHITECTURES="$ARCH" -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . --config Release --target install
 
 
 if [ "$ARCH" = "x86_64" ]; then
@@ -119,15 +138,6 @@ make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
-tar xf freetype-2.11.1.tar.xz
-cd freetype-2.11.1
-./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
-make
-make install
-
-
-cd "$SRC_PATH"
 curl -sLO https://github.com/harfbuzz/harfbuzz/releases/download/4.0.0/harfbuzz-4.0.0.tar.xz
 tar xf harfbuzz-4.0.0.tar.xz
 cd harfbuzz-4.0.0
@@ -158,6 +168,15 @@ meson install -C build
 
 
 cd "$SRC_PATH"
+curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
+tar xf freetype-2.11.1.tar.xz
+cd freetype-2.11.1
+./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
+make
+make install
+
+
+cd "$SRC_PATH"
 curl -sLO https://github.com/libass/libass/releases/download/0.15.2/libass-0.15.2.tar.gz
 tar xzf libass-0.15.2.tar.gz
 cd libass-0.15.2
@@ -167,14 +186,14 @@ make install
 
 
 cd "$SRC_PATH"
-git clone https://bitbucket.org/multicoreware/x265_git.git --depth 1 --branch stable
+git clone https://bitbucket.org/multicoreware/x265_git.git --depth 1 --branch "Release_3.5"
 cd x265_git
 if [ "$ARCH" = "arm64" ]; then
   curl -sLO https://raw.githubusercontent.com/Vargol/ffmpeg-apple-arm64-build/master/build/apple_arm64_x265.patch
   patch -p1 < apple_arm64_x265.patch
   cd source
   sed -i "" "s/^if(X265_LATEST_TAG)$/if(1)/g" CMakeLists.txt
-  cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on \
+  CFLAGS= CXXFLAGS= cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on \
     -DCMAKE_OSX_ARCHITECTURES=arm64 -DCROSS_COMPILE_ARM64:bool=on -DCMAKE_HOST_SYSTEM_PROCESSOR=aarch64 \
     -DCMAKE_APPLE_SILICON_PROCESSOR=aarch64 .
 else
@@ -182,7 +201,7 @@ else
   sed -i "" "s/^if(X265_LATEST_TAG)$/if(1)/g" CMakeLists.txt
   cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on .
 fi
-make
+CFLAGS= CXXFLAGS= make
 make install
 
 
