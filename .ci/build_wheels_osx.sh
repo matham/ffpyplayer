@@ -265,10 +265,12 @@ sed -i.original -e 's/-march=armv8-a//g' build/make/configure.sh
 
 if [ "$ARCH" = "x86_64" ]; then
     arg=("--as=yasm")
+    LDFLAGS_VPX="$LDFLAGS"
 else
     arg=("--target=$ARCH-darwin20-gcc")
+    LDFLAGS_VPX="$LDFLAGS -arch arm64"
 fi
-./configure --prefix="$BUILD_PATH" --disable-examples --enable-vp9-highbitdepth --enable-vp8 --enable-vp9 --enable-pic \
+LDFLAGS="$LDFLAGS_VPX" ./configure --prefix="$BUILD_PATH" --disable-examples --enable-vp9-highbitdepth --enable-vp8 --enable-vp9 --enable-pic \
   --enable-postproc --enable-multithread "${arg[@]}" --enable-shared --disable-unit-tests
 make
 make install
