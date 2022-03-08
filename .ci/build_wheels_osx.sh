@@ -7,9 +7,9 @@ SRC_PATH="$HOME/ffmpeg_sources_$ARCH"
 BUILD_PATH="$HOME/ffmpeg_build_$ARCH"
 base_dir="$(pwd)"
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_PATH/lib
+export LD_LIBRARY_PATH="$BUILD_PATH/lib:$LD_LIBRARY_PATH"
 export PATH="$BUILD_PATH/bin:/usr/local/bin/:$PATH"
-export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig:/usr/lib/pkgconfig/"
+export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig:/usr/lib/pkgconfig/:$PKG_CONFIG_PATH"
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang"
 export MACOSX_DEPLOYMENT_TARGET=10.15
