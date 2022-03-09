@@ -9,7 +9,7 @@ BUILD_PATH="$HOME/${FFMPEG_BUILD_PATH}"
 cp -r "$BUILD_PATH_X86" "$BUILD_PATH"
 cd "$BUILD_PATH"
 
-rm bin/* lib/*dylib lib/*a lib/*la
+rm bin/* lib/*.dylib lib/*.a lib/*.la || true
 cp "$BUILD_PATH_X86/bin/*sdl*" bin
 cp "$BUILD_PATH_X86/bin/*SDL*" bin
 cp "$BUILD_PATH_X86/lib/*sdl*" lib
