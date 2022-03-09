@@ -18,14 +18,14 @@ cp "$BUILD_PATH_X86"/lib/*SDL* lib || true
 cd "$BUILD_PATH_ARM"/lib
 for filename in *.dylib *.a; do
   if [[ -f "$BUILD_PATH_X86/lib/$filename" && "$(echo "$filename" | tr '[:upper:]' '[:lower:]')" != *sdl* ]]; then
-    lipo "$BUILD_PATH_X86/lib/$filename" "$BUILD_PATH_ARM/lib/$filename" -output "BUILD_PATH/lib/$filename" -create
+    lipo "$BUILD_PATH_X86/lib/$filename" "$BUILD_PATH_ARM/lib/$filename" -output "$BUILD_PATH/lib/$filename" -create
   fi
 done
 
 cd "$BUILD_PATH_ARM"/bin
 for filename in *; do
   if [[ -f "$BUILD_PATH_X86/bin/$filename" && "$(echo "$filename" | tr '[:upper:]' '[:lower:]')" != *sdl* ]]; then
-    lipo "$BUILD_PATH_X86/bin/$filename" "$BUILD_PATH_ARM/bin/$filename" -output "BUILD_PATH/bin/$filename" -create
+    lipo "$BUILD_PATH_X86/bin/$filename" "$BUILD_PATH_ARM/bin/$filename" -output "$BUILD_PATH/bin/$filename" -create
   fi
 done
 
