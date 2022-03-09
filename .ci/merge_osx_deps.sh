@@ -10,10 +10,10 @@ cp -r "$BUILD_PATH_X86" "$BUILD_PATH"
 cd "$BUILD_PATH"
 
 rm bin/* lib/*.dylib lib/*.a lib/*.la || true
-cp "$BUILD_PATH_X86/bin/*sdl*" bin
-cp "$BUILD_PATH_X86/bin/*SDL*" bin
-cp "$BUILD_PATH_X86/lib/*sdl*" lib
-cp "$BUILD_PATH_X86/lib/*SDL*" lib
+cp "$BUILD_PATH_X86"/bin/*sdl* bin || true
+cp "$BUILD_PATH_X86"/bin/*SDL* bin || true
+cp "$BUILD_PATH_X86"/lib/*sdl* lib || true
+cp "$BUILD_PATH_X86"/lib/*SDL* lib || true
 
 cd "$BUILD_PATH_ARM"/lib
 for filename in *.dylib *.a; do
