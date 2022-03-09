@@ -23,7 +23,7 @@ for filename in *.dylib *.a; do
 done
 
 cd "$BUILD_PATH_ARM"/bin
-for filename in *; do
+for filename in ff*; do
   if [[ -f "$BUILD_PATH_X86/bin/$filename" && "$(echo "$filename" | tr '[:upper:]' '[:lower:]')" != *sdl* ]]; then
     lipo "$BUILD_PATH_X86/bin/$filename" "$BUILD_PATH_ARM/bin/$filename" -output "$BUILD_PATH/bin/$filename" -create
   fi
