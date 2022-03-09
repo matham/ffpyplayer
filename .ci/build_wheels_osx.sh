@@ -4,7 +4,7 @@ set -e -x
 # can be either arm64 or x86_64
 ARCH="$1"
 SRC_PATH="$HOME/ffmpeg_sources_$ARCH"
-BUILD_PATH="$HOME/$FFMPEG_BUILD_PATH_$ARCH"
+BUILD_PATH="$HOME/${FFMPEG_BUILD_PATH}_$ARCH"
 base_dir="$(pwd)"
 
 export LD_LIBRARY_PATH="$BUILD_PATH/lib:$LD_LIBRARY_PATH"
@@ -295,6 +295,6 @@ make install
 make distclean
 
 
-file "$BUILD_PATH/"/lib/*
-file "$BUILD_PATH/"/bin/*
-find "$BUILD_PATH/"
+file "$BUILD_PATH"/lib/*
+file "$BUILD_PATH"/bin/*
+find "$BUILD_PATH"
