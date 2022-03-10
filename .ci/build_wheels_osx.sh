@@ -31,6 +31,15 @@ mkdir "$SRC_PATH"
 
 
 cd "$SRC_PATH"
+curl -sLO https://tukaani.org/xz/xz-5.2.5.tar.gz
+tar xzf xz-5.2.5.tar.gz
+cd xz-5.2.5
+./configure --prefix="$BUILD_PATH"
+make
+make install
+
+
+cd "$SRC_PATH"
 curl -sLO https://zlib.net/zlib-1.2.11.tar.gz
 tar xzf zlib-1.2.11.tar.gz
 cd zlib-1.2.11
@@ -43,7 +52,8 @@ cd "$SRC_PATH";
 curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
 tar xzf "SDL2-$SDL_VERSION.tar.gz"
 cd "SDL2-$SDL_VERSION"
-CFLAGS= CXXFLAGS= ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" CC="sh build-scripts/clang-fat.sh"
+CFLAGS= CXXFLAGS= ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" CC="sh build-scripts/clang-fat.sh" \
+  --enable-video-x11=no
 make
 make install
 make distclean
