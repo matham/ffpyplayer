@@ -289,14 +289,14 @@ jobs:
         if: steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/build_wheels_osx.sh "x86_64"
 
-      - name: Cache merged ffmpeg
-        id: cache-merged-ffmpeg
-        uses: actions/cache@v2
-        with:
-          path: ~/${{ env.FFMPEG_BUILD_PATH }}
-          key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
+#      - name: Cache merged ffmpeg
+#        id: cache-merged-ffmpeg
+#        uses: actions/cache@v2
+#        with:
+#          path: ~/${{ env.FFMPEG_BUILD_PATH }}
+#          key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
       - name: Merge FFmpeg arm64/x86
-        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-merged-ffmpeg.outputs.cache-hit != 'true'
+#        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-merged-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/merge_osx_deps.sh
 
       - name: Install cibuildwheel
@@ -304,10 +304,6 @@ jobs:
           python -m pip install cibuildwheel==2.3.1
       - name: Build wheels
         run: |
-          # in case of cache install here
-          brew install automake meson pkg-config cmake
-          brew install --cask xquartz
-
           export REPAIR_LIBRARY_PATH="$HOME/$FFMPEG_BUILD_PATH/lib"
           export PKG_CONFIG_PATH="$HOME/$FFMPEG_BUILD_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
           python -m cibuildwheel --output-dir dist
