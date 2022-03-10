@@ -304,6 +304,10 @@ jobs:
           python -m pip install cibuildwheel==2.3.1
       - name: Build wheels
         run: |
+          # in case of cache install here
+          brew install automake meson pkg-config cmake
+          brew install --cask xquartz
+
           export REPAIR_LIBRARY_PATH="$HOME/$FFMPEG_BUILD_PATH/lib"
           export PKG_CONFIG_PATH="$HOME/$FFMPEG_BUILD_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
           python -m cibuildwheel --output-dir dist
