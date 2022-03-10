@@ -312,6 +312,15 @@ jobs:
         with:
           name: py_wheel
           path: dist
+
+      - name: Upload ffmpeg_build
+        uses: actions/upload-artifact@v3
+        with:
+          name: ffmpeg_build
+          path: |
+            ~/${{ env.FFMPEG_BUILD_PATH }}_x86_64
+            ~/${{ env.FFMPEG_BUILD_PATH }}_arm64
+            ~/${{ env.FFMPEG_BUILD_PATH }}
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
         if: startsWith(github.ref, 'refs/tags/')
