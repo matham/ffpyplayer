@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e -x
 
-./yum_deps.sh
+/io/.ci/yum_deps.sh
 
 
 BUILD_DIR="$HOME/ffmpeg_build"

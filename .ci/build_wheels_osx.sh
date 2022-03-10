@@ -295,6 +295,7 @@ else
     arg=("--enable-cross-compile" "--arch=arm64" "--target-os=darwin" "--extra-ldflags=-L$BUILD_PATH/lib -arch arm64" \
       "--extra-objcflags=-arch arm64")
 fi
+
 ./configure --prefix="$BUILD_PATH" --extra-cflags="$CFLAGS" --extra-cxxflags="$CXXFLAGS" --bindir="$BUILD_PATH/bin" \
   --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree \
   --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx \
