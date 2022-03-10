@@ -197,15 +197,15 @@ jobs:
         os: [ ubuntu-latest ]
         cibw_archs: [ x86_64 ]
         cibw_build: [ 'cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64 cp310-manylinux_x86_64' ]
-        include:
-          - cibw_archs: aarch64
-            cibw_build: cp37-manylinux_aarch64
-          - cibw_archs: aarch64
-            cibw_build: cp38-manylinux_aarch64
-          - cibw_archs: aarch64
-            cibw_build: cp39-manylinux_aarch64
-          - cibw_archs: aarch64
-            cibw_build: cp310-manylinux_aarch64
+#        include:
+#          - cibw_archs: aarch64
+#            cibw_build: cp37-manylinux_aarch64
+#          - cibw_archs: aarch64
+#            cibw_build: cp38-manylinux_aarch64
+#          - cibw_archs: aarch64
+#            cibw_build: cp39-manylinux_aarch64
+#          - cibw_archs: aarch64
+#            cibw_build: cp310-manylinux_aarch64
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
