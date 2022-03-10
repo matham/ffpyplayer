@@ -183,20 +183,54 @@ jobs:
           pytest "$name/tests"
 
   linux_wheels:
+    env:
+      CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$LD_LIBRARY_PATH"
+      CIBW_BUILD_VERBOSITY_LINUX: 3
+      CIBW_BUILD: ${{ matrix.cibw_build }}
+      CIBW_ARCHS: ${{ matrix.cibw_archs }}
+      CIBW_BEFORE_ALL_LINUX: >
+        cp -r `pwd`/ffmpeg_build $HOME/ffmpeg_build &&
+        ./yum_deps.sh
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        cibw_archs: [ x86_64 ]
+        cibw_build: [ 'cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64 cp310-manylinux_x86_64' ]
+        include:
+          - cibw_archs: aarch64
+            cibw_build: cp37-manylinux_aarch64
+          - cibw_archs: aarch64
+            cibw_build: cp38-manylinux_aarch64
+          - cibw_archs: aarch64
+            cibw_build: cp39-manylinux_aarch64
+          - cibw_archs: aarch64
+            cibw_build: cp310-manylinux_aarch64
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
-      - name: Build docker
+      - name: Set up QEMU
+        if: ${{ matrix.cibw_archs == 'aarch64' }}
+        uses: docker/setup-qemu-action@v1
+      - uses: actions/cache@v2
+        id: deps-cache
+        with:
+          path: ffmpeg_build
+          key: ${{ runner.os }}-${{ matrix.cibw_archs }}-deps-cache-${{ hashFiles('**/build-wheels.sh') }}-${{ hashFiles('**/yum_deps.sh') }}
+      - name: Build dependencies
+        if: ${{ steps.deps-cache.outputs.cache-hit != 'true' }}
         run: |
-          docker info
-          docker pull quay.io/pypa/manylinux2014_x86_64
           mkdir dist
-
-          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 /io/.ci/build-wheels.sh
+          docker run --rm -v `pwd`:/io:rw quay.io/pypa/manylinux2014_${{ matrix.cibw_archs }} /io/.ci/build-wheels.sh
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel==2.3.1
+      - name: Make wheels
+        run: |
+          python -m cibuildwheel --output-dir dist
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
@@ -237,7 +271,7 @@ jobs:
 
       - name: Cache arm64 ffmpeg
         id: cache-arm64-ffmpeg
-        uses: pat-s/always-upload-cache@v2.1.5
+        uses: actions/cache@v2
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_arm64
           key: ${{ runner.os }}-ffmpeg-arm64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
@@ -247,7 +281,7 @@ jobs:
 
       - name: Cache x86_64 ffmpeg
         id: cache-x86_64-ffmpeg
-        uses: pat-s/always-upload-cache@v2.1.5
+        uses: actions/cache@v2
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_x86_64
           key: ${{ runner.os }}-ffmpeg-x86_64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
@@ -257,7 +291,7 @@ jobs:
 
       - name: Cache merged ffmpeg
         id: cache-merged-ffmpeg
-        uses: pat-s/always-upload-cache@v2.1.5
+        uses: actions/cache@v2
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}
           key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
