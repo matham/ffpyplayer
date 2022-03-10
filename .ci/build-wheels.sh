@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e -x
 
-/io/.ci/yum_deps.sh
+# no permissions in that dir
+source /io/.ci/yum_deps.sh
 
 
 BUILD_DIR="$HOME/ffmpeg_build"
