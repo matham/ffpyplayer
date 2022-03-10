@@ -190,7 +190,7 @@ jobs:
       CIBW_ARCHS: ${{ matrix.cibw_archs }}
       CIBW_BEFORE_ALL_LINUX: >
         cp -r `pwd`/ffmpeg_build $HOME/ffmpeg_build &&
-        .ci/yum_deps.sh
+        source .ci/yum_deps.sh
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -342,7 +342,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
