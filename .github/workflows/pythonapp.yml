@@ -237,7 +237,7 @@ jobs:
 
       - name: Cache arm64 ffmpeg
         id: cache-arm64-ffmpeg
-        uses: actions/cache@v2
+        uses: pat-s/always-upload-cache@v2.1.5
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_arm64
           key: ${{ runner.os }}-ffmpeg-arm64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
@@ -247,7 +247,7 @@ jobs:
 
       - name: Cache x86_64 ffmpeg
         id: cache-x86_64-ffmpeg
-        uses: actions/cache@v2
+        uses: pat-s/always-upload-cache@v2.1.5
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_x86_64
           key: ${{ runner.os }}-ffmpeg-x86_64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
@@ -257,7 +257,7 @@ jobs:
 
       - name: Cache merged ffmpeg
         id: cache-merged-ffmpeg
-        uses: actions/cache@v2
+        uses: pat-s/always-upload-cache@v2.1.5
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}
           key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
