@@ -52,8 +52,7 @@ cd "$SRC_PATH";
 curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
 tar xzf "SDL2-$SDL_VERSION.tar.gz"
 cd "SDL2-$SDL_VERSION"
-CFLAGS= CXXFLAGS= ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" CC="sh build-scripts/clang-fat.sh" \
-  --enable-video-x11=no
+CFLAGS= CXXFLAGS= ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" CC="sh build-scripts/clang-fat.sh"
 make
 make install
 make distclean
@@ -297,9 +296,10 @@ else
       "--extra-objcflags=-arch arm64")
 fi
 ./configure --prefix="$BUILD_PATH" --extra-cflags="$CFLAGS" --extra-cxxflags="$CXXFLAGS" --bindir="$BUILD_PATH/bin" \
---enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree \
---enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx \
---enable-openssl --enable-shared --pkg-config-flags="--static" "${arg[@]}"
+  --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree \
+  --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx \
+  --enable-openssl --enable-shared --pkg-config-flags="--static" --disable-libxcb --disable-libxcb-shm \
+  --disable-libxcb-xfixes --disable-libxcb-shape --disable-xlib "${arg[@]}"
 make
 make install
 make distclean
