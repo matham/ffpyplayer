@@ -6,6 +6,9 @@ BUILD_PATH_ARM="$HOME/${FFMPEG_BUILD_PATH}_arm64"
 BUILD_PATH_X86="$HOME/${FFMPEG_BUILD_PATH}_x86_64"
 BUILD_PATH="$HOME/${FFMPEG_BUILD_PATH}"
 
+
+rm -rf "$BUILD_PATH" || true
+
 cp -r "$BUILD_PATH_X86" "$BUILD_PATH"
 cd "$BUILD_PATH"
 
@@ -28,6 +31,7 @@ for filename in ff*; do
     lipo "$BUILD_PATH_X86/bin/$filename" "$BUILD_PATH_ARM/bin/$filename" -output "$BUILD_PATH/bin/$filename" -create
   fi
 done
+
 
 echo "Merged files:"
 file "$BUILD_PATH"/lib/*

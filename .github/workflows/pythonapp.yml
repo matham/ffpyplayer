@@ -289,14 +289,14 @@ jobs:
         if: steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/build_wheels_osx.sh "x86_64"
 
-#      - name: Cache merged ffmpeg
-#        id: cache-merged-ffmpeg
-#        uses: actions/cache@v2
-#        with:
-#          path: ~/${{ env.FFMPEG_BUILD_PATH }}
-#          key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
+      - name: Cache merged ffmpeg
+        id: cache-merged-ffmpeg
+        uses: actions/cache@v2
+        with:
+          path: ~/${{ env.FFMPEG_BUILD_PATH }}
+          key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
       - name: Merge FFmpeg arm64/x86
-#        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-merged-ffmpeg.outputs.cache-hit != 'true'
+        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-merged-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/merge_osx_deps.sh
 
       - name: Install cibuildwheel
