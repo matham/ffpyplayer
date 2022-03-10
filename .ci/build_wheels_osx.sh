@@ -34,7 +34,7 @@ cd "$SRC_PATH"
 curl -sLO https://tukaani.org/xz/xz-5.2.5.tar.gz
 tar xzf xz-5.2.5.tar.gz
 cd xz-5.2.5
-./configure --prefix="$BUILD_PATH"
+./configure --prefix="$BUILD_PATH" --host=$ARCH2-darwin
 make
 make install
 
