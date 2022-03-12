@@ -191,6 +191,9 @@ jobs:
       CIBW_BEFORE_ALL_LINUX: >
         cp -r `pwd`/ffmpeg_build $HOME/ffmpeg_build &&
         source .ci/yum_deps.sh
+      CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+        DYLD_FALLBACK_LIBRARY_PATH=$HOME/ffmpeg_build/lib delocate-listdeps {wheel} &&
+        DYLD_FALLBACK_LIBRARY_PATH=$HOME/ffmpeg_build/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
     runs-on: ubuntu-latest
     strategy:
       matrix:
