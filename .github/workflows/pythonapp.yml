@@ -185,15 +185,12 @@ jobs:
   linux_wheels:
     env:
       CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$LD_LIBRARY_PATH"
-      CIBW_BUILD_VERBOSITY_LINUX: 3
+      CIBW_BUILD_VERBOSITY: 3
       CIBW_BUILD: ${{ matrix.cibw_build }}
       CIBW_ARCHS: ${{ matrix.cibw_archs }}
       CIBW_BEFORE_ALL_LINUX: >
         cp -r `pwd`/ffmpeg_build $HOME/ffmpeg_build &&
         source .ci/yum_deps.sh
-      CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
-        DYLD_FALLBACK_LIBRARY_PATH=$HOME/ffmpeg_build/lib delocate-listdeps {wheel} &&
-        DYLD_FALLBACK_LIBRARY_PATH=$HOME/ffmpeg_build/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -260,11 +257,12 @@ jobs:
     env:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
+      CIBW_BUILD_VERBOSITY: 3
       CIBW_BUILD: "cp37-macosx_x86_64 cp38-macosx_universal2 cp39-macosx_universal2 cp310-macosx_universal2"
       CIBW_ARCHS_MACOS: "x86_64 universal2"
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
-        DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
-        DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
+        DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
+        DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -292,14 +290,7 @@ jobs:
         if: steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/build_wheels_osx.sh "x86_64"
 
-      - name: Cache merged ffmpeg
-        id: cache-merged-ffmpeg
-        uses: actions/cache@v2
-        with:
-          path: ~/${{ env.FFMPEG_BUILD_PATH }}
-          key: ${{ runner.os }}-ffmpeg-merged-${{ hashFiles('.ci/merge_osx_deps.sh') }}
       - name: Merge FFmpeg arm64/x86
-        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true' || steps.cache-merged-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/merge_osx_deps.sh
 
       - name: Install cibuildwheel
@@ -310,20 +301,15 @@ jobs:
           export REPAIR_LIBRARY_PATH="$HOME/$FFMPEG_BUILD_PATH/lib"
           export PKG_CONFIG_PATH="$HOME/$FFMPEG_BUILD_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
           python -m cibuildwheel --output-dir dist
+
+          unzip dist/ffpyplayer-*310*whl -d wheel_ex
+          otool -l wheel_ex/ffpyplayer/player/player*310*
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
           name: py_wheel
           path: dist
 
-      - name: Upload ffmpeg_build
-        uses: actions/upload-artifact@v3
-        with:
-          name: ffmpeg_build
-          path: |
-            ~/${{ env.FFMPEG_BUILD_PATH }}_x86_64
-            ~/${{ env.FFMPEG_BUILD_PATH }}_arm64
-            ~/${{ env.FFMPEG_BUILD_PATH }}
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
         if: startsWith(github.ref, 'refs/tags/')

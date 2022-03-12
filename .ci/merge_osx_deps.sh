@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e -x
 
-
 BUILD_PATH_ARM="$HOME/${FFMPEG_BUILD_PATH}_arm64"
 BUILD_PATH_X86="$HOME/${FFMPEG_BUILD_PATH}_x86_64"
 BUILD_PATH="$HOME/${FFMPEG_BUILD_PATH}"
+export DYLD_FALLBACK_LIBRARY_PATH="${BUILD_PATH}/lib"
 
 
 rm -rf "$BUILD_PATH" || true
@@ -17,6 +17,9 @@ cp "$BUILD_PATH_X86"/bin/*sdl* bin || true
 cp "$BUILD_PATH_X86"/bin/*SDL* bin || true
 cp "$BUILD_PATH_X86"/lib/*sdl* lib || true
 cp "$BUILD_PATH_X86"/lib/*SDL* lib || true
+
+cd "$BUILD_PATH"/lib/pkgconfig
+find . -name "*.pc" -exec sed -i "" "s/${FFMPEG_BUILD_PATH}_x86_64/${FFMPEG_BUILD_PATH}/g" {} +
 
 cd "$BUILD_PATH_ARM"/lib
 for filename in *.dylib *.a; do
