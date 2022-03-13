@@ -33,16 +33,16 @@ cd "$BUILD_PATH"/lib
 for filename in *.dylib; do
   for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_x86_64.+?dylib"); do
     arg=()
-		if [[ "$filename" = "$(basename "$line")" ]]; then
-			arg=("-id" "$filename")
+		if [[ "${filename%%.*}" = "$(basename "${line%%.*}")" ]]; then
+			arg=("-id" "${line/_x86_64/}")
 		fi
     install_name_tool -change "$line" "${line/_x86_64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
 
   for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_arm64.+?dylib"); do
     arg=()
-		if [[ "$filename" = "$(basename "$line")" ]]; then
-			arg=("-id" "$filename")
+		if [[ "${filename%%.*}" = "$(basename "${line%%.*}")" ]]; then
+			arg=("-id" "${line/_arm64/}")
 		fi
     install_name_tool -change "$line" "${line/_arm64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
@@ -56,8 +56,9 @@ for filename in ff*; do
   fi
 done
 
-otool -L "$BUILD_PATH"/lib/libass*dylib
-otool -L "$BUILD_PATH"/lib/libavcodec*dylib
+echo "otool list"
+otool -l "$BUILD_PATH"/lib/libavcodec.dylib
+otool -l "$BUILD_PATH"/lib/libavcodec.*.*.*.dylib
 
 echo "Merged files:"
 file "$BUILD_PATH"/lib/*
