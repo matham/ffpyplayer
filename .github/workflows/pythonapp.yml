@@ -60,9 +60,7 @@ jobs:
         ls $env:FFMPEG_ROOT
     - name: Make sdist
       if: matrix.python == '3.10'
-      run: |
-        python -m pip install --upgrade pip virtualenv wheel setuptools
-        python setup.py sdist --formats=gztar
+      run: python setup.py sdist --formats=gztar
     - name: Install pip deps
       run: |
         python -m pip install --upgrade pip virtualenv wheel setuptools cython pytest
@@ -140,11 +138,11 @@ jobs:
           sudo apt install -y ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
           sudo apt install -y libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
           sudo apt install -y libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev python3
+          python3 -m pip install pytest
 
-          python3 -m pip install --upgrade pip pytest
           root=`pwd`
           cd ~/
-          python3 -m pip install --no-index --find-links=$root/dist ffpyplayer --no-binary ffpyplayer
+          python3 -m pip install `ls $root/dist/ffpyplayer*.tar.gz`
       - name: Test
         run: |
           root=`pwd`
@@ -185,20 +183,54 @@ jobs:
           pytest "$name/tests"
 
   linux_wheels:
+    env:
+      CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$LD_LIBRARY_PATH"
+      CIBW_BUILD_VERBOSITY: 3
+      CIBW_BUILD: ${{ matrix.cibw_build }}
+      CIBW_ARCHS: ${{ matrix.cibw_archs }}
+      CIBW_BEFORE_ALL_LINUX: >
+        cp -r `pwd`/ffmpeg_build $HOME/ffmpeg_build &&
+        source .ci/yum_deps.sh
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        cibw_archs: [ x86_64 ]
+        cibw_build: [ 'cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64 cp310-manylinux_x86_64' ]
+#        include:
+#          - cibw_archs: aarch64
+#            cibw_build: cp37-manylinux_aarch64
+#          - cibw_archs: aarch64
+#            cibw_build: cp38-manylinux_aarch64
+#          - cibw_archs: aarch64
+#            cibw_build: cp39-manylinux_aarch64
+#          - cibw_archs: aarch64
+#            cibw_build: cp310-manylinux_aarch64
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
-      - name: Build docker
+      - name: Set up QEMU
+        if: ${{ matrix.cibw_archs == 'aarch64' }}
+        uses: docker/setup-qemu-action@v1
+      - uses: actions/cache@v2
+        id: deps-cache
+        with:
+          path: ffmpeg_build
+          key: ${{ runner.os }}-${{ matrix.cibw_archs }}-deps-cache-${{ hashFiles('**/build-wheels.sh') }}-${{ hashFiles('**/yum_deps.sh') }}
+      - name: Build dependencies
+        if: ${{ steps.deps-cache.outputs.cache-hit != 'true' }}
         run: |
-          docker info
-          docker pull quay.io/pypa/manylinux2014_x86_64
           mkdir dist
-
-          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 /io/.ci/build-wheels.sh
+          docker run --rm -v `pwd`:/io:rw quay.io/pypa/manylinux2014_${{ matrix.cibw_archs }} /io/.ci/build-wheels.sh
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel==2.3.1
+      - name: Make wheels
+        run: |
+          python -m cibuildwheel --output-dir dist
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
@@ -222,49 +254,62 @@ jobs:
 
   osx_wheels:
     runs-on: macos-latest
+    env:
+      USE_SDL2_MIXER: 0
+      FFMPEG_BUILD_PATH: "ffmpeg_build"
+      CIBW_BUILD_VERBOSITY: 3
+      CIBW_BUILD: "cp37-macosx_x86_64 cp38-macosx_universal2 cp39-macosx_universal2 cp310-macosx_universal2"
+      CIBW_ARCHS_MACOS: "x86_64 universal2"
+      CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+        DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
+        DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
     steps:
-      - uses: actions/checkout@v1
-      - name: Brew setup
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Cache arm64 ffmpeg
+        id: cache-arm64-ffmpeg
+        uses: actions/cache@v2
+        with:
+          path: ~/${{ env.FFMPEG_BUILD_PATH }}_arm64
+          key: ${{ runner.os }}-ffmpeg-arm64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
+      - name: Build FFmpeg arm64
+        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true'
+        run: bash .ci/build_wheels_osx.sh "arm64"
+
+      - name: Cache x86_64 ffmpeg
+        id: cache-x86_64-ffmpeg
+        uses: actions/cache@v2
+        with:
+          path: ~/${{ env.FFMPEG_BUILD_PATH }}_x86_64
+          key: ${{ runner.os }}-ffmpeg-x86_64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
+      - name: Build FFmpeg x86_64
+        if: steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true'
+        run: bash .ci/build_wheels_osx.sh "x86_64"
+
+      - name: Merge FFmpeg arm64/x86
+        run: bash .ci/merge_osx_deps.sh
+
+      - name: Install cibuildwheel
         run: |
-          brew update
-          brew install pkg-config
-          brew install sdl2
-          brew install sdl2_mixer
-          brew install ffmpeg
-          pkg-config --libs --cflags libavcodec
-      - name: Building wheels
+          python -m pip install cibuildwheel==2.3.1
+      - name: Build wheels
         run: |
-          mkdir ~/ffpyplayer_wheels
+          export REPAIR_LIBRARY_PATH="$HOME/$FFMPEG_BUILD_PATH/lib"
+          export PKG_CONFIG_PATH="$HOME/$FFMPEG_BUILD_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
+          python -m cibuildwheel --output-dir dist
 
-          for pyver in $OSX_PYVERS; do
-             git reset --hard
-             git clean -d -x -f
-             pyver_short=${pyver:0:3}
-
-             curl -O -L https://www.python.org/ftp/python/$pyver/python-$pyver-macosx10.9.pkg
-             sudo installer -package python-$pyver-macosx10.9.pkg -target /
-             curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-             python$pyver_short get-pip.py --user
-             python$pyver_short -m pip install --upgrade --user pip
-             python$pyver_short -m pip install --upgrade --user cython pytest wheel
-             python$pyver_short -m pip install --upgrade https://github.com/matthew-brett/delocate/archive/master.zip
-
-             python$pyver_short setup.py bdist_wheel
-
-             ls dist/
-             /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-wheel dist/*.whl
-             /Library/Frameworks/Python.framework/Versions/$pyver_short/bin/delocate-addplat --rm-orig -x 10_9 -x 10_10 dist/*.whl
-             cp dist/*.whl ~/ffpyplayer_wheels
-          done
-
-          git reset --hard
-          git clean -d -x -f
-          cp -r ~/ffpyplayer_wheels dist
+          unzip dist/ffpyplayer-*310*whl -d wheel_ex
+          otool -arch all -l wheel_ex/ffpyplayer/player/player*310*
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
           name: py_wheel
           path: dist
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
         if: startsWith(github.ref, 'refs/tags/')
@@ -280,10 +325,6 @@ jobs:
         run: |
           python -m pip install twine
           twine upload dist/*
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
       - name: Test
         run: |
           root=`pwd`
@@ -291,7 +332,7 @@ jobs:
           cd ~/
 
           python -m pip install --upgrade pip virtualenv wheel setuptools pytest
-          python -m pip install --no-index --find-links=~/ffpyplayer_wheels ffpyplayer
+          python -m pip install --no-index --find-links=$root/dist ffpyplayer
           name=`python -c "import ffpyplayer, os.path;print(os.path.dirname(ffpyplayer.__file__))"`
           echo $name
           pytest "$name/tests"
@@ -299,13 +340,14 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
           python-version: 3.x
       - name: Install
         run: |
+          sudo apt update
           sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
           sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
           sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev python3-dev

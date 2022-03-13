@@ -1,17 +1,9 @@
+from setuptools import setup, Extension
 from os.path import join, exists, isdir, dirname, abspath
 from os import environ, listdir, mkdir
 from distutils.command.build_ext import build_ext
 import sys
 import ffpyplayer
-
-
-try:
-    from setuptools import setup, Extension
-    print('Using setuptools')
-except ImportError:
-    from distutils.core import setup
-    from distutils.extension import Extension
-    print('Using distutils')
 
 
 # Determine on which platform we are
@@ -400,6 +392,7 @@ if declare_cython:
 setup(name='ffpyplayer',
       version=ffpyplayer.__version__,
       author='Matthew Einhorn',
+      author_email='matt@einhorn.dev',
       license='LGPL3',
       description='A cython implementation of an ffmpeg based player.',
       url='https://matham.github.io/ffpyplayer/',
@@ -424,7 +417,7 @@ setup(name='ffpyplayer',
       package_data={
         'ffpyplayer': [
             'player/*.pxd', 'clib/misc.h', 'includes/*.pxi', 'includes/*.h',
-            '*.pxd']},
+            '*.pxd', 'player/*.pyx', 'clib/misc.c', '*.pyx']},
       data_files=get_wheel_data(),
       cmdclass=cmdclass, ext_modules=ext_modules,
       setup_requires=setup_requires)
