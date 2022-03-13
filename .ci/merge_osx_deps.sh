@@ -29,6 +29,26 @@ for filename in *.dylib *.a; do
   fi
 done
 
+cd "$BUILD_PATH"/lib
+for filename in *.dylib; do
+  for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_x86_64.+?dylib"); do
+    arg=()
+		if [[ "$filename" = "$(basename "$line")" ]]; then
+			arg=("-id $filename")
+		fi
+    install_name_tool -change "$line" "${line/_x86_64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
+  done
+
+  for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_arm64.+?dylib"); do
+    arg=()
+		if [[ "$filename" = "$(basename "$line")" ]]; then
+			arg=("-id $filename")
+		fi
+    install_name_tool -change "$line" "${line/_arm64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
+  done
+
+done
+
 cd "$BUILD_PATH_ARM"/bin
 for filename in ff*; do
   if [[ -f "$BUILD_PATH_X86/bin/$filename" && "$(echo "$filename" | tr '[:upper:]' '[:lower:]')" != *sdl* ]]; then
