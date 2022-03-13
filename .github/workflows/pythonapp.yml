@@ -303,7 +303,7 @@ jobs:
           python -m cibuildwheel --output-dir dist
 
           unzip dist/ffpyplayer-*310*whl -d wheel_ex
-          otool -l wheel_ex/ffpyplayer/player/player*310*
+          otool -arch all -l wheel_ex/ffpyplayer/player/player*310*
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:

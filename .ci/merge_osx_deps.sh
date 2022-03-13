@@ -20,7 +20,6 @@ cp "$BUILD_PATH_X86"/lib/*SDL* lib || true
 
 cd "$BUILD_PATH"/lib/pkgconfig
 find . -name "*.pc" -exec sed -i "" "s/${FFMPEG_BUILD_PATH}_x86_64/${FFMPEG_BUILD_PATH}/g" {} +
-find . -name "*.pc" -exec cat {} +
 
 cd "$BUILD_PATH_ARM"/lib
 for filename in *.dylib *.a; do
@@ -31,7 +30,7 @@ done
 
 cd "$BUILD_PATH"/lib
 for filename in *.dylib; do
-  for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_x86_64.+?dylib"); do
+  for line in $(otool -arch all -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_x86_64.+?dylib"); do
     lib_name=${filename%%.*}
     # sdl2 is named e.g. libSDL2-2.0.0.dylib, unlike other libs that would be named libSDL2.2.0.0.dylib
     lib_name=${lib_name%-*}
@@ -44,7 +43,7 @@ for filename in *.dylib; do
     install_name_tool -change "$line" "${line/_x86_64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
 
-  for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_arm64.+?dylib"); do
+  for line in $(otool -arch all -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_arm64.+?dylib"); do
     lib_name=${filename%%.*}
     lib_name=${lib_name%-*}
     line_lib_name=$(basename "${line%%.*}")
@@ -66,8 +65,8 @@ for filename in ff*; do
 done
 
 echo "otool list"
-otool -l "$BUILD_PATH"/lib/libavcodec.dylib
-otool -l "$BUILD_PATH"/lib/libavcodec.*.*.*.dylib
+otool -arch all -l "$BUILD_PATH"/lib/libavcodec.dylib
+otool -arch all -l "$BUILD_PATH"/lib/libavcodec.*.*.*.dylib
 
 echo "Merged files:"
 file "$BUILD_PATH"/lib/*
