@@ -20,6 +20,7 @@ cp "$BUILD_PATH_X86"/lib/*SDL* lib || true
 
 cd "$BUILD_PATH"/lib/pkgconfig
 find . -name "*.pc" -exec sed -i "" "s/${FFMPEG_BUILD_PATH}_x86_64/${FFMPEG_BUILD_PATH}/g" {} +
+find . -name "*.pc" -exec cat {} +
 
 cd "$BUILD_PATH_ARM"/lib
 for filename in *.dylib *.a; do
@@ -35,6 +36,8 @@ for filename in ff*; do
   fi
 done
 
+otool -L "$BUILD_PATH"/lib/libass*dylib
+otool -L "$BUILD_PATH"/lib/libavcodec*dylib
 
 echo "Merged files:"
 file "$BUILD_PATH"/lib/*
