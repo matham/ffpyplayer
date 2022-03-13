@@ -34,7 +34,7 @@ for filename in *.dylib; do
   for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_x86_64.+?dylib"); do
     arg=()
 		if [[ "$filename" = "$(basename "$line")" ]]; then
-			arg=("-id $filename")
+			arg=("-id" "$filename")
 		fi
     install_name_tool -change "$line" "${line/_x86_64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
@@ -42,7 +42,7 @@ for filename in *.dylib; do
   for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_arm64.+?dylib"); do
     arg=()
 		if [[ "$filename" = "$(basename "$line")" ]]; then
-			arg=("-id $filename")
+			arg=("-id" "$filename")
 		fi
     install_name_tool -change "$line" "${line/_arm64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
