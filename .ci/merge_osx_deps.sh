@@ -32,18 +32,27 @@ done
 cd "$BUILD_PATH"/lib
 for filename in *.dylib; do
   for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_x86_64.+?dylib"); do
+    lib_name=${filename%%.*}
+    # sdl2 is named e.g. libSDL2-2.0.0.dylib, unlike other libs that would be named libSDL2.2.0.0.dylib
+    lib_name=${lib_name%-*}
+    line_lib_name=$(basename "${line%%.*}")
+    line_lib_name=${line_lib_name%-*}
     arg=()
-		if [[ "${filename%%.*}" = "$(basename "${line%%.*}")" ]]; then
-			arg=("-id" "${line/_x86_64/}")
-		fi
+    if [[ "$lib_name" = "$line_lib_name" ]]; then
+      arg=("-id" "${line/_x86_64/}")
+    fi
     install_name_tool -change "$line" "${line/_x86_64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
 
   for line in $(otool -L "$BUILD_PATH/lib/$filename" | grep -Eo "^.+?_arm64.+?dylib"); do
+    lib_name=${filename%%.*}
+    lib_name=${lib_name%-*}
+    line_lib_name=$(basename "${line%%.*}")
+    line_lib_name=${line_lib_name%-*}
     arg=()
-		if [[ "${filename%%.*}" = "$(basename "${line%%.*}")" ]]; then
-			arg=("-id" "${line/_arm64/}")
-		fi
+    if [[ "$lib_name" = "$line_lib_name" ]]; then
+      arg=("-id" "${line/_arm64/}")
+    fi
     install_name_tool -change "$line" "${line/_arm64/}" "${arg[@]}" "$BUILD_PATH/lib/$filename"
   done
 
