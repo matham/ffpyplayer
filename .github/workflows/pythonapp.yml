@@ -319,7 +319,7 @@ jobs:
         run: |
           pip install delocate
           cd dist
-          bash .ci/merge_osx_deps.sh
+          bash ../.ci/merge_osx_deps.sh
 
       - name: Upload wheel
         uses: actions/upload-artifact@v2
