@@ -8,6 +8,8 @@ env:
   SDL_MIXER_VERSION: 2.0.4
   USE_SDL2_MIXER: 1
   OSX_PYVERS: 3.7.9 3.8.10 3.9.10
+  MACOSX_DEPLOYMENT_TARGET: "10.9"
+  MACOSX_DEPLOYMENT_TARGET_ARM: "11.0"
 
 jobs:
   windows_wheels_tests:
@@ -252,17 +254,20 @@ jobs:
           python -m pip install twine
           twine upload dist/*
 
-  osx_wheels:
+  osx_wheels_create:
     runs-on: macos-latest
     env:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
       CIBW_BUILD_VERBOSITY: 3
-      CIBW_BUILD: "cp37-macosx_x86_64 cp38-macosx_universal2 cp39-macosx_universal2 cp310-macosx_universal2"
-      CIBW_ARCHS_MACOS: "x86_64 universal2"
+      CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-*"
+      CIBW_ARCHS_MACOS: ${{ matrix.arch }}
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
         DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
         DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
+    strategy:
+      matrix:
+        arch: [ "x86_64", "arm64" ]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -270,40 +275,52 @@ jobs:
         with:
           python-version: 3.x
 
-      - name: Cache arm64 ffmpeg
-        id: cache-arm64-ffmpeg
+      - name: Cache ffmpeg
+        id: cache-ffmpeg
         uses: actions/cache@v2
         with:
-          path: ~/${{ env.FFMPEG_BUILD_PATH }}_arm64
-          key: ${{ runner.os }}-ffmpeg-arm64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
-      - name: Build FFmpeg arm64
-        if: steps.cache-arm64-ffmpeg.outputs.cache-hit != 'true'
-        run: bash .ci/build_wheels_osx.sh "arm64"
-
-      - name: Cache x86_64 ffmpeg
-        id: cache-x86_64-ffmpeg
-        uses: actions/cache@v2
-        with:
-          path: ~/${{ env.FFMPEG_BUILD_PATH }}_x86_64
-          key: ${{ runner.os }}-ffmpeg-x86_64-${{ hashFiles('.ci/build_wheels_osx.sh') }}
-      - name: Build FFmpeg x86_64
-        if: steps.cache-x86_64-ffmpeg.outputs.cache-hit != 'true'
-        run: bash .ci/build_wheels_osx.sh "x86_64"
-
-      - name: Merge FFmpeg arm64/x86
-        run: bash .ci/merge_osx_deps.sh
+          path: ~/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}
+          key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}
+      - name: Build FFmpeg
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: bash .ci/build_wheels_osx.sh "${{ matrix.arch }}"
 
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel==2.3.1
       - name: Build wheels
         run: |
-          export REPAIR_LIBRARY_PATH="$HOME/$FFMPEG_BUILD_PATH/lib"
-          export PKG_CONFIG_PATH="$HOME/$FFMPEG_BUILD_PATH/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export REPAIR_LIBRARY_PATH="$HOME/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}/lib"
+          export PKG_CONFIG_PATH="$HOME/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}/lib/pkgconfig:$PKG_CONFIG_PATH"
           python -m cibuildwheel --output-dir dist
 
-          unzip dist/ffpyplayer-*310*whl -d wheel_ex
-          otool -arch all -l wheel_ex/ffpyplayer/player/player*310*
+      - name: Upload wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: py_wheel
+          path: dist
+
+  osx_wheels_fuse_test_upload:
+    runs-on: macos-latest
+    needs: osx_wheels_create
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: py_wheel
+          path: dist
+
+      - name: Fuse FFmpeg arm64/x86
+        run: |
+          pip install delocate
+          cd dist
+          bash ../.ci/merge_osx_deps.sh
+
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
