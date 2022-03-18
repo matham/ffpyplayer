@@ -281,7 +281,7 @@ jobs:
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}
           key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}
-      - name: Build FFmpeg arm64
+      - name: Build FFmpeg
         if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/build_wheels_osx.sh "${{ matrix.arch }}"
 
