@@ -12,7 +12,7 @@ export PATH="$BUILD_PATH/bin:/usr/local/bin/:$PATH"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig:/usr/lib/pkgconfig/:$PKG_CONFIG_PATH"
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang"
-export MACOSX_DEPLOYMENT_TARGET=10.15
+export MACOSX_DEPLOYMENT_TARGET=10.9
 
 if [ "$ARCH" = "x86_64" ]; then
   ARCH2=x86_64
@@ -52,7 +52,7 @@ cd "$SRC_PATH";
 curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
 tar xzf "SDL2-$SDL_VERSION.tar.gz"
 cd "SDL2-$SDL_VERSION"
-./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" --host=$ARCH2-darwin
+CPPFLAGS="$CXXFLAGS" LDFLAGS="$CFLAGS" ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" --host=$ARCH2-darwin
 make
 make install
 make distclean
