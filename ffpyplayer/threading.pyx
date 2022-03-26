@@ -150,10 +150,7 @@ cdef class MTThread(object):
     cdef int create_thread(MTThread self, int_void_func func, const char *thread_name, void *arg) nogil except 2:
         if self.lib == SDL_MT:
             with gil:
-                IF HAS_SDL2:
-                    self.thread = SDL_CreateThread(func, thread_name, arg)
-                ELSE:
-                    self.thread = SDL_CreateThread(func, arg)
+                self.thread = SDL_CreateThread(func, thread_name, arg)
                 if self.thread == NULL:
                     raise Exception('Cannot create thread.')
         elif self.lib == Py_MT:

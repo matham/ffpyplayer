@@ -1520,8 +1520,7 @@ cdef class VideoState(object):
         cdef int audio_size, len1
         self.player.audio_callback_time = av_gettime_relative()
 
-        IF HAS_SDL2:
-            memset(stream, 0, len)
+        memset(stream, 0, len)
         while len > 0:
             if self.audio_buf_index >= self.audio_buf_size:
                 audio_size = self.audio_decode_frame()
@@ -1550,12 +1549,8 @@ cdef class VideoState(object):
             else:
                 memset(stream, 0, len1)
                 if not self.player.muted and self.audio_buf:
-                    IF HAS_SDL2:
-                        SDL_MixAudioFormat(stream, <uint8_t *>self.audio_buf + self.audio_buf_index,
-                                           AUDIO_S16SYS, len1, self.player.audio_volume)
-                    ELSE:
-                        SDL_MixAudio(stream, <uint8_t *>self.audio_buf + self.audio_buf_index,
-                                     len1, self.player.audio_volume)
+                    SDL_MixAudioFormat(stream, <uint8_t *>self.audio_buf + self.audio_buf_index,
+                                       AUDIO_S16SYS, len1, self.player.audio_volume)
 
             len -= len1
             stream += len1
@@ -1616,11 +1611,9 @@ cdef class VideoState(object):
             if not Mix_RegisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) nogil>sdl_mixer_callback, NULL, self.self_id):
                 return -1
 
-        ELIF HAS_SDL2:
+        ELSE:
             self.audio_dev = <int>SDL_OpenAudioDevice(NULL, 0, wanted_spec, spec, SDL_AUDIO_ALLOW_ANY_CHANGE)
             error = 0 if self.audio_dev else -1
-        ELSE:
-            error = SDL_OpenAudio(wanted_spec, spec) < 0
         return error
 
     cdef int audio_open(VideoState self, int64_t wanted_channel_layout, int wanted_nb_channels,
@@ -1838,10 +1831,8 @@ cdef class VideoState(object):
             self.auddec.decoder_start(audio_thread_enter, "audio_decoder", self.self_id)
             IF USE_SDL2_MIXER:
                 Mix_Resume(self.audio_dev)
-            ELIF HAS_SDL2:
-                SDL_PauseAudioDevice(<SDL_AudioDeviceID>self.audio_dev, 0)
             ELSE:
-                SDL_PauseAudio(0)
+                SDL_PauseAudioDevice(<SDL_AudioDeviceID>self.audio_dev, 0)
         elif avctx.codec_type ==  AVMEDIA_TYPE_VIDEO:
             with gil:
                 self.metadata['src_pix_fmt'] = <const char *>av_x_if_null(av_get_pix_fmt_name(avctx.pix_fmt), b"none")
@@ -1882,10 +1873,8 @@ cdef class VideoState(object):
                 if not audio_count:
                     Mix_CloseAudio()
                 audio_mutex.unlock()
-            ELIF HAS_SDL2:
-                SDL_CloseAudioDevice(<SDL_AudioDeviceID>self.audio_dev)
             ELSE:
-                SDL_CloseAudio()
+                SDL_CloseAudioDevice(<SDL_AudioDeviceID>self.audio_dev)
 
             self.auddec.decoder_destroy()
             swr_free(&self.swr_ctx)
