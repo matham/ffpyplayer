@@ -3,8 +3,9 @@ FFPyPlayer library
 ==================
 '''
 import sys
+import site
 import os
-from os.path import join, isdir
+from os.path import join
 import platform
 
 __all__ = ('dep_bins', )
@@ -31,19 +32,14 @@ packaging for including required binaries.
 It is read only.
 '''
 
-_ffmpeg = join(sys.prefix, 'share', 'ffpyplayer', 'ffmpeg', 'bin')
-if isdir(_ffmpeg):
-    os.environ["PATH"] += os.pathsep + _ffmpeg
-    if hasattr(os, 'add_dll_directory'):
-        os.add_dll_directory(_ffmpeg)
-    dep_bins.append(_ffmpeg)
-
-_sdl = join(sys.prefix, 'share', 'ffpyplayer', 'sdl', 'bin')
-if isdir(_sdl):
-    os.environ["PATH"] += os.pathsep + _sdl
-    if hasattr(os, 'add_dll_directory'):
-        os.add_dll_directory(_sdl)
-    dep_bins.append(_sdl)
+for d in [sys.prefix, site.USER_BASE]:
+    for lib in ('ffmpeg', 'sdl'):
+        p = join(d, 'share', 'ffpyplayer', lib, 'bin')
+        if os.path.isdir(p):
+            os.environ["PATH"] = p + os.pathsep + os.environ["PATH"]
+            if hasattr(os, 'add_dll_directory'):
+                os.add_dll_directory(p)
+            dep_bins.append(p)
 
 if 'SDL_AUDIODRIVER' not in os.environ and platform.system() == 'Windows':
     os.environ['SDL_AUDIODRIVER'] = 'DirectSound'
