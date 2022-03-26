@@ -48,7 +48,7 @@ c_options = {
     'config_postproc': platform != 'win32',
     # whether sdl is included as an option
     'config_sdl': True, # not implemented yet
-    'has_sdl2': False,
+    'has_sdl2': True,
     'use_sdl2_mixer': False,
     # these should be true
     'config_avutil':True,
@@ -58,6 +58,9 @@ c_options = {
 }
 
 for key in list(c_options.keys()):
+    if key == 'has_sdl2':
+        continue
+
     ukey = key.upper()
     if ukey in environ:
         value = bool(int(environ[ukey]))
@@ -192,7 +195,6 @@ if "KIVYIOSROOT" in environ:
     include_dirs = [
         environ.get("SDL_INCLUDE_DIR"),
         environ.get("FFMPEG_INCLUDE_DIR")]
-    sdl = "SDL2"
 
 elif "NDKPLATFORM" in environ:
     # enable python-for-android/py4a compilation
@@ -211,18 +213,14 @@ elif "NDKPLATFORM" in environ:
     # sdl:
     sdl_lib, sdl_include = get_paths('SDL')
     if sdl_lib and sdl_include:
-        sdl = 'SDL2'
-        libraries.append(sdl)
+        libraries.append('SDL2')
         library_dirs.append(sdl_lib)
         include_dirs.append(sdl_include)
     else:  # old toolchain
-        sdl = 'sdl'
-        libraries.append(sdl)
-        if sdl_lib: library_dirs.append(sdl_lib)
-        if sdl_include: include_dirs.append(sdl_include)
+        raise ValueError('SDL2 not found')
 
     # sdl2 mixer:
-    c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
+    c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer']
     if c_options['use_sdl2_mixer']:
         _, mixer_include = get_paths('SDL2_MIXER')
         libraries.append('SDL2_mixer')
@@ -257,28 +255,20 @@ else:
     # sdl
     sdl_lib, sdl_include = get_paths('SDL')
 
-    sdl = 'SDL2'
     flags = {}
     if sdl_lib is None and sdl_include is None:
         flags = pkgconfig('sdl2')
-        if not flags:
-            flags = pkgconfig('sdl')
-            if flags:
-                sdl = 'SDL'
-    elif sdl_include is not None and not isdir(join(sdl_include, 'SDL2')):
-        sdl = 'SDL'
-    print('Selecting %s out of (SDL, SDL2)' % sdl)
 
     sdl_libs = flags.get('library_dirs', []) if sdl_lib is None \
         else [sdl_lib]
     sdl_includes = flags.get('include_dirs', []) if sdl_include is None \
-        else [join(sdl_include, sdl)]
+        else [join(sdl_include, 'SDL2'), sdl_include]
 
     library_dirs.extend(sdl_libs)
     include_dirs.extend(sdl_includes)
-    libraries.extend(flags.get('libraries', [sdl]))
+    libraries.extend(flags.get('libraries', ['SDL2']))
 
-    c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
+    c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer']
     if c_options['use_sdl2_mixer']:
         flags = {}
         if sdl_lib is None and sdl_include is None:
@@ -315,8 +305,7 @@ def get_wheel_data():
 mods = [
     'pic', 'threading', 'tools', 'writer', 'player/clock', 'player/core',
     'player/decoder', 'player/frame_queue', 'player/player', 'player/queue']
-c_options['has_sdl2'] = sdl == 'SDL2'
-c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer'] and sdl == 'SDL2'
+c_options['use_sdl2_mixer'] = c_options['use_sdl2_mixer']
 
 
 if can_use_cython:

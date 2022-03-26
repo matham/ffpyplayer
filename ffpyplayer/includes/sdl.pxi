@@ -41,10 +41,7 @@ cdef extern from "SDL.h" nogil:
 
 
 cdef extern from "SDL_thread.h" nogil:
-    IF HAS_SDL2:
-        SDL_Thread *SDL_CreateThread(int_void_func, const char *, void *) with gil
-    ELSE:
-        SDL_Thread *SDL_CreateThread(int_void_func, void *) with gil
+    SDL_Thread *SDL_CreateThread(int_void_func, const char *, void *) with gil
 
 IF USE_SDL2_MIXER:
     cdef extern from "SDL_mixer.h" nogil:
@@ -82,15 +79,14 @@ cdef extern from * nogil:
 
     uint16_t AUDIO_S16SYS
     int SDL_OpenAudio(SDL_AudioSpec *, SDL_AudioSpec *)
-    IF HAS_SDL2:
-        int SDL_AUDIO_ALLOW_ANY_CHANGE
-        ctypedef uint32_t SDL_AudioDeviceID
-        SDL_AudioDeviceID SDL_OpenAudioDevice(
-            const char*, int, const SDL_AudioSpec*, SDL_AudioSpec*, int)
-        void SDL_PauseAudioDevice(SDL_AudioDeviceID, int)
-        void SDL_CloseAudioDevice(SDL_AudioDeviceID)
-        void SDL_MixAudioFormat(
-            uint8_t*, const uint8_t*, uint16_t, uint32_t, int)
+    int SDL_AUDIO_ALLOW_ANY_CHANGE
+    ctypedef uint32_t SDL_AudioDeviceID
+    SDL_AudioDeviceID SDL_OpenAudioDevice(
+        const char*, int, const SDL_AudioSpec*, SDL_AudioSpec*, int)
+    void SDL_PauseAudioDevice(SDL_AudioDeviceID, int)
+    void SDL_CloseAudioDevice(SDL_AudioDeviceID)
+    void SDL_MixAudioFormat(
+        uint8_t*, const uint8_t*, uint16_t, uint32_t, int)
 
     void SDL_PauseAudio(int)
     void SDL_CloseAudio()
@@ -113,10 +109,7 @@ cdef extern from * nogil:
     SDL_Overlay * SDL_CreateYUVOverlay(int, int, uint32_t, SDL_Surface *)
 
     void SDL_WM_SetCaption(const char *, const char *)
-    IF HAS_SDL2:
-        int SDL_setenv(const char *, const char *, int)
-    ELSE:
-        int SDL_putenv(const char *)
+    int SDL_setenv(const char *, const char *, int)
     char * SDL_getenv(const char *)
 
     SDL_Surface *SDL_SetVideoMode(int, int, int, uint32_t)
