@@ -267,7 +267,7 @@ make install
 
 
 cd "$SRC_PATH"
-git clone --depth 1 --branch v1.11.0 https://chromium.googlesource.com/webm/libvpx.git
+git clone --depth 1 --branch v1.12.0 https://chromium.googlesource.com/webm/libvpx.git
 cd libvpx
 sed -i.original -e 's/-march=armv8-a//g' build/make/configure.sh
 
