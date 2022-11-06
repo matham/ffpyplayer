@@ -150,7 +150,7 @@ cd "$SRC_PATH"
 curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
 tar xf freetype-2.11.1.tar.xz
 cd freetype-2.11.1
-./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
+./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin --with-harfbuzz=no
 make
 make install
 
