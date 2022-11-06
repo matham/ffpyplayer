@@ -40,9 +40,9 @@ make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://zlib.net/zlib-1.2.11.tar.gz
-tar xzf zlib-1.2.11.tar.gz
-cd zlib-1.2.11
+curl -sLO https://zlib.net/zlib-1.2.13.tar.gz
+tar xzf zlib-1.2.13.tar.gz
+cd zlib-1.2.13
 ./configure --prefix="$BUILD_PATH"
 make
 make install
@@ -150,7 +150,7 @@ cd "$SRC_PATH"
 curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
 tar xf freetype-2.11.1.tar.xz
 cd freetype-2.11.1
-./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
+./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin --with-harfbuzz=no
 make
 make install
 
@@ -267,7 +267,7 @@ make install
 
 
 cd "$SRC_PATH"
-git clone --depth 1 --branch v1.11.0 https://chromium.googlesource.com/webm/libvpx.git
+git clone --depth 1 --branch v1.12.0 https://chromium.googlesource.com/webm/libvpx.git
 cd libvpx
 sed -i.original -e 's/-march=armv8-a//g' build/make/configure.sh
 
