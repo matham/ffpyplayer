@@ -40,9 +40,9 @@ make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://zlib.net/zlib-1.2.11.tar.gz
-tar xzf zlib-1.2.11.tar.gz
-cd zlib-1.2.11
+curl -sLO https://zlib.net/zlib-1.2.13.tar.gz
+tar xzf zlib-1.2.13.tar.gz
+cd zlib-1.2.13
 ./configure --prefix="$BUILD_PATH"
 make
 make install
