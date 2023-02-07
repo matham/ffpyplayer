@@ -188,7 +188,7 @@ jobs:
 
   linux_wheels:
     env:
-      CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$LD_LIBRARY_PATH"
+      CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig:$HOME/ffmpeg_build/lib64/pkgconfig LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$HOME/ffmpeg_build/lib64:$LD_LIBRARY_PATH"
       CIBW_BUILD_VERBOSITY: 3
       CIBW_BUILD: ${{ matrix.cibw_build }}
       CIBW_ARCHS: ${{ matrix.cibw_archs }}
