@@ -28,6 +28,8 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
     - name: Get dependencies
+      env:
+        ACTIONS_STEP_DEBUG: true
       run: |
         mkdir "$env:FF_BUILD_DIR"
         cd "$env:FF_BUILD_DIR"
