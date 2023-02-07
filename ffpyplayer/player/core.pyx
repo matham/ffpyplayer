@@ -2184,6 +2184,10 @@ cdef class VideoState(object):
                         self.subtitleq.packet_queue_put_nullpacket(self.subtitle_stream)
                     self.eof = 1
                 if ic.pb != NULL and ic.pb.error:
+                    if self.player.autoexit:
+                        if self.player.loglevel >= AV_LOG_INFO:
+                            av_log(NULL, AV_LOG_INFO, b"Reached eof\n")
+                        self.request_thread_s(b'eof', b'')
                     break
                 self.continue_read_thread.lock()
                 self.continue_read_thread.cond_wait_timeout(10)
