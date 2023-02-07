@@ -141,7 +141,7 @@ cd ~/ffmpeg_sources;
 curl -sLO http://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2;
 tar xjf ffmpeg-$FFMPEG_VERSION.tar.bz2;
 cd ffmpeg-$FFMPEG_VERSION;
-./configure --prefix="$BUILD_DIR" --extra-cflags="-I$BUILD_DIR/include -fPIC" --extra-ldflags="-L$BUILD_DIR/lib" --bindir="$BUILD_DIR/bin" --enable-gpl --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-openssl --enable-shared;
+./configure --prefix="$BUILD_DIR" --extra-cflags="-I$BUILD_DIR/include -fPIC" --extra-ldflags="-L$BUILD_DIR/lib" --bindir="$BUILD_DIR/bin" --enable-gpl --enable-version3 --enable-libmp3lame --enable-libx264 --enable-libx265 --enable-libfdk_aac --enable-nonfree --enable-libass --enable-libvorbis --enable-libtheora --enable-libfreetype --enable-libopus --enable-libvpx --enable-openssl --enable-shared
 make;
 make install;
 
