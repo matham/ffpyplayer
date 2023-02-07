@@ -116,6 +116,7 @@ cdef class Decoder(object):
 
                 if self.queue.serial == self.pkt_serial:
                     break
+                av_packet_unref(&pkt)
 
             if pkt.data == get_flush_packet().data:
                 avcodec_flush_buffers(self.avctx)
