@@ -298,6 +298,9 @@ cdef class VideoState(object):
         self.player = player
         self.vfilter_idx = 0
         self.pix_fmt = out_fmt
+        self.last_video_stream = self.video_stream = -1
+        self.last_audio_stream = self.audio_stream = -1
+        self.last_subtitle_stream = self.subtitle_stream = -1
 
         IF not CONFIG_AVFILTER:
             self.player.img_convert_ctx = NULL
@@ -1922,9 +1925,6 @@ cdef class VideoState(object):
         cdef int64_t temp64, temp64_2
         cdef AVStream *st
         cdef AVMediaType media_type
-        self.last_video_stream = self.video_stream = -1
-        self.last_audio_stream = self.audio_stream = -1
-        self.last_subtitle_stream = self.subtitle_stream = -1
         self.eof = 0
         memset(st_index, -1, sizeof(st_index))
 
