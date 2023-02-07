@@ -2122,7 +2122,6 @@ cdef class VideoState(object):
 
             if self.queue_attachments_req:
                 if self.video_st != NULL and self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC:
-                    memset(&copy, 0, sizeof(copy))
                     ret = av_packet_ref(&copy, &self.video_st.attached_pic)
                     if ret < 0:
                         if self.player.loglevel >= AV_LOG_ERROR:
