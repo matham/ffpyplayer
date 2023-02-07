@@ -8,7 +8,7 @@ source /io/.ci/dep_versions.sh
 BUILD_DIR="$HOME/ffmpeg_build"
 export LD_LIBRARY_PATH="$BUILD_DIR/lib:$LD_LIBRARY_PATH"
 export PATH="$BUILD_DIR/bin:$PATH"
-export PKG_CONFIG_PATH="$BUILD_DIR/lib/pkgconfig:/usr/lib/pkgconfig/"
+export PKG_CONFIG_PATH="$BUILD_DIR/lib/pkgconfig:$BUILD_DIR/lib64/pkgconfig:/usr/lib/pkgconfig/"
 
 mkdir ~/ffmpeg_sources
 
