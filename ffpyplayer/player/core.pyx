@@ -953,7 +953,7 @@ cdef class VideoState(object):
                 ret = av_opt_set_int(filt_asink, b"all_channel_counts", 1, AV_OPT_SEARCH_CHILDREN)
             if ret >= 0 and force_output_format:
                 channel_layouts[0] = self.audio_tgt.channel_layout
-                channels       [0] = self.audio_tgt.channels
+                channels       [0] = -1 if self.audio_tgt.channel_layout else self.audio_tgt.channels
                 sample_rates   [0] = self.audio_tgt.freq
                 ret = av_opt_set_int(filt_asink, b"all_channel_counts", 0, AV_OPT_SEARCH_CHILDREN)
                 if ret >= 0:
