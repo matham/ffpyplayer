@@ -218,8 +218,7 @@ cd "$SRC_PATH"
 git clone --depth 1 --branch "v$FDK_VERSION" https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
 git apply "$base_dir/.ci/fdk.patch"
-cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
-  -DCMAKE_C_FLAGS="-Werror" -DCMAKE_CXX_FLAGS="-Werror" .
+cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on -DCMAKE_OSX_ARCHITECTURES="$ARCH" .
 make
 make install
 
