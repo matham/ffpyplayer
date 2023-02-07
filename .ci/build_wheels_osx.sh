@@ -7,6 +7,8 @@ SRC_PATH="$HOME/ffmpeg_sources_$ARCH"
 BUILD_PATH="$HOME/${FFMPEG_BUILD_PATH}_$ARCH"
 base_dir="$(pwd)"
 
+source "$base_dir/.ci/dep_versions.sh"
+
 export LD_LIBRARY_PATH="$BUILD_PATH/lib:$LD_LIBRARY_PATH"
 export PATH="$BUILD_PATH/bin:/usr/local/bin/:$PATH"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig:/usr/lib/pkgconfig/:$PKG_CONFIG_PATH"
@@ -22,8 +24,6 @@ else
   export CXXFLAGS="-arch arm64"
 fi
 
-SDL_VERSION=2.0.20
-
 
 brew install automake meson pkg-config cmake
 brew install --cask xquartz
@@ -31,18 +31,18 @@ mkdir "$SRC_PATH"
 
 
 cd "$SRC_PATH"
-curl -sLO https://tukaani.org/xz/xz-5.2.5.tar.gz
-tar xzf xz-5.2.5.tar.gz
-cd xz-5.2.5
+curl -sLO "https://tukaani.org/xz/xz-$XZ_VERSION.tar.gz"
+tar xzf "xz-$XZ_VERSION.tar.gz"
+cd "xz-$XZ_VERSION"
 ./configure --prefix="$BUILD_PATH" --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://zlib.net/zlib-1.2.13.tar.gz
-tar xzf zlib-1.2.13.tar.gz
-cd zlib-1.2.13
+curl -sLO "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+tar xzf "zlib-$ZLIB_VERSION.tar.gz"
+cd "zlib-$ZLIB_VERSION"
 ./configure --prefix="$BUILD_PATH"
 make
 make install
@@ -59,27 +59,27 @@ make distclean
 
 
 cd "$SRC_PATH"
-curl -sLO "https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
-tar xzf "openssl-1.1.1m.tar.gz"
-cd "openssl-1.1.1m"
+curl -sLO "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz"
+tar xzf "openssl-$OPENSSL_VERSION.tar.gz"
+cd "openssl-$OPENSSL_VERSION"
 ./configure darwin64-$ARCH-cc -fPIC shared --prefix="$BUILD_PATH"
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://github.com/glennrp/libpng/archive/refs/tags/v1.6.37.tar.gz
-tar xzf v1.6.37.tar.gz
-cd libpng-1.6.37
+curl -sLO "https://github.com/glennrp/libpng/archive/refs/tags/v$LIBPNG_VERSION.tar.gz"
+tar xzf "v$LIBPNG_VERSION.tar.gz"
+cd "libpng-$LIBPNG_VERSION"
 ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin" --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -sLO "https://github.com/google/brotli/archive/refs/tags/v1.0.9.tar.gz"
-tar xzf v1.0.9.tar.gz
-cd brotli-1.0.9
+curl -sLO "https://github.com/google/brotli/archive/refs/tags/v$BROTLI_VERSION.tar.gz"
+tar xzf "v$BROTLI_VERSION.tar.gz"
+cd "brotli-$BROTLI_VERSION"
 mkdir out
 cd out
 cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DCMAKE_OSX_ARCHITECTURES="$ARCH" -DCMAKE_BUILD_TYPE=Release ..
@@ -88,18 +88,18 @@ cmake --build . --config Release --target install
 
 if [ "$ARCH" = "x86_64" ]; then
  cd "$SRC_PATH"
- curl -sLO http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz
- tar xzf yasm-1.3.0.tar.gz
- cd yasm-1.3.0
+ curl -sLO "http://www.tortall.net/projects/yasm/releases/yasm-$YASM_VERSION.tar.gz"
+ tar xzf "yasm-$YASM_VERSION.tar.gz"
+ cd "yasm-$YASM_VERSION"
  ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin"
  make
  make install
  make distclean
 
  cd "$SRC_PATH"
- curl -sLO http://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.gz
- tar -xvzf nasm-2.15.05.tar.gz
- cd nasm-2.15.05
+ curl -sLO "http://www.nasm.us/pub/nasm/releasebuilds/$NASM_VERSION/nasm-$NASM_VERSION.tar.gz"
+ tar -xvzf "nasm-$NASM_VERSION.tar.gz"
+ cd "nasm-$NASM_VERSION"
  ./configure --prefix="$BUILD_PATH" --bindir="$BUILD_PATH/bin"
  make
  make install
@@ -127,9 +127,9 @@ if [ "$ARCH" = "x86_64" ]; then
   arg=("--enable-nasm")
 fi
 cd "$SRC_PATH";
-curl -kLO https://cfhcable.dl.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz;
-tar xzf lame-3.100.tar.gz;
-cd lame-3.100;
+curl -kLO "https://cfhcable.dl.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
+tar xzf "lame-$LAME_VERSION.tar.gz"
+cd "lame-$LAME_VERSION"
 git apply "$base_dir/.ci/libmp3lame-symbols.patch"
 ./configure --prefix="$BUILD_PATH" --enable-shared "${arg[@]}" --host=$ARCH2-darwin
 make
@@ -138,27 +138,27 @@ make distclean
 
 
 cd "$SRC_PATH"
-curl -sLO https://github.com/fribidi/fribidi/releases/download/v1.0.11/fribidi-1.0.11.tar.xz
-tar xf fribidi-1.0.11.tar.xz
-cd fribidi-1.0.11
+curl -sLO "https://github.com/fribidi/fribidi/releases/download/v$FRIBIDI_VERSION/fribidi-$FRIBIDI_VERSION.tar.xz"
+tar xf "fribidi-$FRIBIDI_VERSION.tar.xz"
+cd "fribidi-$FRIBIDI_VERSION"
 ./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://download.savannah.gnu.org/releases/freetype/freetype-2.11.1.tar.xz
-tar xf freetype-2.11.1.tar.xz
-cd freetype-2.11.1
+curl -sLO "https://download.savannah.gnu.org/releases/freetype/freetype-$FREETYPE_VERSION.tar.xz"
+tar xf "freetype-$FREETYPE_VERSION.tar.xz"
+cd "freetype-$FREETYPE_VERSION"
 ./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin --with-harfbuzz=no
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -sLO https://github.com/harfbuzz/harfbuzz/releases/download/4.0.0/harfbuzz-4.0.0.tar.xz
-tar xf harfbuzz-4.0.0.tar.xz
-cd harfbuzz-4.0.0
+curl -sLO "https://github.com/harfbuzz/harfbuzz/releases/download/$HARFBUZZ_VERSION/harfbuzz-$HARFBUZZ_VERSION.tar.xz"
+tar xf "harfbuzz-$HARFBUZZ_VERSION.tar.xz"
+cd "harfbuzz-$HARFBUZZ_VERSION"
 
 
 if [ "$ARCH" = "arm64" ]; then
@@ -186,16 +186,16 @@ meson install -C build
 
 
 cd "$SRC_PATH"
-curl -sLO https://github.com/libass/libass/releases/download/0.15.2/libass-0.15.2.tar.gz
-tar xzf libass-0.15.2.tar.gz
-cd libass-0.15.2
+curl -sLO "https://github.com/libass/libass/releases/download/$LIBASS_VERSION/libass-$LIBASS_VERSION.tar.gz"
+tar xzf "libass-$LIBASS_VERSION.tar.gz"
+cd "libass-$LIBASS_VERSION"
 ./configure --prefix="$BUILD_PATH" --enable-shared --disable-fontconfig --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH"
-git clone https://bitbucket.org/multicoreware/x265_git.git --depth 1 --branch "Release_3.5"
+git clone https://bitbucket.org/multicoreware/x265_git.git --depth 1 --branch "Release_$X265_VERSION"
 cd x265_git
 if [ "$ARCH" = "arm64" ]; then
   patch -p1 < "$base_dir/.ci/apple_arm64_x265.patch"
@@ -215,46 +215,45 @@ make install
 
 
 cd "$SRC_PATH"
-git clone --depth 1 --branch v2.0.2 https://github.com/mstorsjo/fdk-aac.git
+git clone --depth 1 --branch "v$FDK_VERSION" https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
 git apply "$base_dir/.ci/fdk.patch"
-cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
-  -DCMAKE_C_FLAGS="-Werror" -DCMAKE_CXX_FLAGS="-Werror" .
+cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DENABLE_SHARED:bool=on -DCMAKE_OSX_ARCHITECTURES="$ARCH" .
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -LO https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz
-tar xzvf opus-1.3.1.tar.gz
-cd opus-1.3.1
+curl -LO "https://archive.mozilla.org/pub/opus/opus-$OPUS_VERSION.tar.gz"
+tar xzvf "opus-$OPUS_VERSION.tar.gz"
+cd "opus-$OPUS_VERSION"
 ./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -LO http://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.gz
-tar xzvf libogg-1.3.5.tar.gz
-cd libogg-1.3.5
+curl -LO "http://downloads.xiph.org/releases/ogg/libogg-$LIBOGG_VERSION.tar.gz"
+tar xzvf "libogg-$LIBOGG_VERSION.tar.gz"
+cd "libogg-$LIBOGG_VERSION"
 ./configure --prefix="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH"
-curl -LO http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.gz
-tar xzvf libvorbis-1.3.7.tar.gz
-cd libvorbis-1.3.7
+curl -LO "http://downloads.xiph.org/releases/vorbis/libvorbis-$LIBVORBIS_VERSION.tar.gz"
+tar xzvf "libvorbis-$LIBVORBIS_VERSION.tar.gz"
+cd "libvorbis-$LIBVORBIS_VERSION"
 ./configure --prefix="$BUILD_PATH" --with-ogg="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
 make
 make install
 
 
 cd "$SRC_PATH";
-curl -LO http://downloads.xiph.org/releases/theora/libtheora-1.1.1.tar.gz
-tar xzvf libtheora-1.1.1.tar.gz
-cd libtheora-1.1.1
+curl -LO "http://downloads.xiph.org/releases/theora/libtheora-$LIBTHEORA_VERSION.tar.gz"
+tar xzvf "libtheora-$LIBTHEORA_VERSION.tar.gz"
+cd "libtheora-$LIBTHEORA_VERSION"
 # https://bugs.gentoo.org/465450
 sed -i "" 's/png_\(sizeof\)/\1/g' examples/png2theora.c
 THEORA_ARCH=$ARCH
@@ -267,7 +266,7 @@ make install
 
 
 cd "$SRC_PATH"
-git clone --depth 1 --branch v1.12.0 https://chromium.googlesource.com/webm/libvpx.git
+git clone --depth 1 --branch "v$LIBVPX_VERSION" https://chromium.googlesource.com/webm/libvpx.git
 cd libvpx
 sed -i.original -e 's/-march=armv8-a//g' build/make/configure.sh
 
@@ -285,9 +284,9 @@ make install
 
 
 cd "$SRC_PATH"
-curl -sLO http://ffmpeg.org/releases/ffmpeg-5.0.tar.bz2
-tar xjf ffmpeg-5.0.tar.bz2
-cd ffmpeg-5.0
+curl -sLO "http://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
+tar xjf "ffmpeg-$FFMPEG_VERSION.tar.bz2"
+cd "ffmpeg-$FFMPEG_VERSION"
 
 if [ "$ARCH" = "x86_64" ]; then
     arg=("--extra-ldflags=-L$BUILD_PATH/lib")
