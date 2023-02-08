@@ -1713,7 +1713,7 @@ cdef class VideoState(object):
     cdef int stream_component_open(VideoState self, int stream_index) nogil except 1:
         cdef AVFormatContext *ic = self.ic
         cdef AVCodecContext *avctx
-        cdef AVCodec *codec
+        cdef const AVCodec *codec
         cdef const char *forced_codec_name = NULL
         cdef AVDictionary *opts = NULL
         cdef AVDictionaryEntry *t = NULL
