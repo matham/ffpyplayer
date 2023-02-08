@@ -62,7 +62,6 @@ cdef class Decoder(object):
     cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2:
         cdef int ret = AVERROR(EAGAIN)
         cdef int got_frame
-        cdef AVPacket pkt
         cdef AVRational tb
         cdef int old_serial
 
@@ -109,11 +108,10 @@ cdef class Decoder(object):
                     self.empty_queue_cond.unlock()
 
                 if self.packet_pending:
-                    av_packet_move_ref(&pkt, &self.pkt)
                     self.packet_pending = 0
                 else:
                     old_serial = self.pkt_serial
-                    if self.queue.packet_queue_get(&pkt, 1, &self.pkt_serial) < 0:
+                    if self.queue.packet_queue_get(&self.pkt, 1, &self.pkt_serial) < 0:
                         return -1
 
                     if old_serial != self.pkt_serial:
@@ -125,24 +123,24 @@ cdef class Decoder(object):
 
                 if self.queue.serial == self.pkt_serial:
                     break
-                av_packet_unref(&pkt)
+                av_packet_unref(&self.pkt)
 
             if self.avctx.codec_type == AVMEDIA_TYPE_SUBTITLE:
                 got_frame = 0
-                ret = avcodec_decode_subtitle2(self.avctx, sub, &got_frame, &pkt)
+                ret = avcodec_decode_subtitle2(self.avctx, sub, &got_frame, &self.pkt)
                 if ret < 0:
                     ret = AVERROR(EAGAIN)
                 else:
-                    if got_frame and pkt.data == NULL:
+                    if got_frame and self.pkt.data == NULL:
                        self.packet_pending = 1
-                       av_packet_move_ref(&self.pkt, &pkt)
                     if got_frame:
                         ret = 0
                     else:
-                        ret = AVERROR(EAGAIN) if pkt.data != NULL else AVERROR_EOF
+                        ret = AVERROR(EAGAIN) if self.pkt.data != NULL else AVERROR_EOF
+                av_packet_unref(&self.pkt)
             else:
-                if avcodec_send_packet(self.avctx, &pkt) == AVERROR(EAGAIN):
+                if avcodec_send_packet(self.avctx, &self.pkt) == AVERROR(EAGAIN):
                     av_log(self.avctx, AV_LOG_ERROR, "Receive_frame and send_packet both returned EAGAIN, which is an API violation.\n")
                     self.packet_pending = 1
-                    av_packet_move_ref(&self.pkt, &pkt)
-            av_packet_unref(&pkt)
+                else:
+                    av_packet_unref(&self.pkt)
