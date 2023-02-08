@@ -1978,8 +1978,9 @@ cdef class VideoState(object):
             ic.pb.eof_reached = 0 # FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
         if self.player.seek_by_bytes < 0:
-            self.player.seek_by_bytes = (not not ((ic.iformat.flags & AVFMT_TS_DISCONT) != 0))\
-            and strcmp(b"ogg", ic.iformat.name) != 0
+            self.player.seek_by_bytes = (ic.iformat.flags & AVFMT_NO_BYTE_SEEK) == 0 \
+                and (ic.iformat.flags & AVFMT_TS_DISCONT) != 0 \
+                and strcmp(b"ogg", ic.iformat.name) != 0
 
         self.max_frame_duration = 10.0 if ic.iformat.flags & AVFMT_TS_DISCONT else 3600.0
 
