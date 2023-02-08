@@ -30,7 +30,7 @@ void print_all_libs_info(int flags, int level)
 #endif
 }
 
-const AVOption *opt_find(void *obj, const char *name, const char *unit,
+const AVOption *opt_find(const void * obj, const char *name, const char *unit,
     int opt_flags, int search_flags)
 {
     const AVOption *o = av_opt_find(obj, name, unit, opt_flags, search_flags);
@@ -48,14 +48,16 @@ int opt_default(const char *opt, const char *arg,
     int consumed = 0;
     char opt_stripped[128];
     const char *p;
-    const AVClass *cc = avcodec_get_class(), *fc = avformat_get_class();
+    const AVClass *cc = avcodec_get_class();
+    const AVClass *fc = avformat_get_class();
 #if CONFIG_AVRESAMPLE
     const AVClass *rc = avresample_get_class();
 #endif
 #if CONFIG_SWRESAMPLE
     struct SwrContext *swr;
 #endif
-    const AVClass *sc, *swr_class;
+    const AVClass *sc;
+    const AVClass *swr_class;
     int ret;
 #if CONFIG_SWSCALE
     struct SwsContext *sws;

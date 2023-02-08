@@ -49,7 +49,7 @@
 
 void print_all_libs_info(int flags, int level);
 
-const AVOption *opt_find(void *obj, const char *name, const char *unit,
+const AVOption *opt_find(const void * obj, const char *name, const char *unit,
                             int opt_flags, int search_flags);
 
 int opt_default(const char *opt, const char *arg,
