@@ -805,7 +805,7 @@ cdef class VideoState(object):
             cdef char scale_args[256]
             cdef char str_flags[64]
             cdef int ret
-            cdef int32_t *displaymatrix
+            cdef int32_t *displaymatrix = NULL
             cdef AVFilterContext *filt_src = NULL
             cdef AVFilterContext *filt_out = NULL
             cdef AVFilterContext *last_filter = NULL
@@ -817,6 +817,7 @@ cdef class VideoState(object):
             cdef double theta = 0
             cdef char rotate_buf[64]
             cdef const AVDictionaryEntry *e = NULL
+            cdef AVFrameSideData *sd = NULL
             memset(str_flags, 0, sizeof(str_flags))
             memset(sws_flags_str, 0, sizeof(sws_flags_str))
             strcpy(str_flags, b"flags=%")
@@ -866,8 +867,12 @@ cdef class VideoState(object):
                 return ret
 
             if self.player.autorotate:
-                displaymatrix = <int32_t *>av_stream_get_side_data(self.video_st, AV_PKT_DATA_DISPLAYMATRIX, NULL)
-                theta  = get_rotation(displaymatrix)
+                sd = av_frame_get_side_data(frame, AV_FRAME_DATA_DISPLAYMATRIX)
+                if sd != NULL:
+                    displaymatrix = <int32_t *>sd.data
+                if displaymatrix == NULL:
+                    displaymatrix = <int32_t *>av_stream_get_side_data(self.video_st, AV_PKT_DATA_DISPLAYMATRIX, NULL)
+                theta = get_rotation(displaymatrix)
                 if fabs(theta - 90) < 1.0:
                     insert_filt(b"transpose", b"clock", graph, &last_filter)
                 elif fabs(theta - 180) < 1.0:

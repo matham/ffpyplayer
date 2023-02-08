@@ -331,6 +331,13 @@ cdef:
                       uint8_t *const [], const int[])
         void sws_freeContext(SwsContext *)
 
+    extern from "libavutil/frame.h" nogil:
+        enum AVFrameSideDataType:
+            AV_FRAME_DATA_DISPLAYMATRIX,
+        struct AVFrameSideData:
+            uint8_t *data
+        AVFrameSideData *av_frame_get_side_data(const AVFrame *, AVFrameSideDataType)
+
     extern from "libavutil/opt.h" nogil:
         int AV_OPT_SEARCH_CHILDREN
         int AV_OPT_FLAG_ENCODING_PARAM
