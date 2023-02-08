@@ -1,6 +1,5 @@
 
 include '../includes/ffmpeg.pxi'
-include '../includes/sdl.pxi'
 
 from ffpyplayer.player.queue cimport FFPacketQueue
 from ffpyplayer.player.frame_queue cimport FrameQueue, Frame

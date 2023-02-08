@@ -1,10 +1,5 @@
 include "ffconfig.pxi"
 
-cdef extern from "ffconfig.h":
-    bint MAC_REALLOC
-    bint NOT_WIN_MAC
-    bint WIN_IS_DEFINED
-
 
 ''' Minimum SDL audio buffer size, in samples.. '''
 DEF SDL_AUDIO_MIN_BUFFER_SIZE = 512

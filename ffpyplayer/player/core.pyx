@@ -19,6 +19,9 @@ from weakref import ref
 from os import environ
 cdef int IS_ANDROID = 0
 
+cdef extern from "ffconfig.h":
+    bint WIN_IS_DEFINED
+
 cdef extern from "Python.h":
     PyObject *PyUnicode_FromString(const char *u)
     void Py_DECREF(PyObject *)
@@ -28,7 +31,6 @@ if "ANDROID_ARGUMENT" in environ:
     IS_ANDROID = 1
 
 cdef extern from "limits.h" nogil:
-    int INT_MAX
     int64_t INT64_MAX
     int64_t INT64_MIN
 
@@ -2246,7 +2248,8 @@ cdef class VideoState(object):
     cdef int stream_select_program(VideoState self,
                                    int requested_program) nogil except 1:
         cdef unsigned int i
-        cdef AVProgram *p, *selected_program = NULL
+        cdef AVProgram *p
+        cdef AVProgram *selected_program = NULL
         cdef AVStream *st
         cdef unsigned int nb_streams
         cdef unsigned int stream_index
