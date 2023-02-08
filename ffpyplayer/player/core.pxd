@@ -22,7 +22,7 @@ cdef struct AudioParams:
 cdef class VideoState(object):
     cdef:
         MTThread read_tid
-        AVInputFormat *iformat
+        const AVInputFormat *iformat
         int abort_request
         int paused
         int last_paused
@@ -179,7 +179,7 @@ cdef struct VideoSettings:
     unsigned sws_flags
     int loglevel
 
-    AVInputFormat *file_iformat
+    const AVInputFormat *file_iformat
     char *input_filename
     int screen_width
     int screen_height
