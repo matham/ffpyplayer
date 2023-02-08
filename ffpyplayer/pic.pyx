@@ -961,7 +961,7 @@ cdef class ImageLoader(object):
     def __cinit__(self, filename, **kwargs):
 
         cdef AVDictionary *opts = NULL
-        cdef AVDictionaryEntry *t = NULL
+        cdef const AVDictionaryEntry *t = NULL
         cdef int ret = 0
         cdef char *fname
 

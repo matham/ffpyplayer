@@ -179,7 +179,7 @@ cdef int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *sp
 cdef AVDictionary *filter_codec_opts(AVDictionary *opts, AVCodecID codec_id,
                                      AVFormatContext *s, AVStream *st, AVCodec *codec) nogil:
     cdef AVDictionary *ret = NULL
-    cdef AVDictionaryEntry *t = NULL
+    cdef const AVDictionaryEntry *t = NULL
     cdef int flags
     cdef char prefix = 0
     cdef char *p
@@ -816,7 +816,7 @@ cdef class VideoState(object):
             cdef double rot
             cdef double theta = 0
             cdef char rotate_buf[64]
-            cdef AVDictionaryEntry *e = NULL
+            cdef const AVDictionaryEntry *e = NULL
             memset(str_flags, 0, sizeof(str_flags))
             memset(sws_flags_str, 0, sizeof(sws_flags_str))
             strcpy(str_flags, b"flags=%")
@@ -911,7 +911,7 @@ cdef class VideoState(object):
             cdef AVFilterContext *filt_asrc = NULL
             cdef AVFilterContext *filt_asink = NULL
             cdef char aresample_swr_opts[512]
-            cdef AVDictionaryEntry *e = NULL
+            cdef const AVDictionaryEntry *e = NULL
             cdef char asrc_args[256]
             cdef char str_flags[64]
             cdef int ret
@@ -1714,7 +1714,7 @@ cdef class VideoState(object):
         cdef const AVCodec *codec
         cdef const char *forced_codec_name = NULL
         cdef AVDictionary *opts = NULL
-        cdef AVDictionaryEntry *t = NULL
+        cdef const AVDictionaryEntry *t = NULL
         cdef int sample_rate, nb_channels
         cdef int64_t channel_layout
         cdef int ret = 0
@@ -1912,7 +1912,7 @@ cdef class VideoState(object):
         cdef AVPacket *pkt = &pkt1
         cdef int64_t stream_start_time
         cdef int pkt_in_play_range = 0
-        cdef AVDictionaryEntry *t
+        cdef const AVDictionaryEntry *t
         cdef AVDictionary **opts
         cdef int orig_nb_streams
         cdef int scan_all_pmts_set = 0

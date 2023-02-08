@@ -138,7 +138,7 @@ cdef class FrameQueue(object):
 
     cdef int copy_picture(self, Frame *vp, AVFrame *src_frame,
                            VideoSettings *player) nogil except 1:
-        cdef AVDictionaryEntry *e
+        cdef const AVDictionaryEntry *e
         cdef const AVClass *cls
         cdef const AVOption *o
         cdef int ret
