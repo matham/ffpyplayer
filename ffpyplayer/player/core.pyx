@@ -41,6 +41,7 @@ cdef extern from "math.h" nogil:
     double exp(double x)
     double log(double x)
     double floor(double x)
+    double round(double x)
 
 cdef extern from "errno.h" nogil:
     int ENOSYS
@@ -257,20 +258,15 @@ cdef AVDictionary **setup_find_stream_info_opts(AVFormatContext *s, AVDictionary
                                     s, s.streams[i], NULL)
     return opts
 
-cdef double get_rotation(AVStream *st) nogil:
+cdef double get_rotation(int32_t *displaymatrix) nogil:
     cdef double theta = 0
-    cdef char *tail
-    cdef AVDictionaryEntry *rotate_tag = av_dict_get(st.metadata, b"rotate", NULL, 0)
-    cdef uint8_t* displaymatrix = av_stream_get_side_data(st, AV_PKT_DATA_DISPLAYMATRIX, NULL)
 
-    if rotate_tag and rotate_tag.value[0] and strcmp(rotate_tag.value, b"0"):
-        theta = av_strtod(rotate_tag.value, &tail)
-        if tail[0]:
-            theta = 0
-
-    if displaymatrix and not theta:
-        theta = av_display_rotation_get(<int32_t *>displaymatrix)
+    if displaymatrix:
+        theta = -round(av_display_rotation_get(<int32_t *>displaymatrix))
     theta -= 360 * floor(theta / 360. + 0.9 / 360.)
+
+    if fabs(theta - 90 * round(theta / 90)) > 2:
+        av_log(NULL, AV_LOG_WARNING, "Odd rotation angle")
 
     return theta
 
@@ -809,6 +805,7 @@ cdef class VideoState(object):
             cdef char scale_args[256]
             cdef char str_flags[64]
             cdef int ret
+            cdef int32_t *displaymatrix
             cdef AVFilterContext *filt_src = NULL
             cdef AVFilterContext *filt_out = NULL
             cdef AVFilterContext *last_filter = NULL
@@ -869,7 +866,8 @@ cdef class VideoState(object):
                 return ret
 
             if self.player.autorotate:
-                theta  = get_rotation(self.video_st)
+                displaymatrix = <int32_t *>av_stream_get_side_data(self.video_st, AV_PKT_DATA_DISPLAYMATRIX, NULL)
+                theta  = get_rotation(displaymatrix)
                 if fabs(theta - 90) < 1.0:
                     insert_filt(b"transpose", b"clock", graph, &last_filter)
                 elif fabs(theta - 180) < 1.0:
