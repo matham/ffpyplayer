@@ -3,8 +3,6 @@ include '../includes/ffmpeg.pxi'
 
 from ffpyplayer.threading cimport MTGenerator, MTCond
 
-cdef AVPacket * get_flush_packet() nogil
-
 cdef struct MyAVPacketList:
     AVPacket pkt
     MyAVPacketList *next

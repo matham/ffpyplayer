@@ -4,7 +4,7 @@ __all__ = ('VideoState', )
 include '../includes/ff_consts.pxi'
 include "../includes/inline_funcs.pxi"
 
-from ffpyplayer.player.queue cimport FFPacketQueue, get_flush_packet
+from ffpyplayer.player.queue cimport FFPacketQueue
 from ffpyplayer.player.frame_queue cimport FrameQueue
 from ffpyplayer.threading cimport MTGenerator, MTThread, MTMutex, MTCond, Py_MT, SDL_MT
 from ffpyplayer.player.clock cimport Clock
@@ -2105,13 +2105,10 @@ cdef class VideoState(object):
                 else:
                     if self.audio_stream >= 0:
                         self.audioq.packet_queue_flush()
-                        self.audioq.packet_queue_put(get_flush_packet())
                     if self.subtitle_stream >= 0:
                         self.subtitleq.packet_queue_flush()
-                        self.subtitleq.packet_queue_put(get_flush_packet())
                     if self.video_stream >= 0:
                         self.videoq.packet_queue_flush()
-                        self.videoq.packet_queue_put(get_flush_packet())
                     if self.seek_flags & AVSEEK_FLAG_BYTE:
                         self.extclk.set_clock(NAN, 0)
                     else:

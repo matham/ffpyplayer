@@ -2,7 +2,7 @@
 include '../includes/ffmpeg.pxi'
 
 from ffpyplayer.threading cimport MTGenerator, MTCond, MTMutex, MTThread
-from ffpyplayer.player.queue cimport FFPacketQueue, get_flush_packet
+from ffpyplayer.player.queue cimport FFPacketQueue
 from ffpyplayer.player.frame_queue cimport FrameQueue
 
 

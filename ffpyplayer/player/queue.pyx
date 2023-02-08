@@ -5,12 +5,6 @@ include '../includes/ff_consts.pxi'
 
 from ffpyplayer.threading cimport MTGenerator, MTMutex, MTCond
 
-cdef AVPacket flush_pkt
-av_init_packet(&flush_pkt)
-flush_pkt.data = <uint8_t *>&flush_pkt
-cdef AVPacket * get_flush_packet() nogil:
-    return &flush_pkt
-
 
 cdef class FFPacketQueue(object):
 
@@ -38,8 +32,6 @@ cdef class FFPacketQueue(object):
             return -1
         pkt1.pkt = pkt[0]
         pkt1.next = NULL
-        if pkt == &flush_pkt:
-            self.serial += 1
         pkt1.serial = self.serial
 
         if self.last_pkt == NULL:
@@ -60,7 +52,7 @@ cdef class FFPacketQueue(object):
         ret = self.packet_queue_put_private(pkt)
         self.cond.unlock()
 
-        if pkt != &flush_pkt and ret < 0:
+        if ret < 0:
             av_packet_unref(pkt)
 
         return ret
@@ -89,6 +81,7 @@ cdef class FFPacketQueue(object):
         self.first_pkt = NULL
         self.nb_packets = 0
         self.size = 0
+        self.serial += 1
         self.cond.unlock()
         return 0
 
@@ -102,7 +95,7 @@ cdef class FFPacketQueue(object):
     cdef int packet_queue_start(FFPacketQueue self) nogil except 1:
         self.cond.lock()
         self.abort_request = 0
-        self.packet_queue_put_private(&flush_pkt)
+        self.serial += 1
         self.cond.unlock()
         return 0
 
