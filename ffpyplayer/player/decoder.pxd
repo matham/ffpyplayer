@@ -8,7 +8,7 @@ from ffpyplayer.player.frame_queue cimport FrameQueue
 
 cdef class Decoder(object):
     cdef:
-        AVPacket pkt
+        AVPacket *pkt
         FFPacketQueue queue
         AVCodecContext *avctx
         int pkt_serial
@@ -25,8 +25,8 @@ cdef class Decoder(object):
         int seeking
         MTGenerator mt_gen
 
-    cdef void decoder_init(self, MTGenerator mt_gen, AVCodecContext *avctx, FFPacketQueue queue,
-                           MTCond empty_queue_cond) nogil
+    cdef int decoder_init(self, MTGenerator mt_gen, AVCodecContext *avctx, FFPacketQueue queue,
+                           MTCond empty_queue_cond) nogil except 1
     cdef void decoder_destroy(self) nogil
     cdef void set_seek_pos(self, double seek_req_pos) nogil
     cdef int is_seeking(self) nogil

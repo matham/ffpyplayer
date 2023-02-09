@@ -1913,8 +1913,7 @@ cdef class VideoState(object):
         cdef AVFormatContext *ic = NULL
         cdef int err, i, ret
         cdef int st_index[<int>AVMEDIA_TYPE_NB]
-        cdef AVPacket pkt1
-        cdef AVPacket *pkt = &pkt1
+        cdef AVPacket *pkt = NULL
         cdef int64_t stream_start_time
         cdef int pkt_in_play_range = 0
         cdef const AVDictionaryEntry *t
@@ -1926,18 +1925,22 @@ cdef class VideoState(object):
         cdef int64_t timestamp
         cdef int temp
         cdef int64_t seek_target, seek_min, seek_max
-        cdef AVPacket copy
         cdef int64_t temp64, temp64_2
         cdef AVStream *st
         cdef AVMediaType media_type
         self.eof = 0
         memset(st_index, -1, sizeof(st_index))
 
+        pkt = av_packet_alloc()
+        if pkt == NULL:
+            av_log(NULL, AV_LOG_FATAL, "Could not allocate packet.\n")
+            return self.failed(AVERROR(ENOMEM), ic, &pkt)
+
         ic = avformat_alloc_context()
         if ic == NULL:
             if self.player.loglevel >= AV_LOG_FATAL:
                 av_log(NULL, AV_LOG_FATAL, b"Could not allocate context.\n");
-            return self.failed(AVERROR(ENOMEM), ic)
+            return self.failed(AVERROR(ENOMEM), ic, &pkt)
         #av_opt_set_int(ic, b"threads", 1, 0)
         ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
@@ -1950,7 +1953,7 @@ cdef class VideoState(object):
         if err < 0:
             if self.player.loglevel >= AV_LOG_ERROR:
                 av_log(NULL, AV_LOG_ERROR, b"%s: %s\n", self.player.input_filename, fmt_err(err, err_msg, sizeof(err_msg)))
-            return self.failed(-1, ic)
+            return self.failed(-1, ic, &pkt)
 
         if scan_all_pmts_set:
             av_dict_set(&self.player.format_opts, b"scan_all_pmts", NULL, AV_DICT_MATCH_CASE)
@@ -1958,7 +1961,7 @@ cdef class VideoState(object):
         if t != NULL:
             if self.player.loglevel >= AV_LOG_ERROR:
                 av_log(NULL, AV_LOG_ERROR, b"Option %s not found.\n", t.key)
-            return self.failed(AVERROR_OPTION_NOT_FOUND, ic)
+            return self.failed(AVERROR_OPTION_NOT_FOUND, ic, &pkt)
         self.ic = ic
 
         if self.player.genpts:
@@ -1977,7 +1980,7 @@ cdef class VideoState(object):
             if err < 0:
                 if self.player.loglevel >= AV_LOG_WARNING:
                     av_log(NULL, AV_LOG_WARNING, b"%s: could not find codec parameters\n", self.player.input_filename)
-                return self.failed(-1, ic)
+                return self.failed(-1, ic, &pkt)
 
         if ic.pb != NULL:
             ic.pb.eof_reached = 0 # FIXME hack, ffplay maybe should not use avio_feof() to test for the end
@@ -2064,7 +2067,7 @@ cdef class VideoState(object):
             if self.player.loglevel >= AV_LOG_FATAL:
                 av_log(NULL, AV_LOG_FATAL, b"Failed to open file '%s' or configure filtergraph\n",
                    self.player.input_filename)
-            return self.failed(-1, ic)
+            return self.failed(-1, ic, &pkt)
 
         if self.player.infinite_buffer < 0 and self.realtime:
             self.player.infinite_buffer = 1
@@ -2125,13 +2128,13 @@ cdef class VideoState(object):
 
             if self.queue_attachments_req:
                 if self.video_st != NULL and self.video_st.disposition & AV_DISPOSITION_ATTACHED_PIC:
-                    ret = av_packet_ref(&copy, &self.video_st.attached_pic)
+                    ret = av_packet_ref(pkt, &self.video_st.attached_pic)
                     if ret < 0:
                         if self.player.loglevel >= AV_LOG_ERROR:
                             av_log(NULL, AV_LOG_ERROR, b"Failed to copy packet%s\n", fmt_err(ret, err_msg, sizeof(err_msg)))
-                        return self.failed(ret, ic)
-                    self.videoq.packet_queue_put(&copy)
-                    self.videoq.packet_queue_put_nullpacket(self.video_stream)
+                        return self.failed(ret, ic, &pkt)
+                    self.videoq.packet_queue_put(pkt)
+                    self.videoq.packet_queue_put_nullpacket(pkt, self.video_stream)
                 self.queue_attachments_req = 0
             # if the queue are full, no need to read more
             if self.player.infinite_buffer < 1 and \
@@ -2168,7 +2171,7 @@ cdef class VideoState(object):
                     if self.player.loglevel >= AV_LOG_INFO:
                         av_log(NULL, AV_LOG_INFO, b"Reached eof\n")
                     self.request_thread_s(b'eof', b'')
-                    return self.failed(0, ic)
+                    return self.failed(0, ic, &pkt)
                 else:
                     if not self.reached_eof:
                         self.reached_eof = 1
@@ -2180,11 +2183,11 @@ cdef class VideoState(object):
                     self.auddec.set_seek_pos(-1)
                     self.viddec.set_seek_pos(-1)
                     if self.video_stream >= 0:
-                        self.videoq.packet_queue_put_nullpacket(self.video_stream)
+                        self.videoq.packet_queue_put_nullpacket(pkt, self.video_stream)
                     if self.audio_stream >= 0:
-                        self.audioq.packet_queue_put_nullpacket(self.audio_stream)
+                        self.audioq.packet_queue_put_nullpacket(pkt, self.audio_stream)
                     if self.subtitle_stream >= 0:
-                        self.subtitleq.packet_queue_put_nullpacket(self.subtitle_stream)
+                        self.subtitleq.packet_queue_put_nullpacket(pkt, self.subtitle_stream)
                     self.eof = 1
                 if ic.pb != NULL and ic.pb.error:
                     if self.player.autoexit:
@@ -2227,7 +2230,7 @@ cdef class VideoState(object):
         ret = 0
         if self.player.loglevel >= AV_LOG_INFO:
             av_log(NULL, AV_LOG_INFO, b"Exiting read thread\n")
-        return self.failed(ret, ic)
+        return self.failed(ret, ic, &pkt)
 
     cdef int stream_has_enough_packets(self, AVStream *st, int stream_id, FFPacketQueue queue) nogil:
         return (stream_id < 0 or
@@ -2235,10 +2238,13 @@ cdef class VideoState(object):
                 (st.disposition & AV_DISPOSITION_ATTACHED_PIC) or
                 queue.nb_packets > MIN_FRAMES)
 
-    cdef inline int failed(VideoState self, int ret, AVFormatContext *ic) nogil except 1:
+    cdef inline int failed(VideoState self, int ret, AVFormatContext *ic, AVPacket **pkt) nogil except 1:
         cdef char err_msg[256]
         if ic != NULL and self.ic == NULL:
             avformat_close_input(&ic)
+
+        if pkt != NULL:
+            av_packet_free(pkt)
 
         if ret and not self.abort_request:
             if ret != -1:

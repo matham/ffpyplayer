@@ -4,16 +4,14 @@ include '../includes/ffmpeg.pxi'
 from ffpyplayer.threading cimport MTGenerator, MTCond
 
 cdef struct MyAVPacketList:
-    AVPacket pkt
-    MyAVPacketList *next
+    AVPacket *pkt
     int serial
 
 
 cdef class FFPacketQueue(object):
     cdef:
         MTGenerator mt_gen
-        MyAVPacketList *first_pkt
-        MyAVPacketList *last_pkt
+        AVFifoBuffer *pkt_list
         int nb_packets
         int size
         int abort_request
@@ -21,7 +19,7 @@ cdef class FFPacketQueue(object):
         MTCond cond
 
     cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil except 1
-    cdef int packet_queue_put_nullpacket(FFPacketQueue self, int stream_index) nogil except 1
+    cdef int packet_queue_put_nullpacket(FFPacketQueue self, AVPacket *pkt, int stream_index) nogil except 1
     cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil except 1
     cdef int packet_queue_flush(FFPacketQueue self) nogil except 1
     cdef int packet_queue_abort(FFPacketQueue self) nogil except 1
