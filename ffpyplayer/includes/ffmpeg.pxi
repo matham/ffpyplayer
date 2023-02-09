@@ -25,6 +25,7 @@ cdef:
             int size
             int stream_index
             int flags
+            int64_t duration
         enum AVMediaType:
             AVMEDIA_TYPE_UNKNOWN = -1,  #///< Usually treated as AVMEDIA_TYPE_DATA
             AVMEDIA_TYPE_VIDEO,

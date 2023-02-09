@@ -14,6 +14,7 @@ cdef class FFPacketQueue(object):
         AVFifoBuffer *pkt_list
         int nb_packets
         int size
+        int64_t duration
         int abort_request
         int serial
         MTCond cond

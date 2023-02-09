@@ -12,6 +12,7 @@ cdef class FFPacketQueue(object):
         self.mt_gen = mt_gen
         self.pkt_list = NULL
         self.nb_packets = self.size = self.serial = 0
+        self.duration = 0
 
         self.pkt_list = av_fifo_alloc(sizeof(MyAVPacketList))
         if self.pkt_list == NULL:
@@ -42,6 +43,7 @@ cdef class FFPacketQueue(object):
         av_fifo_generic_write(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
         self.nb_packets += 1
         self.size += pkt1.pkt.size + sizeof(pkt1)
+        self.duration += pkt1.pkt.duration
         #/* XXX: should duplicate packet data in DV case */
         self.cond.cond_signal()
         return 0
@@ -78,6 +80,7 @@ cdef class FFPacketQueue(object):
 
         self.nb_packets = 0
         self.size = 0
+        self.duration = 0
         self.serial += 1
         self.cond.unlock()
         return 0
@@ -112,6 +115,7 @@ cdef class FFPacketQueue(object):
                 av_fifo_generic_read(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
                 self.nb_packets -= 1
                 self.size -= pkt1.pkt.size + sizeof(pkt1)
+                self.duration -= pkt1.pkt.duration
 
                 av_packet_move_ref(pkt, pkt1.pkt)
                 if serial != NULL:

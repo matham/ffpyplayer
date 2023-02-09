@@ -2233,10 +2233,13 @@ cdef class VideoState(object):
         return self.failed(ret, ic, &pkt)
 
     cdef int stream_has_enough_packets(self, AVStream *st, int stream_id, FFPacketQueue queue) nogil:
-        return (stream_id < 0 or
-                queue.abort_request or
-                (st.disposition & AV_DISPOSITION_ATTACHED_PIC) or
-                queue.nb_packets > MIN_FRAMES)
+        return (
+            stream_id < 0 or
+            queue.abort_request or
+            (st.disposition & AV_DISPOSITION_ATTACHED_PIC) or
+            queue.nb_packets > MIN_FRAMES and
+            (not queue.duration or av_q2d(st.time_base) * queue.duration > 1.0)
+        )
 
     cdef inline int failed(VideoState self, int ret, AVFormatContext *ic, AVPacket **pkt) nogil except 1:
         cdef char err_msg[256]
