@@ -30,17 +30,22 @@ cdef class FFPacketQueue(object):
 
     cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil except 1:
         cdef MyAVPacketList pkt1
+        cdef int ret
 
         if self.abort_request:
             return -1
 
         if av_fifo_space(self.pkt_list) < sizeof(pkt1):
-            if av_fifo_grow(self.pkt_list, sizeof(pkt1)) < 0:
-                return -1
+            ret = av_fifo_grow(self.pkt_list, sizeof(pkt1))
+            if ret < 0:
+                return ret
+
         pkt1.pkt = pkt
         pkt1.serial = self.serial
 
-        av_fifo_generic_write(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
+        ret = av_fifo_generic_write(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
+        if ret < 0:
+            return ret
         self.nb_packets += 1
         self.size += pkt1.pkt.size + sizeof(pkt1)
         self.duration += pkt1.pkt.duration
@@ -50,7 +55,7 @@ cdef class FFPacketQueue(object):
 
     cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil except 1:
         cdef AVPacket *pkt1 = av_packet_alloc()
-        cdef int ret
+        cdef int ret = -1
 
         if pkt1 == NULL:
             av_packet_unref(pkt)
@@ -72,10 +77,13 @@ cdef class FFPacketQueue(object):
 
     cdef int packet_queue_flush(FFPacketQueue self) nogil except 1:
         cdef MyAVPacketList pkt1
+        cdef int ret = 0
 
         self.cond.lock()
         while av_fifo_size(self.pkt_list) >= sizeof(pkt1):
-            av_fifo_generic_read(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
+            ret = av_fifo_generic_read(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
+            if ret < 0:
+                break
             av_packet_free(&pkt1.pkt)
 
         self.nb_packets = 0
@@ -83,7 +91,7 @@ cdef class FFPacketQueue(object):
         self.duration = 0
         self.serial += 1
         self.cond.unlock()
-        return 0
+        return ret
 
     cdef int packet_queue_abort(FFPacketQueue self) nogil except 1:
         self.cond.lock()
@@ -102,7 +110,7 @@ cdef class FFPacketQueue(object):
     # return < 0 if aborted, 0 if no packet and > 0 if packet.
     cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil except 0:
         cdef MyAVPacketList pkt1
-        cdef int ret
+        cdef int ret = 0
 
         self.cond.lock()
 
@@ -112,7 +120,9 @@ cdef class FFPacketQueue(object):
                 break
 
             if av_fifo_size(self.pkt_list) >= sizeof(pkt1):
-                av_fifo_generic_read(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
+                ret = av_fifo_generic_read(self.pkt_list, &pkt1, sizeof(pkt1), NULL)
+                if ret < 0:
+                    break
                 self.nb_packets -= 1
                 self.size -= pkt1.pkt.size + sizeof(pkt1)
                 self.duration -= pkt1.pkt.duration

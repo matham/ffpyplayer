@@ -2214,9 +2214,9 @@ cdef class VideoState(object):
             else:
                 temp64_2 = 0
 
-            pkt_in_play_range = self.player.duration == AV_NOPTS_VALUE or\
-            (pkt_ts - temp64) * av_q2d(ic.streams[pkt.stream_index].time_base) -\
-            <double>temp64_2 / 1000000.0 <= (<double>self.player.duration / 1000000.0)
+            pkt_in_play_range = self.player.duration == AV_NOPTS_VALUE or \
+                (pkt_ts - temp64) * av_q2d(ic.streams[pkt.stream_index].time_base) - \
+                <double>temp64_2 / 1000000.0 <= (<double>self.player.duration / 1000000.0)
             if pkt.stream_index == self.audio_stream and pkt_in_play_range:
                 self.audioq.packet_queue_put(pkt)
             elif (pkt.stream_index == self.video_stream and pkt_in_play_range

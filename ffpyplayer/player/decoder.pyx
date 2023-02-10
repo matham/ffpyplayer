@@ -36,7 +36,6 @@ cdef class Decoder(object):
         self.seek_req_pos = -1
         self.start_pts = AV_NOPTS_VALUE
         self.pkt_serial = -1
-        memset(&self.pkt, 0, sizeof(self.pkt))
         memset(&self.start_pts_tb, 0, sizeof(self.start_pts_tb))
         memset(&self.next_pts_tb, 0, sizeof(self.next_pts_tb))
         return 0
