@@ -9,7 +9,7 @@ force:
 	$(PYTHON) setup.py build_ext --inplace -f
 
 test:
-	$(PYTHON) -m nose.core ffpyplayer/tests
+	$(PYTHON) -m pytest ffpyplayer/tests
 
 html:
 	@cd doc && make html

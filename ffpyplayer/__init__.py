@@ -14,9 +14,15 @@ __version__ = '4.3.6.dev0'
 version = __version__
 
 # the ffmpeg src git version tested and upto date with,
-# not including this commit
-_ffmpeg_git = 'ebee8085952de079946d903f0cc6e37aee3bc035'
-# skipped all show modes and subtitle display related functionality commits
+# and including this commit
+_ffmpeg_git = 'c926140558c60786dc577b121df6b3c6b430bd98'
+# excludes commits bdf9ed41fe4bdf4e254615b7333ab0feb1977e98,
+# 1be3d8a0cb77f8d34c1f39b47bf5328fe10c82d7,
+# f1907faab4023517af7d10d746b5684cccc5cfcc, and
+# 0995e1f1b31f6e937a1b527407ed3e850f138098 because they require ffmpeg 5.1/5.2
+# which is too new as of now
+
+# also skipped all show modes and subtitle display related functionality commits
 
 # TODO:
 # * Implement CONFIG_SDL to be able to compile without needing SDL at all.
