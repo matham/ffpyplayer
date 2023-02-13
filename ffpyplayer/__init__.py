@@ -39,6 +39,8 @@ It is read only.
 '''
 
 for d in [sys.prefix, site.USER_BASE]:
+    if d is None:
+        continue
     for lib in ('ffmpeg', 'sdl'):
         p = join(d, 'share', 'ffpyplayer', lib, 'bin')
         if os.path.isdir(p):
