@@ -1,6 +1,6 @@
 # FFMPEG_VERSION and SDL_VERSION are also set in the actions yaml
 
-export FFMPEG_VERSION=5.1.3  # https://ffmpeg.org/releases/
+export FFMPEG_VERSION=6.0  # https://ffmpeg.org/releases/
 export SDL_VERSION=2.26.4  # https://github.com/libsdl-org/SDL/releases
 export SDL_MIXER_VERSION=2.6.3  # https://github.com/libsdl-org/SDL_mixer/releases
 export OPENSSL_VERSION=3.0.8  # https://www.openssl.org/source

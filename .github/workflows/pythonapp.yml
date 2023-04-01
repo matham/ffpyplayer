@@ -3,7 +3,7 @@ name: Python application
 on: [push, pull_request]
 
 env:
-  FFMPEG_VERSION: "5.1.3"  # https://ffmpeg.org/releases/
+  FFMPEG_VERSION: "6.0"  # https://ffmpeg.org/releases/
   SDL_VERSION: "2.26.4"  # https://github.com/libsdl-org/SDL/releases
   SDL_MIXER_VERSION: "2.6.3"  # https://github.com/libsdl-org/SDL_mixer/releases
   USE_SDL2_MIXER: "1"
