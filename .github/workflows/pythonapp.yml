@@ -3,9 +3,9 @@ name: Python application
 on: [push, pull_request]
 
 env:
-  FFMPEG_VERSION: "5.1.2"  # https://ffmpeg.org/releases/
-  SDL_VERSION: "2.26.3"  # https://github.com/libsdl-org/SDL/releases
-  SDL_MIXER_VERSION: "2.6.2"  # https://github.com/libsdl-org/SDL_mixer/releases
+  FFMPEG_VERSION: "6.0"  # https://ffmpeg.org/releases/
+  SDL_VERSION: "2.26.4"  # https://github.com/libsdl-org/SDL/releases
+  SDL_MIXER_VERSION: "2.6.3"  # https://github.com/libsdl-org/SDL_mixer/releases
   USE_SDL2_MIXER: "1"
   MACOSX_DEPLOYMENT_TARGET: "10.9"
   MACOSX_DEPLOYMENT_TARGET_ARM: "11.0"
@@ -76,7 +76,7 @@ jobs:
         name: py_wheel
         path: dist
     - name: Upload to GitHub Release
-      uses: softprops/action-gh-release@v0.1.14
+      uses: softprops/action-gh-release@v0.1.15
       if: startsWith(github.ref, 'refs/tags/')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -238,7 +238,7 @@ jobs:
           name: py_wheel
           path: dist
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v0.1.14
+        uses: softprops/action-gh-release@v0.1.15
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -327,7 +327,7 @@ jobs:
           path: dist
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v0.1.14
+        uses: softprops/action-gh-release@v0.1.15
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
