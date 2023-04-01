@@ -1,9 +1,9 @@
 # FFMPEG_VERSION and SDL_VERSION are also set in the actions yaml
 
-export FFMPEG_VERSION=5.1.2  # https://ffmpeg.org/releases/
-export SDL_VERSION=2.26.3  # https://github.com/libsdl-org/SDL/releases
-export SDL_MIXER_VERSION=2.6.2  # https://github.com/libsdl-org/SDL_mixer/releases
-export OPENSSL_VERSION=3.0.7  # https://www.openssl.org/source
+export FFMPEG_VERSION=5.1.3  # https://ffmpeg.org/releases/
+export SDL_VERSION=2.26.4  # https://github.com/libsdl-org/SDL/releases
+export SDL_MIXER_VERSION=2.6.3  # https://github.com/libsdl-org/SDL_mixer/releases
+export OPENSSL_VERSION=3.0.8  # https://www.openssl.org/source
 export YASM_VERSION=1.3.0  # http://www.tortall.net/projects/yasm/releases
 export NASM_VERSION=2.16.01  # https://www.nasm.us/pub/nasm/releasebuilds/
 export LAME_VERSION=3.100  # https://sourceforge.net/projects/lame/files/lame/
