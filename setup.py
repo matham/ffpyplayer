@@ -376,7 +376,7 @@ with open('README.rst') as fh:
 
 setup_requires = []
 if declare_cython:
-    setup_requires.append('cython')
+    setup_requires.append('cython~=0.29.36')
 
 setup(name='ffpyplayer',
       version=ffpyplayer.__version__,

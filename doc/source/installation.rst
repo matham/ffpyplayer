@@ -28,7 +28,7 @@ Requirements
 
 To compile ffpyplayer we need:
 
-    * Cython (``pip install --upgrade cython``).
+    * Cython (``pip install --upgrade cython~=0.29.36``).
     * A c compiler e.g. gcc or MSVC.
     * SDL2 or SDL1.2 (SDL1.2 is not recommended). See :ref:`compille` for how to get it.
     * SDL2_mixer If wanting to play multiple audio files simultaneously (``USE_SDL2_MIXER`` must be set). See :ref:`compille` for how to get it.
@@ -41,7 +41,7 @@ Compiling ffpyplayer
 * Download or compile FFMpeg and SDL2 as shown below and set the appropriate environment variables as needed.
 * Install Cython with e.g.::
 
-      pip install --upgrade cython
+      pip install --upgrade cython~=0.29.36
 
 * You can select the FFmpeg libraries to be used by defining values for CONFIG_XXX.
   For example, CONFIG_AVFILTER=0 will disable inclusion of the FFmpeg avfilter libraries.
