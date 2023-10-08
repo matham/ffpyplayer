@@ -59,12 +59,12 @@ jobs:
         echo "Dependency paths are:"
         ls $env:SDL_ROOT
         ls $env:FFMPEG_ROOT
-    - name: Make sdist
-      if: matrix.python == '3.12'
-      run: python setup.py sdist --formats=gztar
     - name: Install pip deps
       run: |
         python -m pip install --upgrade pip virtualenv wheel setuptools cython~=0.29.36 pytest
+    - name: Make sdist
+      if: matrix.python == '3.12'
+      run: python setup.py sdist --formats=gztar
     - name: Make wheel
       run: |
         $env:SDL_ROOT=(get-item $env:SDL_ROOT).FullName
