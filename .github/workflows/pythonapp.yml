@@ -7,7 +7,7 @@ env:
   SDL_VERSION: "2.26.4"  # https://github.com/libsdl-org/SDL/releases
   SDL_MIXER_VERSION: "2.6.3"  # https://github.com/libsdl-org/SDL_mixer/releases
   USE_SDL2_MIXER: "1"
-  MACOSX_DEPLOYMENT_TARGET: "10.9"
+  MACOSX_DEPLOYMENT_TARGET: "10.13"
   MACOSX_DEPLOYMENT_TARGET_ARM: "11.0"
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       FFMPEG_ROOT: ~/ff_deps/ffmpeg
     strategy:
       matrix:
-        python: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        python: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python }}
@@ -63,7 +63,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip virtualenv wheel setuptools cython~=3.0.11 pytest
     - name: Make sdist
-      if: matrix.python == '3.12'
+      if: matrix.python == '3.13'
       run: python setup.py sdist --formats=gztar
     - name: Make wheel
       run: |
@@ -197,7 +197,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         cibw_archs: [ x86_64 ]
-        cibw_build: [ 'cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64' ]
+        cibw_build: [ 'cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64' ]
 #        include:
 #          - cibw_archs: aarch64
 #            cibw_build: cp37-manylinux_aarch64
@@ -228,7 +228,7 @@ jobs:
           docker run --rm -v `pwd`:/io:rw quay.io/pypa/manylinux2014_${{ matrix.cibw_archs }} /io/.ci/build-wheels.sh
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel~=2.16.2
+          python -m pip install cibuildwheel~=2.20.0
       - name: Make wheels
         run: |
           python -m cibuildwheel --output-dir dist
@@ -259,7 +259,7 @@ jobs:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
       CIBW_BUILD_VERBOSITY: 3
-      CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-* cp311-* cp312-*"
+      CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
       CIBW_ARCHS_MACOS: ${{ matrix.arch }}
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
         DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
@@ -286,7 +286,7 @@ jobs:
 
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel~=2.16.2
+          python -m pip install cibuildwheel~=2.20.0
       - name: Build wheels
         run: |
           export REPAIR_LIBRARY_PATH="$HOME/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}/lib"
