@@ -254,7 +254,7 @@ jobs:
           twine upload dist/*
 
   osx_wheels_create:
-    runs-on: macos-latest
+    runs-on: macos-13
     env:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
@@ -300,7 +300,7 @@ jobs:
           path: dist
 
   osx_wheels_fuse_test_upload:
-    runs-on: macos-latest
+    runs-on: macos-13
     needs: osx_wheels_create
     steps:
       - uses: actions/checkout@v3
