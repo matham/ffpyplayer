@@ -1616,7 +1616,7 @@ cdef class VideoState(object):
             if self.audio_dev == -1:
                 return -1
 
-            if not Mix_RegisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) nogil>sdl_mixer_callback, NULL, self.self_id):
+            if not Mix_RegisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) noexcept nogil>sdl_mixer_callback, NULL, self.self_id):
                 return -1
 
         ELSE:
@@ -1654,7 +1654,7 @@ cdef class VideoState(object):
         wanted_spec.format = AUDIO_S16SYS
         wanted_spec.silence = 0
         wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq // AUDIO_MAX_CALLBACKS_PER_SEC))
-        wanted_spec.callback = <void (*)(void *, uint8_t *, int) nogil>self.sdl_audio_callback
+        wanted_spec.callback = <void (*)(void *, uint8_t *, int) noexcept nogil>self.sdl_audio_callback
         wanted_spec.userdata = self.self_id
 
         error = self.open_audio_device(&wanted_spec, &spec)
@@ -1869,7 +1869,7 @@ cdef class VideoState(object):
         if codecpar.codec_type == AVMEDIA_TYPE_AUDIO:
             self.auddec.decoder_abort(self.sampq)
             IF USE_SDL2_MIXER:
-                Mix_UnregisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) nogil>sdl_mixer_callback)
+                Mix_UnregisterEffect(self.audio_dev, <void (*)(int, void *, int, void *) noexcept nogil>sdl_mixer_callback)
                 Mix_HaltChannel(self.audio_dev)
                 Mix_FreeChunk(self.chunk)
                 self.chunk = NULL
@@ -1942,7 +1942,7 @@ cdef class VideoState(object):
                 av_log(NULL, AV_LOG_FATAL, b"Could not allocate context.\n");
             return self.failed(AVERROR(ENOMEM), ic, &pkt)
         #av_opt_set_int(ic, b"threads", 1, 0)
-        ic.interrupt_callback.callback = <int (*)(void *)>self.decode_interrupt_cb
+        ic.interrupt_callback.callback = <int (*)(void *) noexcept>self.decode_interrupt_cb
         ic.interrupt_callback.opaque = self.self_id
 
         if not av_dict_get(self.player.format_opts, b"scan_all_pmts", NULL, AV_DICT_MATCH_CASE):

@@ -78,17 +78,6 @@ the log.
 '''
 _loglevel_inverse = {v:k for k, v in loglevels.iteritems()}
 
-codecs_enc = get_codecs(encode=True, video=True)
-'''A list of all the codecs available for encoding video. '''
-codecs_dec = get_codecs(decode=True, video=True, audio=True)
-'''A list of all the codecs available for decoding video and audio. '''
-pix_fmts = list_pixfmts()
-'''A list of all the pixel formats available to ffmpeg. '''
-formats_in = get_fmts(input=True)[0]
-'''A list of all the formats (e.g. file formats) available for reading. '''
-formats_out = get_fmts(output=True)[0]
-'''A list of all the formats (e.g. file formats) available for writing. '''
-
 cdef object _log_callback = None
 cdef MTMutex _log_mutex= MTMutex(SDL_MT)
 cdef int log_level = AV_LOG_WARNING
@@ -105,7 +94,7 @@ cdef void call_callback(char *line, int level) nogil:
     with gil:
         gil_call_callback(line, level)
 
-cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) nogil:
+cdef void _log_callback_func(void* ptr, int level, const char* fmt, va_list vl) noexcept nogil:
     cdef char line[2048]
     if fmt == NULL or level > log_level:
         return
@@ -278,6 +267,11 @@ cpdef get_codecs(
         codec = av_codec_iterate(&iter_codec)
     return sorted(codecs)
 
+codecs_enc = get_codecs(encode=True, video=True)
+'''A list of all the codecs available for encoding video. '''
+codecs_dec = get_codecs(decode=True, video=True, audio=True)
+'''A list of all the codecs available for decoding video and audio. '''
+
 cdef list list_pixfmts():
     cdef list fmts = []
     cdef const AVPixFmtDescriptor *desc = NULL
@@ -287,6 +281,9 @@ cdef list list_pixfmts():
         fmts.append(tcode(desc.name))
         desc = av_pix_fmt_desc_next(desc)
     return sorted(fmts)
+
+pix_fmts = list_pixfmts()
+'''A list of all the pixel formats available to ffmpeg. '''
 
 cpdef get_fmts(int input=False, int output=False):
     '''Returns the formats available in FFmpeg.
@@ -350,6 +347,10 @@ cpdef get_fmts(int input=False, int output=False):
     fmts = sorted(fmts)
     return fmts, full_names, exts
 
+formats_in = get_fmts(input=True)[0]
+'''A list of all the formats (e.g. file formats) available for reading. '''
+formats_out = get_fmts(output=True)[0]
+'''A list of all the formats (e.g. file formats) available for writing. '''
 
 def get_format_codec(filename=None, fmt=None):
     '''Returns the best codec associated with the file format. The format
