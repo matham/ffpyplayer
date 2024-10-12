@@ -245,6 +245,7 @@ cd "$SRC_PATH"
 curl -LO "http://downloads.xiph.org/releases/vorbis/libvorbis-$LIBVORBIS_VERSION.tar.gz"
 tar xzvf "libvorbis-$LIBVORBIS_VERSION.tar.gz"
 cd "libvorbis-$LIBVORBIS_VERSION"
+patch -p1 < "$base_dir/.ci/apple_libvorbis_cpusubtype.patch"
 ./configure --prefix="$BUILD_PATH" --with-ogg="$BUILD_PATH" --enable-shared --host=$ARCH2-darwin
 make
 make install
