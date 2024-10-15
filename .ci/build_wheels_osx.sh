@@ -14,7 +14,7 @@ export PATH="$BUILD_PATH/bin:/usr/local/bin/:$PATH"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig:/usr/lib/pkgconfig/:$PKG_CONFIG_PATH"
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang"
-export MACOSX_DEPLOYMENT_TARGET=10.9
+export MACOSX_DEPLOYMENT_TARGET=10.13
 
 if [ "$ARCH" = "x86_64" ]; then
   ARCH2=x86_64
