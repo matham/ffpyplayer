@@ -1,0 +1,795 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Images &mdash; FFPyPlayer  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tools" href="tools.html" />
+    <link rel="prev" title="Writer" href="writer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FFPyPlayer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The FFPyPlayer API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="player.html">Player</a></li>
+<li class="toctree-l2"><a class="reference internal" href="writer.html">Writer</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-ffpyplayer.pic"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.pic</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ffmpeg-based-image-storage-and-conversion-tools">FFmpeg based image storage and conversion tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.pic.Image"><code class="docutils literal notranslate"><span class="pre">Image</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.pic.ImageLoader"><code class="docutils literal notranslate"><span class="pre">ImageLoader</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.pic.SWScale"><code class="docutils literal notranslate"><span class="pre">SWScale</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.pic.get_image_size"><code class="docutils literal notranslate"><span class="pre">get_image_size()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tools.html">Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FFPyPlayer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="api.html">The FFPyPlayer API</a></li>
+      <li class="breadcrumb-item active">Images</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/pic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="images">
+<span id="pic-api"></span><h1>Images<a class="headerlink" href="#images" title="Link to this heading"></a></h1>
+<section id="module-ffpyplayer.pic">
+<span id="ffpyplayer-pic"></span><h2><a class="reference internal" href="#module-ffpyplayer.pic" title="ffpyplayer.pic"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.pic</span></code></a><a class="headerlink" href="#module-ffpyplayer.pic" title="Link to this heading"></a></h2>
+<section id="ffmpeg-based-image-storage-and-conversion-tools">
+<h3>FFmpeg based image storage and conversion tools<a class="headerlink" href="#ffmpeg-based-image-storage-and-conversion-tools" title="Link to this heading"></a></h3>
+<p>FFmpeg based classes to store and convert images from / to many different pixel
+formats. See <a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a> and <a class="reference internal" href="#ffpyplayer.pic.SWScale" title="ffpyplayer.pic.SWScale"><code class="xref py py-class docutils literal notranslate"><span class="pre">SWScale</span></code></a> for details.</p>
+<p>Create an image in rgb24 format:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="mi">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">buf</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">255</span> <span class="o">/</span> <span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="p">[</span><span class="n">buf</span><span class="p">],</span> <span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Convert the image to a different size:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span> <span class="o">=</span> <span class="n">SWScale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">ow</span><span class="o">=</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="n">h</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(250, 33)</span>
+</pre></div>
+</div>
+<p>Convert the image to YUV420P and get the resulting plane buffers as bytearrays:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span> <span class="o">=</span> <span class="n">SWScale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">ofmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">()</span>
+<span class="go">&#39;yuv420p&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">planes</span> <span class="o">=</span> <span class="n">img2</span><span class="o">.</span><span class="n">to_bytearray</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">planes</span><span class="p">)</span>
+<span class="go">[50000, 12500, 12500, 0]</span>
+</pre></div>
+</div>
+<p>Create an Image using default FFmpeg buffers:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Copy the image:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># copy reference without actually copying the buffers</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># do deep copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ffpyplayer.pic.</span></span><span class="sig-name descname"><span class="pre">Image</span></span><a class="headerlink" href="#ffpyplayer.pic.Image" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Stores a image using a specified pixel format.</p>
+<p>An Image can be represented by many different pixel formats, which determines
+how the buffer representing it is stored. We store the buffers as one to
+four arrays of bytes representing the one to four planes. For example,
+RGB23 has all the data in the first plane in the form of RGBRGB… while
+YUV420P uses the first three planes.</p>
+<p>The Image can be initialized with a list of the plane buffers, or internal
+buffers can be created when none are provided. Depending on how it’s initialized
+one or more params need to be specified.</p>
+<dl class="field-list">
+<dt class="field-odd">Paramters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><cite>plane_buffers</cite>: list</dt><dd><p>A list of bytes or bytearray type objects representing the 1-4 planes.
+The number of planes is determined by <code class="docutils literal notranslate"><span class="pre">pix_fmt</span></code> (e.g. 1 for RGB24,
+3 for yuv). The length of the bytes object in each plane is a function
+of <code class="docutils literal notranslate"><span class="pre">size</span></code>, and if provided, also <code class="docutils literal notranslate"><span class="pre">linesize</span></code>. See <code class="docutils literal notranslate"><span class="pre">linesize</span></code> for details.
+The buffers are used directly without making any copies therefore, the
+bytes objects are kept alive internally as long as this instance is alive.</p>
+<p>If empty, internal buffers for the image will be created for the image.</p>
+</dd>
+<dt><cite>pix_fmt</cite>: str</dt><dd><p>The pixel format of the image. Can be one of <a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>.
+Must be provided when using <code class="docutils literal notranslate"><span class="pre">plane_buffers</span></code>.</p>
+</dd>
+<dt><cite>size</cite>: 2-tuple of ints</dt><dd><p>The size of the frame in the form of (width, height).
+Must be provided when using <code class="docutils literal notranslate"><span class="pre">plane_buffers</span></code>.</p>
+</dd>
+<dt><cite>linesize</cite>: list of ints</dt><dd><p>The linesize of each provided plane. In addition to the width of the frame,
+a linesize can be provided. The <code class="docutils literal notranslate"><span class="pre">linesize</span></code> represent the actual number of
+bytes in each line, and may be padded at the end to satisfy some alignment
+requirement. For example, a RGB24 frame of size <code class="docutils literal notranslate"><span class="pre">(100,</span> <span class="pre">10)</span></code> will have
+<code class="docutils literal notranslate"><span class="pre">3</span> <span class="pre">*</span> <span class="pre">100</span> <span class="pre">=</span> <span class="pre">300</span></code> bytes in each horizontal line and will be 3000 bytes large.
+But, when 32 bit alignment is required, the buffer will have to padded at the
+end so that each line is 320 bytes, and the total buffer length is 3200 bytes.
+If <code class="docutils literal notranslate"><span class="pre">linesize</span></code> is provided, it must be provided for every valid plane.
+If it’s not provided, an alignment of 1 (i.e. no alignment) is assumed.
+See <a class="reference internal" href="#ffpyplayer.pic.Image.get_buffer_size" title="ffpyplayer.pic.Image.get_buffer_size"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_buffer_size()</span></code></a> for more details.</p>
+</dd>
+<dt><cite>no_create</cite>: bool</dt><dd><p>A optional argument, which if provided with True will just create the instance
+and not initialize anything. All other parameters are ignored when True.
+This is useful when instantiating later from cython with the <code class="docutils literal notranslate"><span class="pre">cython_init</span></code> method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p><strong>Copying</strong></p>
+<p>FFmpeg has an internal ref counting system where when used, it frees buffers
+it allocated only when there’s no reference to it remaining thereby allowing
+multiple images to use the same buffer without making copies. When the
+Image class allocates the image buffers, e.g. when <code class="docutils literal notranslate"><span class="pre">plane_buffers</span></code> is empty
+such reference buffers are created. As a consequence, when copying the Image
+object, the buffers will not have to be copied.</p>
+<p>Using the python copy module you can do a <strong>shallow</strong> or a <strong>deep</strong> copy of
+the object. When doing a <strong>shallow</strong> copy, new buffers will be created if the
+original buffers were not FFmpeg created and referenced, e.g. if provided
+using <code class="docutils literal notranslate"><span class="pre">plane_buffers</span></code>. This is to ensure the buffers won’t
+go out of memory while in use.</p>
+<p>After the copy, the buffers will be “referenced” and additional copies will
+create more references without copying the buffers.
+A <strong>deep</strong> copy, however, will always create a new referenced buffer.
+The function <a class="reference internal" href="#ffpyplayer.pic.Image.is_ref" title="ffpyplayer.pic.Image.is_ref"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_ref()</span></code></a> indicates whether the image buffer is such a
+FFmpeg referenced buffer.</p>
+<p>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">640</span><span class="p">,</span> <span class="mi">480</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="mi">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">buf</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">255</span> <span class="o">/</span> <span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="p">[</span><span class="n">buf</span><span class="p">],</span> <span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.get_buffer_size">
+<span class="sig-name descname"><span class="pre">get_buffer_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.get_buffer_size" title="Link to this definition"></a></dt>
+<dd><p>Returns the size of the buffers of each plane.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>keep_align</cite>: bool</dt><dd><p>If True, the linesize alignments of the actual image will be used to
+calculate the buffer size for each plane. If False, an alignment of 1
+(i.e. no alignment) will be used, returning the minimal buffer size
+required to store the image. Defaults to False.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>4-tuple of ints:</dt><dd><p>A list of buffer sizes for each plane of this pixel format.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>A (unaligned) yuv420p image has 3 planes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(100, 50, 50, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">()</span>
+<span class="go">(1000, 250, 250, 0)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># align to 32 bits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">align</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="mf">32.</span><span class="p">)</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">align</span><span class="p">,</span> <span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span>
+<span class="go">[128, 64, 64, 0]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">linesize</span><span class="o">=</span><span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(128, 64, 64, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(1280, 320, 320, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">()</span>
+<span class="go">(1000, 250, 250, 0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.get_linesizes">
+<span class="sig-name descname"><span class="pre">get_linesizes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.get_linesizes" title="Link to this definition"></a></dt>
+<dd><p>Returns the linesize of each plane.</p>
+<p>The linesize is the actual number of bytes in each horizontal line for a given plane,
+which may be padded at the end to satisfy some alignment requirement.
+For example, a RGB24 frame of size <code class="docutils literal notranslate"><span class="pre">(100,</span> <span class="pre">10)</span></code> will have <code class="docutils literal notranslate"><span class="pre">3</span> <span class="pre">*</span> <span class="pre">100</span> <span class="pre">=</span> <span class="pre">300</span></code>
+bytes in each line and will be 3000 bytes large. But, when 32 bit
+alignment is required, the buffer will have to padded at the end so
+that each line is 320 bytes, and the total buffer length is 3200 bytes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>keep_align</cite>: bool</dt><dd><p>If True, the original linesize alignments of the image will be returned for
+every plane. If False, linesize with an alignment of 1 (i.e. no alignment)
+will be used, returning the minimal linesize required to for the image.
+Defaults to False.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>4-tuple of ints:</dt><dd><p>A 4 tuple with the linesizes of each plane. If the plane isn’t used
+it’ll be 0.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>By defaults there’s no alignment:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="p">[</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)],</span>
+<span class="gp">... </span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(300, 0, 0, 0)</span>
+</pre></div>
+</div>
+<p>You can force alignment e.g. 32 bits alignment:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">/</span> <span class="mf">32.</span><span class="p">)</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span>
+<span class="go">[320]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="p">[</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">linesize</span><span class="p">[</span><span class="mi">0</span><span class="p">])],</span>
+<span class="gp">... </span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">linesize</span><span class="o">=</span><span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(320, 0, 0, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(100, 10)</span>
+</pre></div>
+</div>
+<p>The linesizes of an unaligned and 32 bit aligned yuv420p image:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(100, 50, 50, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(100, 10)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># now try align to 32 bit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">align</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="mf">32.</span><span class="p">)</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">align</span><span class="p">,</span> <span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span>
+<span class="go">[128, 64, 64, 0]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">linesize</span><span class="o">=</span><span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(128, 64, 64, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">()</span>
+<span class="go">(100, 50, 50, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(100, 10)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.get_pixel_format">
+<span class="sig-name descname"><span class="pre">get_pixel_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.get_pixel_format" title="Link to this definition"></a></dt>
+<dd><p>Returns the pixel format of the image. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str: The pixel format of the image.</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">()</span>
+<span class="go">&#39;rgb24&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.get_required_buffers">
+<span class="sig-name descname"><span class="pre">get_required_buffers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.get_required_buffers" title="Link to this definition"></a></dt>
+<dd><p>Returns a 4 tuple of booleans indicating which of the 4 planes are required
+(i.e. even if get_buffer_size is non-zero for that plane it may still be
+optional).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.get_size">
+<span class="sig-name descname"><span class="pre">get_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.get_size" title="Link to this definition"></a></dt>
+<dd><p>Returns the size of the frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>2-tuple of ints: The size of the frame as <code class="docutils literal notranslate"><span class="pre">(width,</span> <span class="pre">height)</span></code>.</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(640, 480)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.is_key_frame">
+<span class="sig-name descname"><span class="pre">is_key_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.is_key_frame" title="Link to this definition"></a></dt>
+<dd><p>Returns whether the image is a key frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool: True if the image was a key frame.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.is_ref">
+<span class="sig-name descname"><span class="pre">is_ref</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.is_ref" title="Link to this definition"></a></dt>
+<dd><p>Returns whether the image buffer is FFmpeg referenced. This can only be
+True when the buffers were allocated internally or by FFmpeg bit not when
+<code class="docutils literal notranslate"><span class="pre">plane_buffers</span></code> is provided. See <a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a> for details. After a copy,
+it will always returns True.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool: True if the buffer is FFmpeg referenced.</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">640</span><span class="p">,</span> <span class="mi">480</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="p">[</span><span class="nb">bytes</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)],</span> <span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">is_ref</span><span class="p">()</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">is_ref</span><span class="p">()</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>Or if directly allocated internally:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">is_ref</span><span class="p">()</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.to_bytearray">
+<span class="sig-name descname"><span class="pre">to_bytearray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.to_bytearray" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the plane buffers as bytearrays.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>keep_align</cite>: bool</dt><dd><p>If True, the buffer for each plane will be padded after each horizontal
+line to match the linesize of its plane in this image. If False, an
+alignment of 1 (i.e. no alignment) will be used, returning the
+maximially packed buffer of this plane. Defaults to False.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>4-element list: A list of bytearray buffers for each plane of this
+pixel format. An empty bytearray is returned for unused planes.</p>
+</dd>
+</dl>
+<p>Get the buffer of an RGB image:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(300, 0, 0, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">to_bytearray</span><span class="p">())</span>
+<span class="go">[3000, 0, 0, 0]</span>
+</pre></div>
+</div>
+<p>Get the buffers of a YUV420P image:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span>
+<span class="go">(100, 50, 50, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">align</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="mf">32.</span><span class="p">)</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">align</span><span class="p">,</span> <span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span>
+<span class="go">[128, 64, 64, 0]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">linesize</span><span class="o">=</span><span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">to_bytearray</span><span class="p">())</span>
+<span class="go">[1000, 250, 250, 0]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">to_bytearray</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="go">[1280, 320, 320, 0]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># now initialize a new Image with it</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">to_bytearray</span><span class="p">(),</span>
+<span class="gp">... </span><span class="n">pix_fmt</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">size</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">get_size</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(1000, 250, 250, 0)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># keep alignment</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">to_bytearray</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="gp">... </span><span class="n">pix_fmt</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">size</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">get_size</span><span class="p">(),</span>
+<span class="gp">... </span><span class="n">linesize</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(1280, 320, 320, 0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.Image.to_memoryview">
+<span class="sig-name descname"><span class="pre">to_memoryview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.Image.to_memoryview" title="Link to this definition"></a></dt>
+<dd><p>Returns a memoryviews of the buffers of the image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>keep_align</cite>: bool</dt><dd><p>If True, the buffers of the original image will be returned
+without making any additional copies. If False, then if the
+image alignment is already 1, the original buffers will be
+returned, otherwise, new buffers will be created with an
+alignment of 1 and the buffers will be copied into them
+and returned. See <a class="reference internal" href="#ffpyplayer.pic.Image.to_bytearray" title="ffpyplayer.pic.Image.to_bytearray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_bytearray()</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt>4-element list:</dt><dd><p>A list of cython arrays for each plane of this
+image’s pixel format. If the data didn’t have to be copied, the
+arrays point directly to the original image data. The arrays
+can be used where memoryviews are accepted, since cython arrays
+implement the memoryview interface.</p>
+<p>Unused planes are set to None.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If the data points to the original image data, you must ensure
+that this <a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a> instance does not go out of memory
+while the returned memoryviews of the arrays are in use. Otherwise when
+the <a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a> goes out of memory, the original data will become
+invalid and usage of the returned memoryviews of them will crash python.</p>
+</div>
+<p>Get the buffer of an RGB image:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(300, 0, 0, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">to_memoryview</span><span class="p">()</span>
+<span class="go">[&lt;ffpyplayer.pic.array object at 0x055DCE58&gt;, None, None, None]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">to_memoryview</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># memview is the only attribute of cython arrays</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span><span class="o">.</span><span class="n">memview</span>
+<span class="go">&lt;MemoryView of &#39;array&#39; at 0x55d1468&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span><span class="o">.</span><span class="n">memview</span><span class="o">.</span><span class="n">size</span>
+<span class="go">3000</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ffpyplayer.pic.ImageLoader">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ffpyplayer.pic.</span></span><span class="sig-name descname"><span class="pre">ImageLoader</span></span><a class="headerlink" href="#ffpyplayer.pic.ImageLoader" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class that reads one or more images from a file and returns them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>filename</cite>: string type</dt><dd><p>The full path to the image file. The string will first be encoded
+using utf8 before passing to FFmpeg.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>For example, reading a simple png using the iterator syntax:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">ImageLoader</span><span class="p">(</span><span class="s1">&#39;file.png&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">img</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span>
+<span class="go">[(&lt;ffpyplayer.pic.Image object at 0x02B5F5D0&gt;, 0.0)]</span>
+</pre></div>
+</div>
+<p>Or reading it directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">ImageLoader</span><span class="p">(</span><span class="s1">&#39;file.png&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74850&gt;, 0.0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(None, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(None, 0)</span>
+</pre></div>
+</div>
+<p>Or reading a gif using the iterator syntax:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">ImageLoader</span><span class="p">(</span><span class="s1">&#39;sapo11.gif&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">img</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span>
+<span class="go">[(&lt;ffpyplayer.pic.Image object at 0x02B749B8&gt;, 0.0),</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74918&gt;, 0.08),</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74990&gt;, 0.22),</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B749E0&gt;, 0.36),</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74A08&gt;, 0.41000000000000003),</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74A30&gt;, 0.46),</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74A58&gt;, 0.51)]</span>
+</pre></div>
+</div>
+<p>Or reading it directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">ImageLoader</span><span class="p">(</span><span class="s1">&#39;sapo11.gif&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74B70&gt;, 0.0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74C60&gt;, 0.08)</span>
+<span class="go">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(&lt;ffpyplayer.pic.Image object at 0x02B74B70&gt;, 0.51)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(None, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span><span class="o">.</span><span class="n">next_frame</span><span class="p">()</span>
+<span class="go">(None, 0)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.ImageLoader.next_frame">
+<span class="sig-name descname"><span class="pre">next_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.ImageLoader.next_frame" title="Link to this definition"></a></dt>
+<dd><p>Returns the next available frame, or <cite>(None, 0)</cite> if there are no
+more frames available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>a 2-tuple of <cite>(:class:`Image</cite>, pts)`:
+Where the first element is the next image to be displayed and <cite>pts</cite>
+is the time, relative to the first frame, when to display it e.g. in
+the case of a gif.</p>
+<p>If we reached the eof of the file and there are no more frames
+to be returned, it returns <cite>(None, 0)</cite>.</p>
+</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Both <a class="reference internal" href="#ffpyplayer.pic.ImageLoader.next_frame" title="ffpyplayer.pic.ImageLoader.next_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">next_frame()</span></code></a> and the iterator syntax read the frames
+identically. Consequently, calling one, will also advance the frame
+for the other.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ffpyplayer.pic.SWScale">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ffpyplayer.pic.</span></span><span class="sig-name descname"><span class="pre">SWScale</span></span><a class="headerlink" href="#ffpyplayer.pic.SWScale" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Converts Images from one format and size to another format and size.</p>
+<p>The class accepts an Image of a given pixel format and size and converts it
+to another Image with a different pixel format and size. Each SWScale instance
+converts only images with parameters specified when creating the instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>iw, ih</cite>: int</dt><dd><p>The width and height of the source image.</p>
+</dd>
+<dt><cite>ifmt</cite>: str</dt><dd><p>The pixel format of the source image. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>.</p>
+</dd>
+<dt><cite>ow, oh</cite>: int</dt><dd><p>The width and height of the output image after converting from the
+source image. A value of 0 will set that parameter to the source
+height/width. A value of -1 for one of the parameters, will result in
+a value of that parameter that maintains the original aspect ratio.
+Defaults to -1.</p>
+</dd>
+<dt><cite>ofmt</cite>: str</dt><dd><p>The pixel format of the output image. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>. If empty, the source pixel format
+will be used. Defaults to empty string.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="mi">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">buf</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">255</span> <span class="o">/</span> <span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">plane_buffers</span><span class="o">=</span><span class="p">[</span><span class="n">buf</span><span class="p">],</span> <span class="n">pix_fmt</span><span class="o">=</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># specify output w,h</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span> <span class="o">=</span> <span class="n">SWScale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">ow</span><span class="o">=</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="n">h</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(250, 33)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># use input height</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span> <span class="o">=</span> <span class="n">SWScale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">ow</span><span class="o">=</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(250, 100)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># keep aspect ratio</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span> <span class="o">=</span> <span class="n">SWScale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">ow</span><span class="o">=</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(250, 50)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert rgb24 to yuv420p</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span> <span class="o">=</span> <span class="n">SWScale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">ofmt</span><span class="o">=</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">()</span>
+<span class="go">&#39;yuv420p&#39;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert into a previously allocated and aligned image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">align</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="mf">32.</span><span class="p">)</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">h</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(750, 0, 0, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">align</span><span class="p">,</span> <span class="n">img2</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">linesize</span>
+<span class="go">[768, 0, 0, 0]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="n">pix_fmt</span><span class="o">=</span><span class="n">img2</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">size</span><span class="o">=</span><span class="n">img2</span><span class="o">.</span><span class="n">get_size</span><span class="p">(),</span> <span class="n">linesize</span><span class="o">=</span><span class="n">linesize</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span><span class="o">.</span><span class="n">get_linesizes</span><span class="p">(</span><span class="n">keep_align</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">(768, 0, 0, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sws</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">dst</span><span class="o">=</span><span class="n">img2</span><span class="p">)</span>
+<span class="go">&lt;ffpyplayer.pic.Image object at 0x02B44440&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">img2</span>
+<span class="go">&lt;ffpyplayer.pic.Image object at 0x02B44440&gt;</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.pic.SWScale.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Image</span> <span class="pre">src</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Image</span> <span class="pre">dst=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">_flip=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.SWScale.scale" title="Link to this definition"></a></dt>
+<dd><p>Scales a image into another image format and/or size as specified by the
+instance initialization parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>src</cite>: <a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a></dt><dd><p>A image instance with values matching the source image specification
+of this instance. An exception is raised if the Image doesn’t match.
+It will be used as the source image.</p>
+</dd>
+<dt><cite>dst</cite>: <a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a> or None</dt><dd><p>A image instance with values matching the output image specification
+of this instance. An exception is raised if the Image doesn’t match.
+If specified, the output image will be converted directly into this Image.
+If not specified, a new Image will be created and returned.</p>
+</dd>
+<dt><cite>_flip</cite>: bool, defaults to False</dt><dd><p>Whether the image will be flipped before scaling. This only works
+for pixel formats whose color planes are the same size (e.g. rgb), so
+use with caution.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><a class="reference internal" href="#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a>:</dt><dd><p>The output image. If <code class="docutils literal notranslate"><span class="pre">dst</span></code> was not None <code class="docutils literal notranslate"><span class="pre">dst</span></code> will be returned,
+otherwise a new image containing the converted image will be returned.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.pic.get_image_size">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.pic.</span></span><span class="sig-name descname"><span class="pre">get_image_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pix_fmt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.pic.get_image_size" title="Link to this definition"></a></dt>
+<dd><p>Returns the size in bytes of the buffers of each plane of an image with a
+given pixel format, width, and height.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pix_fmt</cite>: str</dt><dd><p>The pixel format in which the image is represented. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">pix_fmts</span></code></a>.</p>
+</dd>
+<dt><cite>width</cite>: int</dt><dd><p>The width of the image.</p>
+</dd>
+<dt><cite>height</cite>: int</dt><dd><p>The height of the image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>4-tuple of ints</cite>:</dt><dd><p>A tuple of buffer sizes in bytes for each plane of this pixel format
+required to store the image. Unused planes are zero.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_image_size</span><span class="p">(</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="go">(30000, 0, 0, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_image_size</span><span class="p">(</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="go">(10000, 2500, 2500, 0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_image_size</span><span class="p">(</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="go">(10000, 1024, 0, 0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="writer.html" class="btn btn-neutral float-left" title="Writer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tools.html" class="btn btn-neutral float-right" title="Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2013, Matthew Einhorn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,615 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tools &mdash; FFPyPlayer  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Images" href="pic.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FFPyPlayer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The FFPyPlayer API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="player.html">Player</a></li>
+<li class="toctree-l2"><a class="reference internal" href="writer.html">Writer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pic.html">Images</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-ffpyplayer.tools"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.tools</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ffmpeg-tools">FFmpeg tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.convert_to_str"><code class="docutils literal notranslate"><span class="pre">convert_to_str()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.decode_to_unicode"><code class="docutils literal notranslate"><span class="pre">decode_to_unicode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.emit_library_info"><code class="docutils literal notranslate"><span class="pre">emit_library_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.encode_to_bytes"><code class="docutils literal notranslate"><span class="pre">encode_to_bytes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_best_pix_fmt"><code class="docutils literal notranslate"><span class="pre">get_best_pix_fmt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_codecs"><code class="docutils literal notranslate"><span class="pre">get_codecs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_fmts"><code class="docutils literal notranslate"><span class="pre">get_fmts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_format_codec"><code class="docutils literal notranslate"><span class="pre">get_format_codec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_log_callback"><code class="docutils literal notranslate"><span class="pre">get_log_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_loglevel"><code class="docutils literal notranslate"><span class="pre">get_loglevel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_supported_framerates"><code class="docutils literal notranslate"><span class="pre">get_supported_framerates()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.get_supported_pixfmts"><code class="docutils literal notranslate"><span class="pre">get_supported_pixfmts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.initialize_sdl_aud"><code class="docutils literal notranslate"><span class="pre">initialize_sdl_aud()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.list_dshow_devices"><code class="docutils literal notranslate"><span class="pre">list_dshow_devices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.list_dshow_opts"><code class="docutils literal notranslate"><span class="pre">list_dshow_opts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.set_log_callback"><code class="docutils literal notranslate"><span class="pre">set_log_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.set_loglevel"><code class="docutils literal notranslate"><span class="pre">set_loglevel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.loglevels"><code class="docutils literal notranslate"><span class="pre">tools.loglevels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.codecs_enc"><code class="docutils literal notranslate"><span class="pre">tools.codecs_enc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.codecs_dec"><code class="docutils literal notranslate"><span class="pre">tools.codecs_dec</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.pix_fmts"><code class="docutils literal notranslate"><span class="pre">tools.pix_fmts</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.formats_in"><code class="docutils literal notranslate"><span class="pre">tools.formats_in</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.tools.formats_out"><code class="docutils literal notranslate"><span class="pre">tools.formats_out</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FFPyPlayer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="api.html">The FFPyPlayer API</a></li>
+      <li class="breadcrumb-item active">Tools</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tools.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tools">
+<span id="tools-api"></span><h1>Tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h1>
+<section id="module-ffpyplayer.tools">
+<span id="ffpyplayer-tools"></span><h2><a class="reference internal" href="#module-ffpyplayer.tools" title="ffpyplayer.tools"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.tools</span></code></a><a class="headerlink" href="#module-ffpyplayer.tools" title="Link to this heading"></a></h2>
+<section id="ffmpeg-tools">
+<h3>FFmpeg tools<a class="headerlink" href="#ffmpeg-tools" title="Link to this heading"></a></h3>
+<p>Module for manipulating and finding information of FFmpeg formats, codecs,
+devices, pixel formats and more.</p>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.convert_to_str">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">convert_to_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.convert_to_str" title="Link to this definition"></a></dt>
+<dd><p>Takes the item and walks it recursively whether it’s a string, int, iterable,
+etc. and encodes all the strings to utf-8.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>item</cite>: anything</dt><dd><p>The object to be walked and encoded.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An object identical to the <code class="docutils literal notranslate"><span class="pre">item</span></code>, but with all strings encoded to utf-8.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.decode_to_unicode">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">decode_to_unicode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.decode_to_unicode" title="Link to this definition"></a></dt>
+<dd><p>Takes the item and walks it recursively whether it’s a string, int, iterable,
+etc. and encodes all the strings to utf-8.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>item</cite>: anything</dt><dd><p>The object to be walked and encoded.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An object identical to the <code class="docutils literal notranslate"><span class="pre">item</span></code>, but with all strings encoded to utf-8.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.emit_library_info">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">emit_library_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.emit_library_info" title="Link to this definition"></a></dt>
+<dd><p>Prints to the ffmpeg log all the ffmpeg library’s versions and configure
+options.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.encode_to_bytes">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">encode_to_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.encode_to_bytes" title="Link to this definition"></a></dt>
+<dd><p>Takes the item and walks it recursively whether it’s a string, int, iterable,
+etc. and encodes all the strings to utf-8.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>item</cite>: anything</dt><dd><p>The object to be walked and encoded.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An object identical to the <code class="docutils literal notranslate"><span class="pre">item</span></code>, but with all strings encoded to utf-8.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_best_pix_fmt">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_best_pix_fmt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pix_fmt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_fmts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_best_pix_fmt" title="Link to this definition"></a></dt>
+<dd><p>Returns the best pixel format with the least conversion loss from the
+original pixel format, given a list of potential pixel formats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pix_fmt</cite>: str</dt><dd><p>The name of a original pixel format.</p>
+</dd>
+<dt><cite>pix_fmts</cite>: list-type of strings</dt><dd><p>A list of possible pixel formats from which the best will be chosen.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pixel format with the least conversion loss.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The returned pixel format seems to be somewhat sensitive to the order
+of the input pixel formats. Higher quality pixel formats should therefore
+be at the beginning of the list.</p>
+</div>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">get_best_pix_fmt</span><span class="p">(</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="s1">&#39;rgba&#39;</span><span class="p">,</span> <span class="s1">&#39;yuv444p&#39;</span><span class="p">,</span> <span class="s1">&#39;gray&#39;</span><span class="p">])</span>
+<span class="go">&#39;rgb24&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_best_pix_fmt</span><span class="p">(</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="s1">&#39;rgba&#39;</span><span class="p">,</span> <span class="s1">&#39;yuv444p&#39;</span><span class="p">,</span> <span class="s1">&#39;gray&#39;</span><span class="p">])</span>
+<span class="go">&#39;gray&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_best_pix_fmt</span><span class="p">(</span><span class="s1">&#39;rgb8&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="s1">&#39;yuv420p&#39;</span><span class="p">,</span> <span class="s1">&#39;rgba&#39;</span><span class="p">,</span> <span class="s1">&#39;yuv444p&#39;</span><span class="p">,</span> <span class="s1">&#39;gray&#39;</span><span class="p">])</span>
+<span class="go">&#39;rgb24&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_codecs">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_codecs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">encode=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">decode=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">video=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">audio=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">data=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">subtitle=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">attachment=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_codecs" title="Link to this definition"></a></dt>
+<dd><p>Returns a list of codecs (e.g. h264) that is available by ffpyplayer for
+encoding or decoding and matches the media types, e.g. video or audio.</p>
+<p>The parameters determine which codecs is included in the result. The parameters
+all default to False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>encode</cite>: bool</dt><dd><p>If True, includes the encoding codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>decode</cite>: bool</dt><dd><p>If True, includes the decoding codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>video</cite>: bool</dt><dd><p>If True, includes the video codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>audio</cite>: bool</dt><dd><p>If True, includes the audio codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>data</cite>: bool</dt><dd><p>If True, includes the (continuous) side data codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>subtitle</cite>: bool</dt><dd><p>If True, includes the subtitle codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>attachment</cite>: bool</dt><dd><p>If True, includes the (sparse) data attachment codecs in the result. Defaults to False.</p>
+</dd>
+<dt><cite>other</cite>: bool</dt><dd><p>If True, returns all the codec media types.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A sorted list of the matching codec names.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_fmts">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_fmts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">input=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">output=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_fmts" title="Link to this definition"></a></dt>
+<dd><p>Returns the formats available in FFmpeg.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>input</cite>: bool</dt><dd><p>If True, also includes input formats in the result. Defaults to False</p>
+</dd>
+<dt><cite>output</cite>: bool</dt><dd><p>If True, also includes output formats in the result. Defaults to False</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A 3-tuple of 3 lists, <code class="docutils literal notranslate"><span class="pre">formats</span></code>, <code class="docutils literal notranslate"><span class="pre">full_names</span></code>, and <code class="docutils literal notranslate"><span class="pre">extensions</span></code>.
+Each of the three lists are of identical length.</p>
+<dl class="simple">
+<dt><cite>formats</cite>: list</dt><dd><p>A list of the names of the formats.</p>
+</dd>
+<dt><cite>full_names</cite>: list</dt><dd><p>A list of the corresponding human readable names for each of the
+formats. Can be the empty string if none is available.</p>
+</dd>
+<dt><cite>extensions</cite>: list</dt><dd><p>A list of the extensions associated with the corresponding formats.
+Each item is a (possibly empty) list of extensions names.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_format_codec">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_format_codec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_format_codec" title="Link to this definition"></a></dt>
+<dd><p>Returns the best codec associated with the file format. The format
+can be provided using either <code class="docutils literal notranslate"><span class="pre">filename</span></code> or <code class="docutils literal notranslate"><span class="pre">fmt</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>filename</cite>: str or None</dt><dd><p>The output filename. If provided, the extension of the filename
+is used to guess the format.</p>
+</dd>
+<dt><cite>fmt</cite>: str or None.</dt><dd><p>The format to use. Can be one of <a class="reference internal" href="#ffpyplayer.tools.formats_out" title="ffpyplayer.tools.formats_out"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.formats_out</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>str:</dt><dd><p>The name from <a class="reference internal" href="#ffpyplayer.tools.codecs_enc" title="ffpyplayer.tools.codecs_enc"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.codecs_enc</span></code></a>
+of the best codec that can be used with this format.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">get_format_codecs</span><span class="p">(</span><span class="s1">&#39;test.png&#39;</span><span class="p">)</span>
+<span class="go">&#39;mjpeg&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_format_codecs</span><span class="p">(</span><span class="s1">&#39;test.jpg&#39;</span><span class="p">)</span>
+<span class="go">&#39;mjpeg&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_format_codecs</span><span class="p">(</span><span class="s1">&#39;test.mkv&#39;</span><span class="p">)</span>
+<span class="go">&#39;libx264&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_format_codecs</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;h264&#39;</span><span class="p">)</span>
+<span class="go">&#39;libx264&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_log_callback">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_log_callback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_log_callback" title="Link to this definition"></a></dt>
+<dd><p>Returns the last log callback set, or None if it has not been set.
+See <a class="reference internal" href="#ffpyplayer.tools.set_log_callback" title="ffpyplayer.tools.set_log_callback"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_log_callback()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_loglevel">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_loglevel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_loglevel" title="Link to this definition"></a></dt>
+<dd><p>Returns the log level set with <a class="reference internal" href="#ffpyplayer.tools.set_loglevel" title="ffpyplayer.tools.set_loglevel"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_loglevel()</span></code></a>, or the default level if not
+set. It is one of the keys of <a class="reference internal" href="#ffpyplayer.tools.loglevels" title="ffpyplayer.tools.loglevels"><code class="xref py py-attr docutils literal notranslate"><span class="pre">loglevels</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_supported_framerates">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_supported_framerates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">codec_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_supported_framerates" title="Link to this definition"></a></dt>
+<dd><p>Returns the supported frame rates for encoding codecs. If a desired rate is
+provided, it also returns the closest valid rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>codec_name</cite>: str</dt><dd><p>The name of a encoding codec.</p>
+</dd>
+<dt><cite>rate</cite>: 2-tuple of ints, or empty tuple.</dt><dd><p>If provided, a 2-tuple where the first element is the numerator,
+and the second the denominator of the frame rate we wish to use. E.g.
+(2997, 100) means a frame rate of 29.97.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(list of 2-tuples, or empty list):</dt><dd><p>If there are no restrictions on the frame rate (i.e. all rates are valid)
+it returns a empty list, otherwise it returns a list with the valid
+frame rates. If <cite>rate</cite> is provided and there are restrictions on the frame
+rates, the closest frame rate is the zero’th element in the list.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_supported_framerates</span><span class="p">(</span><span class="s1">&#39;mpeg1video&#39;</span><span class="p">)</span>
+<span class="go">[(24000, 1001), (24, 1), (25, 1), (30000, 1001), (30, 1), (50, 1),</span>
+<span class="go">(60000, 1001), (60, 1), (15, 1), (5, 1), (10, 1), (12, 1), (15, 1)]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_supported_framerates</span><span class="p">(</span><span class="s1">&#39;mpeg1video&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">2997</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
+<span class="go">[(30000, 1001), (24000, 1001), (24, 1), (25, 1), (30, 1), (50, 1),</span>
+<span class="go">(60000, 1001), (60, 1), (15, 1), (5, 1), (10, 1), (12, 1), (15, 1)]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.get_supported_pixfmts">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">get_supported_pixfmts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">codec_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.get_supported_pixfmts" title="Link to this definition"></a></dt>
+<dd><p>Returns the supported pixel formats for encoding codecs. If a desired format
+is provided, it also returns the closest format (i.e. the format with minimum
+conversion loss).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>codec_name</cite>: str</dt><dd><p>The name of a encoding codec.</p>
+</dd>
+<dt><cite>pix_fmt</cite>: str</dt><dd><p>If not empty, the name of a pixel format we wish to use with this codec,
+e.g. ‘rgb24’.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(list of pixel formats, or empty list):</dt><dd><p>If there are no restrictions on the pixel formats (i.e. all the formats
+are valid) it returns a empty list, otherwise it returns a list with the
+valid formats. If pix_fmt is not empty and there are restrictions to the
+formats, the closest format which results in the minimum loss when converting
+will be returned as the zero’th element in the list.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_supported_pixfmts</span><span class="p">(</span><span class="s1">&#39;ffv1&#39;</span><span class="p">)</span>
+<span class="go">[&#39;yuv420p&#39;, &#39;yuva420p&#39;, &#39;yuva422p&#39;, &#39;yuv444p&#39;, &#39;yuva444p&#39;, &#39;yuv440p&#39;, ...</span>
+<span class="go">&#39;gray16le&#39;, &#39;gray&#39;, &#39;gbrp9le&#39;, &#39;gbrp10le&#39;, &#39;gbrp12le&#39;, &#39;gbrp14le&#39;]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">get_supported_pixfmts</span><span class="p">(</span><span class="s1">&#39;ffv1&#39;</span><span class="p">,</span> <span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+<span class="go">[&#39;gray&#39;, &#39;yuv420p&#39;, &#39;yuva420p&#39;, &#39;yuva422p&#39;, &#39;yuv444p&#39;, &#39;yuva444p&#39;, ...</span>
+<span class="go">&#39;gray16le&#39;, &#39;gbrp9le&#39;, &#39;gbrp10le&#39;, &#39;gbrp12le&#39;, &#39;gbrp14le&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.initialize_sdl_aud">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">initialize_sdl_aud</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.initialize_sdl_aud" title="Link to this definition"></a></dt>
+<dd><p>Initializes sdl audio subsystem. Must be called before audio can be used.
+It is automatically called by the modules that use SDL audio.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.list_dshow_devices">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">list_dshow_devices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.list_dshow_devices" title="Link to this definition"></a></dt>
+<dd><p>Returns a list of the dshow devices available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p><cite>3-tuple</cite>: A 3-tuple, of (<cite>video</cite>, <cite>audio</cite>, <cite>names</cite>)</p>
+<blockquote>
+<div><dl class="simple">
+<dt><cite>video</cite>: dict</dt><dd><p>A dict of all the direct show <strong>video</strong> devices. The keys
+of the dict are the unique names of the available direct show devices. The values
+are a list of the available configurations for that device. Each
+element in the list has the following format:
+<code class="docutils literal notranslate"><span class="pre">(pix_fmt,</span> <span class="pre">codec_fmt,</span> <span class="pre">(frame_width,</span> <span class="pre">frame_height),</span> <span class="pre">(min_framerate,</span> <span class="pre">max_framerate))</span></code></p>
+</dd>
+<dt><cite>audio</cite>: dict</dt><dd><p>A dict of all the direct show <strong>audio</strong> devices. The keys
+of the dict are the unique names of the available direct show devices. The values
+are a list of the available configurations for that device. Each
+element in the list has the following format:
+<code class="docutils literal notranslate"><span class="pre">((min_num_channels,</span> <span class="pre">min_num_channels),</span> <span class="pre">(min_bits,</span> <span class="pre">max_bits),</span> <span class="pre">(min_rate,</span> <span class="pre">max_rate))</span></code>.</p>
+</dd>
+<dt><cite>names</cite>: dict</dt><dd><p>A dict mapping the unique names of the video and audio devices to
+a more human friendly (possibly non-unique) name. Either of these
+names can be used when opening the device. However, if using the non-unique
+name, it’s not guarenteed which of the devices sharing the name will be opened.</p>
+</dd>
+</dl>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ffpyplayer.player</span><span class="w"> </span><span class="kn">import</span> <span class="n">MediaPlayer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ffpyplayer.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_dshow_devices</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">weakref</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dev</span> <span class="o">=</span> <span class="n">list_dshow_devices</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">dev</span>
+<span class="go">({&#39;@device_pnp_...223196\global&#39;: [(&#39;bgr24&#39;, &#39;&#39;, (160, 120), (5, 30)),</span>
+<span class="go">(&#39;bgr24&#39;, &#39;&#39;, (176, 144), (5, 30)), (&#39;bgr24&#39;, &#39;&#39;, (320, 176), (5, 30)),</span>
+<span class="go">(&#39;bgr24&#39;, &#39;&#39;, (320, 240), (5, 30)), (&#39;bgr24&#39;, &#39;&#39;, (352, 288), (5, 30)),</span>
+<span class="go">...</span>
+<span class="go">(&#39;yuv420p&#39;, &#39;&#39;, (320, 240), (5, 30)), (&#39;yuv420p&#39;, &#39;&#39;, (352, 288), (5, 30))],</span>
+<span class="go">&#39;@device_pnp_...223196\global&#39;: [(&#39;bgr24&#39;, &#39;&#39;, (160, 120), (30, 30)),</span>
+<span class="go">...</span>
+<span class="go">(&#39;yuyv422&#39;, &#39;&#39;, (352, 288), (30, 30)),</span>
+<span class="go">(&#39;yuyv422&#39;, &#39;&#39;, (640, 480), (30, 30))]},</span>
+<span class="go">{&#39;@device_cm_...2- HD Webcam C615)&#39;: [((1, 2), (8, 16), (11025, 44100))],</span>
+<span class="go">&#39;@device_cm_...HD Webcam C615)&#39;: [((1, 2), (8, 16), (11025, 44100))]},</span>
+<span class="go">{&#39;@device_cm_...- HD Webcam C615)&#39;: &#39;Microphone (2- HD Webcam C615)&#39;,</span>
+<span class="go"> &#39;@device_cm_...2- HD Webcam C615)&#39;: &#39;Microphone (3- HD Webcam C615)&#39;,</span>
+<span class="go">...</span>
+<span class="go"> &#39;@device_pnp...223196\global&#39;: &#39;HD Webcam C615&#39;,</span>
+<span class="go"> &#39;@device_pnp...223196\global&#39;: &#39;Laptop Integrated Webcam&#39;})</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="examples.html#dshow-example"><span class="std std-ref">Playing a webcam with DirectShow on windows</span></a> for a full example.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.list_dshow_opts">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">list_dshow_opts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list</span> <span class="pre">log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes</span> <span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes</span> <span class="pre">option</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#ffpyplayer.tools.list_dshow_opts" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.set_log_callback">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">set_log_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">default_only=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.set_log_callback" title="Link to this definition"></a></dt>
+<dd><p>Sets a callback to be used by ffmpeg when emitting logs.
+This function is thread safe.</p>
+<p>See also <a class="reference internal" href="#ffpyplayer.tools.set_loglevel" title="ffpyplayer.tools.set_loglevel"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_loglevel()</span></code></a>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><cite>callback</cite>: callable or None</dt><dd><p>A function which will be called with strings to be printed. It takes
+two parameters: <code class="docutils literal notranslate"><span class="pre">message</span></code> and <code class="docutils literal notranslate"><span class="pre">level</span></code>. <code class="docutils literal notranslate"><span class="pre">message</span></code> is the string
+to be printed. <code class="docutils literal notranslate"><span class="pre">level</span></code> is the log level of the string and is one
+of the keys of the <a class="reference internal" href="#ffpyplayer.tools.loglevels" title="ffpyplayer.tools.loglevels"><code class="xref py py-attr docutils literal notranslate"><span class="pre">loglevels</span></code></a> dict. If <code class="docutils literal notranslate"><span class="pre">callback</span></code> and <code class="docutils literal notranslate"><span class="pre">logger</span></code>
+are None, the default ffmpeg log callback will be set, which prints to stderr.
+Defaults to None.</p>
+</dd>
+<dt><cite>logger</cite>: a python logger object or None</dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">callback</span></code> is None and this is not None, this logger object’s
+<code class="docutils literal notranslate"><span class="pre">critical</span></code>, <code class="docutils literal notranslate"><span class="pre">error</span></code>, <code class="docutils literal notranslate"><span class="pre">warning</span></code>, <code class="docutils literal notranslate"><span class="pre">info</span></code>, <code class="docutils literal notranslate"><span class="pre">debug</span></code>, and <code class="docutils literal notranslate"><span class="pre">trace</span></code>
+methods will be called directly to forward ffmpeg’s log outputs.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the logger doesn’t have a trace method, the trace output will be
+redirected to debug. However, the trace level outputs a lot of logs.</p>
+</div>
+</dd>
+<dt><cite>default_only</cite>: bool</dt><dd><p>If True, when <code class="docutils literal notranslate"><span class="pre">callback</span></code> or <code class="docutils literal notranslate"><span class="pre">logger</span></code> are not <code class="docutils literal notranslate"><span class="pre">None</span></code>, they
+will only be set if a callback or logger has not already been set.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The previous callback set (None, if it has not been set).</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ffpyplayer.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_log_callback</span><span class="p">,</span> <span class="n">loglevels</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loglevel_emit</span> <span class="o">=</span> <span class="s1">&#39;error&#39;</span> <span class="c1"># This and worse errors will be emitted.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_callback</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">loglevels</span><span class="p">[</span><span class="n">level</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">loglevels</span><span class="p">[</span><span class="n">loglevel_emit</span><span class="p">]:</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">set_log_callback</span><span class="p">(</span><span class="n">log_callback</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">set_log_callback</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ffpyplayer.tools.set_loglevel">
+<span class="sig-prename descclassname"><span class="pre">ffpyplayer.tools.</span></span><span class="sig-name descname"><span class="pre">set_loglevel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loglevel</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.tools.set_loglevel" title="Link to this definition"></a></dt>
+<dd><p>This sets the global FFmpeg log level. less important log levels are filtered
+and not passsed on to the logger or callback set by <a class="reference internal" href="#ffpyplayer.tools.set_log_callback" title="ffpyplayer.tools.set_log_callback"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_log_callback()</span></code></a>.
+It also set the loglevel of FFmpeg if not callback or logger is set.</p>
+<p>The global log level, if not set, defaults to <code class="docutils literal notranslate"><span class="pre">'warning'</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>loglevel</cite>: str</dt><dd><p>The log level. Can be one of the keys of <a class="reference internal" href="#ffpyplayer.tools.loglevels" title="ffpyplayer.tools.loglevels"><code class="xref py py-attr docutils literal notranslate"><span class="pre">loglevels</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ffpyplayer.tools.loglevels">
+<span class="sig-prename descclassname"><span class="pre">tools.</span></span><span class="sig-name descname"><span class="pre">loglevels</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'debug':</span> <span class="pre">48,</span> <span class="pre">'error':</span> <span class="pre">16,</span> <span class="pre">'fatal':</span> <span class="pre">8,</span> <span class="pre">'info':</span> <span class="pre">32,</span> <span class="pre">'panic':</span> <span class="pre">0,</span> <span class="pre">'quiet':</span> <span class="pre">-8,</span> <span class="pre">'trace':</span> <span class="pre">56,</span> <span class="pre">'verbose':</span> <span class="pre">40,</span> <span class="pre">'warning':</span> <span class="pre">24}</span></em><a class="headerlink" href="#ffpyplayer.tools.loglevels" title="Link to this definition"></a></dt>
+<dd><p>A dictionary with all the available ffmpeg log levels. The keys are the loglevels
+and the values are their ffmpeg values. The lower the value, the more important
+the log. Note, this is ooposite python where the higher the level the more important
+the log.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ffpyplayer.tools.codecs_enc">
+<span class="sig-prename descclassname"><span class="pre">tools.</span></span><span class="sig-name descname"><span class="pre">codecs_enc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['a64multi',</span> <span class="pre">'a64multi5',</span> <span class="pre">'alias_pix',</span> <span class="pre">'amv',</span> <span class="pre">'apng',</span> <span class="pre">'asv1',</span> <span class="pre">'asv2',</span> <span class="pre">'av1_nvenc',</span> <span class="pre">'av1_qsv',</span> <span class="pre">'av1_vaapi',</span> <span class="pre">'avrp',</span> <span class="pre">'avui',</span> <span class="pre">'ayuv',</span> <span class="pre">'bitpacked',</span> <span class="pre">'bmp',</span> <span class="pre">'cfhd',</span> <span class="pre">'cinepak',</span> <span class="pre">'cljr',</span> <span class="pre">'dnxhd',</span> <span class="pre">'dpx',</span> <span class="pre">'dvvideo',</span> <span class="pre">'exr',</span> <span class="pre">'ffv1',</span> <span class="pre">'ffvhuff',</span> <span class="pre">'fits',</span> <span class="pre">'flashsv',</span> <span class="pre">'flashsv2',</span> <span class="pre">'flv',</span> <span class="pre">'gif',</span> <span class="pre">'h261',</span> <span class="pre">'h263',</span> <span class="pre">'h263_v4l2m2m',</span> <span class="pre">'h263p',</span> <span class="pre">'h264_nvenc',</span> <span class="pre">'h264_qsv',</span> <span class="pre">'h264_v4l2m2m',</span> <span class="pre">'h264_vaapi',</span> <span class="pre">'hap',</span> <span class="pre">'hdr',</span> <span class="pre">'hevc_nvenc',</span> <span class="pre">'hevc_qsv',</span> <span class="pre">'hevc_v4l2m2m',</span> <span class="pre">'hevc_vaapi',</span> <span class="pre">'huffyuv',</span> <span class="pre">'jpeg2000',</span> <span class="pre">'jpegls',</span> <span class="pre">'libaom-av1',</span> <span class="pre">'libjxl',</span> <span class="pre">'libopenjpeg',</span> <span class="pre">'librav1e',</span> <span class="pre">'libsvtav1',</span> <span class="pre">'libtheora',</span> <span class="pre">'libvpx',</span> <span class="pre">'libvpx-vp9',</span> <span class="pre">'libwebp',</span> <span class="pre">'libwebp_anim',</span> <span class="pre">'libx264',</span> <span class="pre">'libx264rgb',</span> <span class="pre">'libx265',</span> <span class="pre">'libxvid',</span> <span class="pre">'ljpeg',</span> <span class="pre">'magicyuv',</span> <span class="pre">'mjpeg',</span> <span class="pre">'mjpeg_qsv',</span> <span class="pre">'mjpeg_vaapi',</span> <span class="pre">'mpeg1video',</span> <span class="pre">'mpeg2_qsv',</span> <span class="pre">'mpeg2_vaapi',</span> <span class="pre">'mpeg2video',</span> <span class="pre">'mpeg4',</span> <span class="pre">'mpeg4_v4l2m2m',</span> <span class="pre">'msmpeg4',</span> <span class="pre">'msmpeg4v2',</span> <span class="pre">'msrle',</span> <span class="pre">'msvideo1',</span> <span class="pre">'pam',</span> <span class="pre">'pbm',</span> <span class="pre">'pcx',</span> <span class="pre">'pfm',</span> <span class="pre">'pgm',</span> <span class="pre">'pgmyuv',</span> <span class="pre">'phm',</span> <span class="pre">'png',</span> <span class="pre">'ppm',</span> <span class="pre">'prores',</span> <span class="pre">'prores_aw',</span> <span class="pre">'prores_ks',</span> <span class="pre">'qoi',</span> <span class="pre">'qtrle',</span> <span class="pre">'r10k',</span> <span class="pre">'r210',</span> <span class="pre">'rawvideo',</span> <span class="pre">'roqvideo',</span> <span class="pre">'rpza',</span> <span class="pre">'rv10',</span> <span class="pre">'rv20',</span> <span class="pre">'sgi',</span> <span class="pre">'smc',</span> <span class="pre">'snow',</span> <span class="pre">'speedhq',</span> <span class="pre">'sunrast',</span> <span class="pre">'svq1',</span> <span class="pre">'targa',</span> <span class="pre">'tiff',</span> <span class="pre">'utvideo',</span> <span class="pre">'v210',</span> <span class="pre">'v308',</span> <span class="pre">'v408',</span> <span class="pre">'v410',</span> <span class="pre">'vbn',</span> <span class="pre">'vc2',</span> <span class="pre">'vnull',</span> <span class="pre">'vp8_v4l2m2m',</span> <span class="pre">'vp8_vaapi',</span> <span class="pre">'vp9_qsv',</span> <span class="pre">'vp9_vaapi',</span> <span class="pre">'wbmp',</span> <span class="pre">'wmv1',</span> <span class="pre">'wmv2',</span> <span class="pre">'wrapped_avframe',</span> <span class="pre">'xbm',</span> <span class="pre">'xface',</span> <span class="pre">'xwd',</span> <span class="pre">'y41p',</span> <span class="pre">'yuv4',</span> <span class="pre">'zlib',</span> <span class="pre">'zmbv']</span></em><a class="headerlink" href="#ffpyplayer.tools.codecs_enc" title="Link to this definition"></a></dt>
+<dd><p>A list of all the codecs available for encoding video.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ffpyplayer.tools.codecs_dec">
+<span class="sig-prename descclassname"><span class="pre">tools.</span></span><span class="sig-name descname"><span class="pre">codecs_dec</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['012v',</span> <span class="pre">'4xm',</span> <span class="pre">'8bps',</span> <span class="pre">'8svx_exp',</span> <span class="pre">'8svx_fib',</span> <span class="pre">'aac',</span> <span class="pre">'aac_fixed',</span> <span class="pre">'aac_latm',</span> <span class="pre">'aasc',</span> <span class="pre">'ac3',</span> <span class="pre">'ac3_fixed',</span> <span class="pre">'acelp.kelvin',</span> <span class="pre">'adpcm_4xm',</span> <span class="pre">'adpcm_adx',</span> <span class="pre">'adpcm_afc',</span> <span class="pre">'adpcm_agm',</span> <span class="pre">'adpcm_aica',</span> <span class="pre">'adpcm_argo',</span> <span class="pre">'adpcm_ct',</span> <span class="pre">'adpcm_dtk',</span> <span class="pre">'adpcm_ea',</span> <span class="pre">'adpcm_ea_maxis_xa',</span> <span class="pre">'adpcm_ea_r1',</span> <span class="pre">'adpcm_ea_r2',</span> <span class="pre">'adpcm_ea_r3',</span> <span class="pre">'adpcm_ea_xas',</span> <span class="pre">'adpcm_ima_acorn',</span> <span class="pre">'adpcm_ima_alp',</span> <span class="pre">'adpcm_ima_amv',</span> <span class="pre">'adpcm_ima_apc',</span> <span class="pre">'adpcm_ima_apm',</span> <span class="pre">'adpcm_ima_cunning',</span> <span class="pre">'adpcm_ima_dat4',</span> <span class="pre">'adpcm_ima_dk3',</span> <span class="pre">'adpcm_ima_dk4',</span> <span class="pre">'adpcm_ima_ea_eacs',</span> <span class="pre">'adpcm_ima_ea_sead',</span> <span class="pre">'adpcm_ima_iss',</span> <span class="pre">'adpcm_ima_moflex',</span> <span class="pre">'adpcm_ima_mtf',</span> <span class="pre">'adpcm_ima_oki',</span> <span class="pre">'adpcm_ima_qt',</span> <span class="pre">'adpcm_ima_rad',</span> <span class="pre">'adpcm_ima_smjpeg',</span> <span class="pre">'adpcm_ima_ssi',</span> <span class="pre">'adpcm_ima_wav',</span> <span class="pre">'adpcm_ima_ws',</span> <span class="pre">'adpcm_ms',</span> <span class="pre">'adpcm_mtaf',</span> <span class="pre">'adpcm_psx',</span> <span class="pre">'adpcm_sbpro_2',</span> <span class="pre">'adpcm_sbpro_3',</span> <span class="pre">'adpcm_sbpro_4',</span> <span class="pre">'adpcm_swf',</span> <span class="pre">'adpcm_thp',</span> <span class="pre">'adpcm_thp_le',</span> <span class="pre">'adpcm_vima',</span> <span class="pre">'adpcm_xa',</span> <span class="pre">'adpcm_xmd',</span> <span class="pre">'adpcm_yamaha',</span> <span class="pre">'adpcm_zork',</span> <span class="pre">'agm',</span> <span class="pre">'aic',</span> <span class="pre">'alac',</span> <span class="pre">'alias_pix',</span> <span class="pre">'als',</span> <span class="pre">'amrnb',</span> <span class="pre">'amrwb',</span> <span class="pre">'amv',</span> <span class="pre">'anm',</span> <span class="pre">'ansi',</span> <span class="pre">'anull',</span> <span class="pre">'apac',</span> <span class="pre">'ape',</span> <span class="pre">'apng',</span> <span class="pre">'aptx',</span> <span class="pre">'aptx_hd',</span> <span class="pre">'arbc',</span> <span class="pre">'argo',</span> <span class="pre">'asv1',</span> <span class="pre">'asv2',</span> <span class="pre">'atrac1',</span> <span class="pre">'atrac3',</span> <span class="pre">'atrac3al',</span> <span class="pre">'atrac3plus',</span> <span class="pre">'atrac3plusal',</span> <span class="pre">'atrac9',</span> <span class="pre">'aura',</span> <span class="pre">'aura2',</span> <span class="pre">'av1',</span> <span class="pre">'av1_cuvid',</span> <span class="pre">'av1_qsv',</span> <span class="pre">'avrn',</span> <span class="pre">'avrp',</span> <span class="pre">'avs',</span> <span class="pre">'avui',</span> <span class="pre">'ayuv',</span> <span class="pre">'bethsoftvid',</span> <span class="pre">'bfi',</span> <span class="pre">'binkaudio_dct',</span> <span class="pre">'binkaudio_rdft',</span> <span class="pre">'binkvideo',</span> <span class="pre">'bintext',</span> <span class="pre">'bitpacked',</span> <span class="pre">'bmp',</span> <span class="pre">'bmv_audio',</span> <span class="pre">'bmv_video',</span> <span class="pre">'bonk',</span> <span class="pre">'brender_pix',</span> <span class="pre">'c93',</span> <span class="pre">'camstudio',</span> <span class="pre">'camtasia',</span> <span class="pre">'cavs',</span> <span class="pre">'cbd2_dpcm',</span> <span class="pre">'cdgraphics',</span> <span class="pre">'cdtoons',</span> <span class="pre">'cdxl',</span> <span class="pre">'cfhd',</span> <span class="pre">'cinepak',</span> <span class="pre">'clearvideo',</span> <span class="pre">'cljr',</span> <span class="pre">'cllc',</span> <span class="pre">'comfortnoise',</span> <span class="pre">'cook',</span> <span class="pre">'cpia',</span> <span class="pre">'cri',</span> <span class="pre">'cyuv',</span> <span class="pre">'dca',</span> <span class="pre">'dds',</span> <span class="pre">'derf_dpcm',</span> <span class="pre">'dfa',</span> <span class="pre">'dfpwm',</span> <span class="pre">'dirac',</span> <span class="pre">'dnxhd',</span> <span class="pre">'dolby_e',</span> <span class="pre">'dpx',</span> <span class="pre">'dsd_lsbf',</span> <span class="pre">'dsd_lsbf_planar',</span> <span class="pre">'dsd_msbf',</span> <span class="pre">'dsd_msbf_planar',</span> <span class="pre">'dsicinaudio',</span> <span class="pre">'dsicinvideo',</span> <span class="pre">'dss_sp',</span> <span class="pre">'dst',</span> <span class="pre">'dvaudio',</span> <span class="pre">'dvvideo',</span> <span class="pre">'dxa',</span> <span class="pre">'dxtory',</span> <span class="pre">'dxv',</span> <span class="pre">'eac3',</span> <span class="pre">'eacmv',</span> <span class="pre">'eamad',</span> <span class="pre">'eatgq',</span> <span class="pre">'eatgv',</span> <span class="pre">'eatqi',</span> <span class="pre">'escape124',</span> <span class="pre">'escape130',</span> <span class="pre">'evrc',</span> <span class="pre">'exr',</span> <span class="pre">'fastaudio',</span> <span class="pre">'ffv1',</span> <span class="pre">'ffvhuff',</span> <span class="pre">'fic',</span> <span class="pre">'fits',</span> <span class="pre">'flac',</span> <span class="pre">'flashsv',</span> <span class="pre">'flashsv2',</span> <span class="pre">'flic',</span> <span class="pre">'flv',</span> <span class="pre">'fmvc',</span> <span class="pre">'fraps',</span> <span class="pre">'frwu',</span> <span class="pre">'ftr',</span> <span class="pre">'g2m',</span> <span class="pre">'g722',</span> <span class="pre">'g723_1',</span> <span class="pre">'g726',</span> <span class="pre">'g726le',</span> <span class="pre">'g729',</span> <span class="pre">'gdv',</span> <span class="pre">'gem',</span> <span class="pre">'gif',</span> <span class="pre">'gremlin_dpcm',</span> <span class="pre">'gsm',</span> <span class="pre">'gsm_ms',</span> <span class="pre">'h261',</span> <span class="pre">'h263',</span> <span class="pre">'h263_v4l2m2m',</span> <span class="pre">'h263i',</span> <span class="pre">'h263p',</span> <span class="pre">'h264',</span> <span class="pre">'h264_cuvid',</span> <span class="pre">'h264_qsv',</span> <span class="pre">'h264_v4l2m2m',</span> <span class="pre">'hap',</span> <span class="pre">'hca',</span> <span class="pre">'hcom',</span> <span class="pre">'hdr',</span> <span class="pre">'hevc',</span> <span class="pre">'hevc_cuvid',</span> <span class="pre">'hevc_qsv',</span> <span class="pre">'hevc_v4l2m2m',</span> <span class="pre">'hnm4video',</span> <span class="pre">'hq_hqa',</span> <span class="pre">'hqx',</span> <span class="pre">'huffyuv',</span> <span class="pre">'hymt',</span> <span class="pre">'iac',</span> <span class="pre">'idcinvideo',</span> <span class="pre">'idf',</span> <span class="pre">'iff',</span> <span class="pre">'ilbc',</span> <span class="pre">'imc',</span> <span class="pre">'imm4',</span> <span class="pre">'imm5',</span> <span class="pre">'indeo2',</span> <span class="pre">'indeo3',</span> <span class="pre">'indeo4',</span> <span class="pre">'indeo5',</span> <span class="pre">'interplay_dpcm',</span> <span class="pre">'interplayacm',</span> <span class="pre">'interplayvideo',</span> <span class="pre">'ipu',</span> <span class="pre">'jpeg2000',</span> <span class="pre">'jpegls',</span> <span class="pre">'jv',</span> <span class="pre">'kgv1',</span> <span class="pre">'kmvc',</span> <span class="pre">'lagarith',</span> <span class="pre">'libaom-av1',</span> <span class="pre">'libcodec2',</span> <span class="pre">'libdav1d',</span> <span class="pre">'libgsm',</span> <span class="pre">'libgsm_ms',</span> <span class="pre">'libjxl',</span> <span class="pre">'libopus',</span> <span class="pre">'librsvg',</span> <span class="pre">'libspeex',</span> <span class="pre">'libvorbis',</span> <span class="pre">'libvpx',</span> <span class="pre">'libvpx-vp9',</span> <span class="pre">'loco',</span> <span class="pre">'lscr',</span> <span class="pre">'m101',</span> <span class="pre">'mace3',</span> <span class="pre">'mace6',</span> <span class="pre">'magicyuv',</span> <span class="pre">'mdec',</span> <span class="pre">'media100',</span> <span class="pre">'metasound',</span> <span class="pre">'mimic',</span> <span class="pre">'misc4',</span> <span class="pre">'mjpeg',</span> <span class="pre">'mjpeg_cuvid',</span> <span class="pre">'mjpeg_qsv',</span> <span class="pre">'mjpegb',</span> <span class="pre">'mlp',</span> <span class="pre">'mmvideo',</span> <span class="pre">'mobiclip',</span> <span class="pre">'motionpixels',</span> <span class="pre">'mp1',</span> <span class="pre">'mp1float',</span> <span class="pre">'mp2',</span> <span class="pre">'mp2float',</span> <span class="pre">'mp3',</span> <span class="pre">'mp3adu',</span> <span class="pre">'mp3adufloat',</span> <span class="pre">'mp3float',</span> <span class="pre">'mp3on4',</span> <span class="pre">'mp3on4float',</span> <span class="pre">'mpc7',</span> <span class="pre">'mpc8',</span> <span class="pre">'mpeg1_cuvid',</span> <span class="pre">'mpeg1_v4l2m2m',</span> <span class="pre">'mpeg1video',</span> <span class="pre">'mpeg2_cuvid',</span> <span class="pre">'mpeg2_qsv',</span> <span class="pre">'mpeg2_v4l2m2m',</span> <span class="pre">'mpeg2video',</span> <span class="pre">'mpeg4',</span> <span class="pre">'mpeg4_cuvid',</span> <span class="pre">'mpeg4_v4l2m2m',</span> <span class="pre">'mpegvideo',</span> <span class="pre">'msa1',</span> <span class="pre">'mscc',</span> <span class="pre">'msmpeg4',</span> <span class="pre">'msmpeg4v1',</span> <span class="pre">'msmpeg4v2',</span> <span class="pre">'msnsiren',</span> <span class="pre">'msp2',</span> <span class="pre">'msrle',</span> <span class="pre">'mss1',</span> <span class="pre">'mss2',</span> <span class="pre">'msvideo1',</span> <span class="pre">'mszh',</span> <span class="pre">'mts2',</span> <span class="pre">'mv30',</span> <span class="pre">'mvc1',</span> <span class="pre">'mvc2',</span> <span class="pre">'mvdv',</span> <span class="pre">'mvha',</span> <span class="pre">'mwsc',</span> <span class="pre">'mxpeg',</span> <span class="pre">'nellymoser',</span> <span class="pre">'notchlc',</span> <span class="pre">'nuv',</span> <span class="pre">'on2avc',</span> <span class="pre">'opus',</span> <span class="pre">'osq',</span> <span class="pre">'paf_audio',</span> <span class="pre">'paf_video',</span> <span class="pre">'pam',</span> <span class="pre">'pbm',</span> <span class="pre">'pcm_alaw',</span> <span class="pre">'pcm_bluray',</span> <span class="pre">'pcm_dvd',</span> <span class="pre">'pcm_f16le',</span> <span class="pre">'pcm_f24le',</span> <span class="pre">'pcm_f32be',</span> <span class="pre">'pcm_f32le',</span> <span class="pre">'pcm_f64be',</span> <span class="pre">'pcm_f64le',</span> <span class="pre">'pcm_lxf',</span> <span class="pre">'pcm_mulaw',</span> <span class="pre">'pcm_s16be',</span> <span class="pre">'pcm_s16be_planar',</span> <span class="pre">'pcm_s16le',</span> <span class="pre">'pcm_s16le_planar',</span> <span class="pre">'pcm_s24be',</span> <span class="pre">'pcm_s24daud',</span> <span class="pre">'pcm_s24le',</span> <span class="pre">'pcm_s24le_planar',</span> <span class="pre">'pcm_s32be',</span> <span class="pre">'pcm_s32le',</span> <span class="pre">'pcm_s32le_planar',</span> <span class="pre">'pcm_s64be',</span> <span class="pre">'pcm_s64le',</span> <span class="pre">'pcm_s8',</span> <span class="pre">'pcm_s8_planar',</span> <span class="pre">'pcm_sga',</span> <span class="pre">'pcm_u16be',</span> <span class="pre">'pcm_u16le',</span> <span class="pre">'pcm_u24be',</span> <span class="pre">'pcm_u24le',</span> <span class="pre">'pcm_u32be',</span> <span class="pre">'pcm_u32le',</span> <span class="pre">'pcm_u8',</span> <span class="pre">'pcm_vidc',</span> <span class="pre">'pcx',</span> <span class="pre">'pdv',</span> <span class="pre">'pfm',</span> <span class="pre">'pgm',</span> <span class="pre">'pgmyuv',</span> <span class="pre">'pgx',</span> <span class="pre">'phm',</span> <span class="pre">'photocd',</span> <span class="pre">'pictor',</span> <span class="pre">'pixlet',</span> <span class="pre">'png',</span> <span class="pre">'ppm',</span> <span class="pre">'prores',</span> <span class="pre">'prosumer',</span> <span class="pre">'psd',</span> <span class="pre">'ptx',</span> <span class="pre">'qcelp',</span> <span class="pre">'qdm2',</span> <span class="pre">'qdmc',</span> <span class="pre">'qdraw',</span> <span class="pre">'qoi',</span> <span class="pre">'qpeg',</span> <span class="pre">'qtrle',</span> <span class="pre">'r10k',</span> <span class="pre">'r210',</span> <span class="pre">'ralf',</span> <span class="pre">'rasc',</span> <span class="pre">'rawvideo',</span> <span class="pre">'real_144',</span> <span class="pre">'real_288',</span> <span class="pre">'rka',</span> <span class="pre">'rl2',</span> <span class="pre">'roq_dpcm',</span> <span class="pre">'roqvideo',</span> <span class="pre">'rpza',</span> <span class="pre">'rscc',</span> <span class="pre">'rtv1',</span> <span class="pre">'rv10',</span> <span class="pre">'rv20',</span> <span class="pre">'rv30',</span> <span class="pre">'rv40',</span> <span class="pre">'s302m',</span> <span class="pre">'sanm',</span> <span class="pre">'sbc',</span> <span class="pre">'scpr',</span> <span class="pre">'screenpresso',</span> <span class="pre">'sdx2_dpcm',</span> <span class="pre">'sga',</span> <span class="pre">'sgi',</span> <span class="pre">'sgirle',</span> <span class="pre">'sheervideo',</span> <span class="pre">'shorten',</span> <span class="pre">'simbiosis_imx',</span> <span class="pre">'sipr',</span> <span class="pre">'siren',</span> <span class="pre">'smackaud',</span> <span class="pre">'smackvid',</span> <span class="pre">'smc',</span> <span class="pre">'smvjpeg',</span> <span class="pre">'snow',</span> <span class="pre">'sol_dpcm',</span> <span class="pre">'sonic',</span> <span class="pre">'sp5x',</span> <span class="pre">'speedhq',</span> <span class="pre">'speex',</span> <span class="pre">'srgc',</span> <span class="pre">'sunrast',</span> <span class="pre">'svq1',</span> <span class="pre">'svq3',</span> <span class="pre">'tak',</span> <span class="pre">'targa',</span> <span class="pre">'targa_y216',</span> <span class="pre">'tdsc',</span> <span class="pre">'theora',</span> <span class="pre">'thp',</span> <span class="pre">'tiertexseqvideo',</span> <span class="pre">'tiff',</span> <span class="pre">'tmv',</span> <span class="pre">'truehd',</span> <span class="pre">'truemotion1',</span> <span class="pre">'truemotion2',</span> <span class="pre">'truemotion2rt',</span> <span class="pre">'truespeech',</span> <span class="pre">'tscc2',</span> <span class="pre">'tta',</span> <span class="pre">'twinvq',</span> <span class="pre">'txd',</span> <span class="pre">'ultimotion',</span> <span class="pre">'utvideo',</span> <span class="pre">'v210',</span> <span class="pre">'v210x',</span> <span class="pre">'v308',</span> <span class="pre">'v408',</span> <span class="pre">'v410',</span> <span class="pre">'vb',</span> <span class="pre">'vble',</span> <span class="pre">'vbn',</span> <span class="pre">'vc1',</span> <span class="pre">'vc1_cuvid',</span> <span class="pre">'vc1_qsv',</span> <span class="pre">'vc1_v4l2m2m',</span> <span class="pre">'vc1image',</span> <span class="pre">'vcr1',</span> <span class="pre">'vmdaudio',</span> <span class="pre">'vmdvideo',</span> <span class="pre">'vmix',</span> <span class="pre">'vmnc',</span> <span class="pre">'vnull',</span> <span class="pre">'vorbis',</span> <span class="pre">'vp3',</span> <span class="pre">'vp4',</span> <span class="pre">'vp5',</span> <span class="pre">'vp6',</span> <span class="pre">'vp6a',</span> <span class="pre">'vp6f',</span> <span class="pre">'vp7',</span> <span class="pre">'vp8',</span> <span class="pre">'vp8_cuvid',</span> <span class="pre">'vp8_qsv',</span> <span class="pre">'vp8_v4l2m2m',</span> <span class="pre">'vp9',</span> <span class="pre">'vp9_cuvid',</span> <span class="pre">'vp9_qsv',</span> <span class="pre">'vp9_v4l2m2m',</span> <span class="pre">'vqavideo',</span> <span class="pre">'vqc',</span> <span class="pre">'wady_dpcm',</span> <span class="pre">'wavarc',</span> <span class="pre">'wavesynth',</span> <span class="pre">'wavpack',</span> <span class="pre">'wbmp',</span> <span class="pre">'wcmv',</span> <span class="pre">'webp',</span> <span class="pre">'wmalossless',</span> <span class="pre">'wmapro',</span> <span class="pre">'wmav1',</span> <span class="pre">'wmav2',</span> <span class="pre">'wmavoice',</span> <span class="pre">'wmv1',</span> <span class="pre">'wmv2',</span> <span class="pre">'wmv3',</span> <span class="pre">'wmv3image',</span> <span class="pre">'wnv1',</span> <span class="pre">'wrapped_avframe',</span> <span class="pre">'ws_snd1',</span> <span class="pre">'xan_dpcm',</span> <span class="pre">'xan_wc3',</span> <span class="pre">'xan_wc4',</span> <span class="pre">'xbin',</span> <span class="pre">'xbm',</span> <span class="pre">'xface',</span> <span class="pre">'xl',</span> <span class="pre">'xma1',</span> <span class="pre">'xma2',</span> <span class="pre">'xpm',</span> <span class="pre">'xwd',</span> <span class="pre">'y41p',</span> <span class="pre">'ylc',</span> <span class="pre">'yop',</span> <span class="pre">'yuv4',</span> <span class="pre">'zerocodec',</span> <span class="pre">'zlib',</span> <span class="pre">'zmbv']</span></em><a class="headerlink" href="#ffpyplayer.tools.codecs_dec" title="Link to this definition"></a></dt>
+<dd><p>A list of all the codecs available for decoding video and audio.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ffpyplayer.tools.pix_fmts">
+<span class="sig-prename descclassname"><span class="pre">tools.</span></span><span class="sig-name descname"><span class="pre">pix_fmts</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['0bgr',</span> <span class="pre">'0rgb',</span> <span class="pre">'abgr',</span> <span class="pre">'argb',</span> <span class="pre">'ayuv64be',</span> <span class="pre">'ayuv64le',</span> <span class="pre">'bayer_bggr16be',</span> <span class="pre">'bayer_bggr16le',</span> <span class="pre">'bayer_bggr8',</span> <span class="pre">'bayer_gbrg16be',</span> <span class="pre">'bayer_gbrg16le',</span> <span class="pre">'bayer_gbrg8',</span> <span class="pre">'bayer_grbg16be',</span> <span class="pre">'bayer_grbg16le',</span> <span class="pre">'bayer_grbg8',</span> <span class="pre">'bayer_rggb16be',</span> <span class="pre">'bayer_rggb16le',</span> <span class="pre">'bayer_rggb8',</span> <span class="pre">'bgr0',</span> <span class="pre">'bgr24',</span> <span class="pre">'bgr4',</span> <span class="pre">'bgr444be',</span> <span class="pre">'bgr444le',</span> <span class="pre">'bgr48be',</span> <span class="pre">'bgr48le',</span> <span class="pre">'bgr4_byte',</span> <span class="pre">'bgr555be',</span> <span class="pre">'bgr555le',</span> <span class="pre">'bgr565be',</span> <span class="pre">'bgr565le',</span> <span class="pre">'bgr8',</span> <span class="pre">'bgra',</span> <span class="pre">'bgra64be',</span> <span class="pre">'bgra64le',</span> <span class="pre">'cuda',</span> <span class="pre">'d3d11',</span> <span class="pre">'d3d11va_vld',</span> <span class="pre">'drm_prime',</span> <span class="pre">'dxva2_vld',</span> <span class="pre">'gbrap',</span> <span class="pre">'gbrap10be',</span> <span class="pre">'gbrap10le',</span> <span class="pre">'gbrap12be',</span> <span class="pre">'gbrap12le',</span> <span class="pre">'gbrap14be',</span> <span class="pre">'gbrap14le',</span> <span class="pre">'gbrap16be',</span> <span class="pre">'gbrap16le',</span> <span class="pre">'gbrapf32be',</span> <span class="pre">'gbrapf32le',</span> <span class="pre">'gbrp',</span> <span class="pre">'gbrp10be',</span> <span class="pre">'gbrp10le',</span> <span class="pre">'gbrp12be',</span> <span class="pre">'gbrp12le',</span> <span class="pre">'gbrp14be',</span> <span class="pre">'gbrp14le',</span> <span class="pre">'gbrp16be',</span> <span class="pre">'gbrp16le',</span> <span class="pre">'gbrp9be',</span> <span class="pre">'gbrp9le',</span> <span class="pre">'gbrpf32be',</span> <span class="pre">'gbrpf32le',</span> <span class="pre">'gray',</span> <span class="pre">'gray10be',</span> <span class="pre">'gray10le',</span> <span class="pre">'gray12be',</span> <span class="pre">'gray12le',</span> <span class="pre">'gray14be',</span> <span class="pre">'gray14le',</span> <span class="pre">'gray16be',</span> <span class="pre">'gray16le',</span> <span class="pre">'gray9be',</span> <span class="pre">'gray9le',</span> <span class="pre">'grayf32be',</span> <span class="pre">'grayf32le',</span> <span class="pre">'mediacodec',</span> <span class="pre">'mmal',</span> <span class="pre">'monob',</span> <span class="pre">'monow',</span> <span class="pre">'nv12',</span> <span class="pre">'nv16',</span> <span class="pre">'nv20be',</span> <span class="pre">'nv20le',</span> <span class="pre">'nv21',</span> <span class="pre">'nv24',</span> <span class="pre">'nv42',</span> <span class="pre">'opencl',</span> <span class="pre">'p010be',</span> <span class="pre">'p010le',</span> <span class="pre">'p012be',</span> <span class="pre">'p012le',</span> <span class="pre">'p016be',</span> <span class="pre">'p016le',</span> <span class="pre">'p210be',</span> <span class="pre">'p210le',</span> <span class="pre">'p212be',</span> <span class="pre">'p212le',</span> <span class="pre">'p216be',</span> <span class="pre">'p216le',</span> <span class="pre">'p410be',</span> <span class="pre">'p410le',</span> <span class="pre">'p412be',</span> <span class="pre">'p412le',</span> <span class="pre">'p416be',</span> <span class="pre">'p416le',</span> <span class="pre">'pal8',</span> <span class="pre">'qsv',</span> <span class="pre">'rgb0',</span> <span class="pre">'rgb24',</span> <span class="pre">'rgb4',</span> <span class="pre">'rgb444be',</span> <span class="pre">'rgb444le',</span> <span class="pre">'rgb48be',</span> <span class="pre">'rgb48le',</span> <span class="pre">'rgb4_byte',</span> <span class="pre">'rgb555be',</span> <span class="pre">'rgb555le',</span> <span class="pre">'rgb565be',</span> <span class="pre">'rgb565le',</span> <span class="pre">'rgb8',</span> <span class="pre">'rgba',</span> <span class="pre">'rgba64be',</span> <span class="pre">'rgba64le',</span> <span class="pre">'rgbaf16be',</span> <span class="pre">'rgbaf16le',</span> <span class="pre">'rgbaf32be',</span> <span class="pre">'rgbaf32le',</span> <span class="pre">'rgbf32be',</span> <span class="pre">'rgbf32le',</span> <span class="pre">'uyvy422',</span> <span class="pre">'uyyvyy411',</span> <span class="pre">'vaapi',</span> <span class="pre">'vdpau',</span> <span class="pre">'videotoolbox_vld',</span> <span class="pre">'vulkan',</span> <span class="pre">'vuya',</span> <span class="pre">'vuyx',</span> <span class="pre">'x2bgr10be',</span> <span class="pre">'x2bgr10le',</span> <span class="pre">'x2rgb10be',</span> <span class="pre">'x2rgb10le',</span> <span class="pre">'xv30be',</span> <span class="pre">'xv30le',</span> <span class="pre">'xv36be',</span> <span class="pre">'xv36le',</span> <span class="pre">'xvmc',</span> <span class="pre">'xyz12be',</span> <span class="pre">'xyz12le',</span> <span class="pre">'y210be',</span> <span class="pre">'y210le',</span> <span class="pre">'y212be',</span> <span class="pre">'y212le',</span> <span class="pre">'ya16be',</span> <span class="pre">'ya16le',</span> <span class="pre">'ya8',</span> <span class="pre">'yuv410p',</span> <span class="pre">'yuv411p',</span> <span class="pre">'yuv420p',</span> <span class="pre">'yuv420p10be',</span> <span class="pre">'yuv420p10le',</span> <span class="pre">'yuv420p12be',</span> <span class="pre">'yuv420p12le',</span> <span class="pre">'yuv420p14be',</span> <span class="pre">'yuv420p14le',</span> <span class="pre">'yuv420p16be',</span> <span class="pre">'yuv420p16le',</span> <span class="pre">'yuv420p9be',</span> <span class="pre">'yuv420p9le',</span> <span class="pre">'yuv422p',</span> <span class="pre">'yuv422p10be',</span> <span class="pre">'yuv422p10le',</span> <span class="pre">'yuv422p12be',</span> <span class="pre">'yuv422p12le',</span> <span class="pre">'yuv422p14be',</span> <span class="pre">'yuv422p14le',</span> <span class="pre">'yuv422p16be',</span> <span class="pre">'yuv422p16le',</span> <span class="pre">'yuv422p9be',</span> <span class="pre">'yuv422p9le',</span> <span class="pre">'yuv440p',</span> <span class="pre">'yuv440p10be',</span> <span class="pre">'yuv440p10le',</span> <span class="pre">'yuv440p12be',</span> <span class="pre">'yuv440p12le',</span> <span class="pre">'yuv444p',</span> <span class="pre">'yuv444p10be',</span> <span class="pre">'yuv444p10le',</span> <span class="pre">'yuv444p12be',</span> <span class="pre">'yuv444p12le',</span> <span class="pre">'yuv444p14be',</span> <span class="pre">'yuv444p14le',</span> <span class="pre">'yuv444p16be',</span> <span class="pre">'yuv444p16le',</span> <span class="pre">'yuv444p9be',</span> <span class="pre">'yuv444p9le',</span> <span class="pre">'yuva420p',</span> <span class="pre">'yuva420p10be',</span> <span class="pre">'yuva420p10le',</span> <span class="pre">'yuva420p16be',</span> <span class="pre">'yuva420p16le',</span> <span class="pre">'yuva420p9be',</span> <span class="pre">'yuva420p9le',</span> <span class="pre">'yuva422p',</span> <span class="pre">'yuva422p10be',</span> <span class="pre">'yuva422p10le',</span> <span class="pre">'yuva422p12be',</span> <span class="pre">'yuva422p12le',</span> <span class="pre">'yuva422p16be',</span> <span class="pre">'yuva422p16le',</span> <span class="pre">'yuva422p9be',</span> <span class="pre">'yuva422p9le',</span> <span class="pre">'yuva444p',</span> <span class="pre">'yuva444p10be',</span> <span class="pre">'yuva444p10le',</span> <span class="pre">'yuva444p12be',</span> <span class="pre">'yuva444p12le',</span> <span class="pre">'yuva444p16be',</span> <span class="pre">'yuva444p16le',</span> <span class="pre">'yuva444p9be',</span> <span class="pre">'yuva444p9le',</span> <span class="pre">'yuvj411p',</span> <span class="pre">'yuvj420p',</span> <span class="pre">'yuvj422p',</span> <span class="pre">'yuvj440p',</span> <span class="pre">'yuvj444p',</span> <span class="pre">'yuyv422',</span> <span class="pre">'yvyu422']</span></em><a class="headerlink" href="#ffpyplayer.tools.pix_fmts" title="Link to this definition"></a></dt>
+<dd><p>A list of all the pixel formats available to ffmpeg.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ffpyplayer.tools.formats_in">
+<span class="sig-prename descclassname"><span class="pre">tools.</span></span><span class="sig-name descname"><span class="pre">formats_in</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['3dostr',</span> <span class="pre">'3g2',</span> <span class="pre">'3gp',</span> <span class="pre">'4xm',</span> <span class="pre">'aa',</span> <span class="pre">'aac',</span> <span class="pre">'aax',</span> <span class="pre">'ac3',</span> <span class="pre">'ac4',</span> <span class="pre">'ace',</span> <span class="pre">'acm',</span> <span class="pre">'act',</span> <span class="pre">'adf',</span> <span class="pre">'adp',</span> <span class="pre">'ads',</span> <span class="pre">'adx',</span> <span class="pre">'aea',</span> <span class="pre">'afc',</span> <span class="pre">'aiff',</span> <span class="pre">'aix',</span> <span class="pre">'alaw',</span> <span class="pre">'alias_pix',</span> <span class="pre">'alp',</span> <span class="pre">'alsa',</span> <span class="pre">'amr',</span> <span class="pre">'amrnb',</span> <span class="pre">'amrwb',</span> <span class="pre">'anm',</span> <span class="pre">'apac',</span> <span class="pre">'apc',</span> <span class="pre">'ape',</span> <span class="pre">'apm',</span> <span class="pre">'apng',</span> <span class="pre">'aptx',</span> <span class="pre">'aptx_hd',</span> <span class="pre">'aqtitle',</span> <span class="pre">'argo_asf',</span> <span class="pre">'argo_brp',</span> <span class="pre">'argo_cvg',</span> <span class="pre">'asf',</span> <span class="pre">'asf_o',</span> <span class="pre">'ass',</span> <span class="pre">'ast',</span> <span class="pre">'au',</span> <span class="pre">'av1',</span> <span class="pre">'avi',</span> <span class="pre">'avr',</span> <span class="pre">'avs',</span> <span class="pre">'avs2',</span> <span class="pre">'avs3',</span> <span class="pre">'bethsoftvid',</span> <span class="pre">'bfi',</span> <span class="pre">'bfstm',</span> <span class="pre">'bin',</span> <span class="pre">'bink',</span> <span class="pre">'binka',</span> <span class="pre">'bit',</span> <span class="pre">'bitpacked',</span> <span class="pre">'bmp_pipe',</span> <span class="pre">'bmv',</span> <span class="pre">'boa',</span> <span class="pre">'bonk',</span> <span class="pre">'brender_pix',</span> <span class="pre">'brstm',</span> <span class="pre">'c93',</span> <span class="pre">'caf',</span> <span class="pre">'cavsvideo',</span> <span class="pre">'cdg',</span> <span class="pre">'cdxl',</span> <span class="pre">'cine',</span> <span class="pre">'codec2',</span> <span class="pre">'codec2raw',</span> <span class="pre">'concat',</span> <span class="pre">'cri_pipe',</span> <span class="pre">'dash',</span> <span class="pre">'data',</span> <span class="pre">'daud',</span> <span class="pre">'dcstr',</span> <span class="pre">'dds_pipe',</span> <span class="pre">'derf',</span> <span class="pre">'dfa',</span> <span class="pre">'dfpwm',</span> <span class="pre">'dhav',</span> <span class="pre">'dirac',</span> <span class="pre">'dnxhd',</span> <span class="pre">'dpx_pipe',</span> <span class="pre">'dsf',</span> <span class="pre">'dsicin',</span> <span class="pre">'dss',</span> <span class="pre">'dts',</span> <span class="pre">'dtshd',</span> <span class="pre">'dv',</span> <span class="pre">'dvbsub',</span> <span class="pre">'dvbtxt',</span> <span class="pre">'dxa',</span> <span class="pre">'ea',</span> <span class="pre">'ea_cdata',</span> <span class="pre">'eac3',</span> <span class="pre">'epaf',</span> <span class="pre">'evc',</span> <span class="pre">'exr_pipe',</span> <span class="pre">'f32be',</span> <span class="pre">'f32le',</span> <span class="pre">'f64be',</span> <span class="pre">'f64le',</span> <span class="pre">'fbdev',</span> <span class="pre">'ffmetadata',</span> <span class="pre">'film_cpk',</span> <span class="pre">'filmstrip',</span> <span class="pre">'fits',</span> <span class="pre">'flac',</span> <span class="pre">'flic',</span> <span class="pre">'flv',</span> <span class="pre">'frm',</span> <span class="pre">'fsb',</span> <span class="pre">'fwse',</span> <span class="pre">'g722',</span> <span class="pre">'g723_1',</span> <span class="pre">'g726',</span> <span class="pre">'g726le',</span> <span class="pre">'g729',</span> <span class="pre">'gdv',</span> <span class="pre">'gem_pipe',</span> <span class="pre">'genh',</span> <span class="pre">'gif',</span> <span class="pre">'gif_pipe',</span> <span class="pre">'gsm',</span> <span class="pre">'gxf',</span> <span class="pre">'h261',</span> <span class="pre">'h263',</span> <span class="pre">'h264',</span> <span class="pre">'hca',</span> <span class="pre">'hcom',</span> <span class="pre">'hdr_pipe',</span> <span class="pre">'hevc',</span> <span class="pre">'hls',</span> <span class="pre">'hnm',</span> <span class="pre">'ico',</span> <span class="pre">'idcin',</span> <span class="pre">'idf',</span> <span class="pre">'iec61883',</span> <span class="pre">'iff',</span> <span class="pre">'ifv',</span> <span class="pre">'ilbc',</span> <span class="pre">'image2',</span> <span class="pre">'image2pipe',</span> <span class="pre">'imf',</span> <span class="pre">'ingenient',</span> <span class="pre">'ipmovie',</span> <span class="pre">'ipu',</span> <span class="pre">'ircam',</span> <span class="pre">'iss',</span> <span class="pre">'iv8',</span> <span class="pre">'ivf',</span> <span class="pre">'ivr',</span> <span class="pre">'j2k_pipe',</span> <span class="pre">'jack',</span> <span class="pre">'jacosub',</span> <span class="pre">'jpeg_pipe',</span> <span class="pre">'jpegls_pipe',</span> <span class="pre">'jpegxl_anim',</span> <span class="pre">'jpegxl_pipe',</span> <span class="pre">'jv',</span> <span class="pre">'kmsgrab',</span> <span class="pre">'kux',</span> <span class="pre">'kvag',</span> <span class="pre">'laf',</span> <span class="pre">'lavfi',</span> <span class="pre">'libcdio',</span> <span class="pre">'libdc1394',</span> <span class="pre">'libgme',</span> <span class="pre">'libopenmpt',</span> <span class="pre">'live_flv',</span> <span class="pre">'lmlm4',</span> <span class="pre">'loas',</span> <span class="pre">'lrc',</span> <span class="pre">'luodat',</span> <span class="pre">'lvf',</span> <span class="pre">'lxf',</span> <span class="pre">'m4a',</span> <span class="pre">'m4v',</span> <span class="pre">'matroska',</span> <span class="pre">'mca',</span> <span class="pre">'mcc',</span> <span class="pre">'mgsts',</span> <span class="pre">'microdvd',</span> <span class="pre">'mj2',</span> <span class="pre">'mjpeg',</span> <span class="pre">'mjpeg_2000',</span> <span class="pre">'mlp',</span> <span class="pre">'mlv',</span> <span class="pre">'mm',</span> <span class="pre">'mmf',</span> <span class="pre">'mods',</span> <span class="pre">'moflex',</span> <span class="pre">'mov',</span> <span class="pre">'mp3',</span> <span class="pre">'mp4',</span> <span class="pre">'mpc',</span> <span class="pre">'mpc8',</span> <span class="pre">'mpeg',</span> <span class="pre">'mpegts',</span> <span class="pre">'mpegtsraw',</span> <span class="pre">'mpegvideo',</span> <span class="pre">'mpjpeg',</span> <span class="pre">'mpl2',</span> <span class="pre">'mpsub',</span> <span class="pre">'msf',</span> <span class="pre">'msnwctcp',</span> <span class="pre">'msp',</span> <span class="pre">'mtaf',</span> <span class="pre">'mtv',</span> <span class="pre">'mulaw',</span> <span class="pre">'musx',</span> <span class="pre">'mv',</span> <span class="pre">'mvi',</span> <span class="pre">'mxf',</span> <span class="pre">'mxg',</span> <span class="pre">'nc',</span> <span class="pre">'nistsphere',</span> <span class="pre">'nsp',</span> <span class="pre">'nsv',</span> <span class="pre">'nut',</span> <span class="pre">'nuv',</span> <span class="pre">'obu',</span> <span class="pre">'ogg',</span> <span class="pre">'oma',</span> <span class="pre">'openal',</span> <span class="pre">'osq',</span> <span class="pre">'oss',</span> <span class="pre">'paf',</span> <span class="pre">'pam_pipe',</span> <span class="pre">'pbm_pipe',</span> <span class="pre">'pcx_pipe',</span> <span class="pre">'pdv',</span> <span class="pre">'pfm_pipe',</span> <span class="pre">'pgm_pipe',</span> <span class="pre">'pgmyuv_pipe',</span> <span class="pre">'pgx_pipe',</span> <span class="pre">'phm_pipe',</span> <span class="pre">'photocd_pipe',</span> <span class="pre">'pictor_pipe',</span> <span class="pre">'pjs',</span> <span class="pre">'pmp',</span> <span class="pre">'png_pipe',</span> <span class="pre">'pp_bnk',</span> <span class="pre">'ppm_pipe',</span> <span class="pre">'psd_pipe',</span> <span class="pre">'psxstr',</span> <span class="pre">'pulse',</span> <span class="pre">'pva',</span> <span class="pre">'pvf',</span> <span class="pre">'qcp',</span> <span class="pre">'qdraw_pipe',</span> <span class="pre">'qoi_pipe',</span> <span class="pre">'r3d',</span> <span class="pre">'rawvideo',</span> <span class="pre">'realtext',</span> <span class="pre">'redspark',</span> <span class="pre">'rka',</span> <span class="pre">'rl2',</span> <span class="pre">'rm',</span> <span class="pre">'roq',</span> <span class="pre">'rpl',</span> <span class="pre">'rsd',</span> <span class="pre">'rso',</span> <span class="pre">'rtp',</span> <span class="pre">'rtsp',</span> <span class="pre">'s16be',</span> <span class="pre">'s16le',</span> <span class="pre">'s24be',</span> <span class="pre">'s24le',</span> <span class="pre">'s32be',</span> <span class="pre">'s32le',</span> <span class="pre">'s337m',</span> <span class="pre">'s8',</span> <span class="pre">'sami',</span> <span class="pre">'sap',</span> <span class="pre">'sbc',</span> <span class="pre">'sbg',</span> <span class="pre">'scc',</span> <span class="pre">'scd',</span> <span class="pre">'sdns',</span> <span class="pre">'sdp',</span> <span class="pre">'sdr2',</span> <span class="pre">'sds',</span> <span class="pre">'sdx',</span> <span class="pre">'ser',</span> <span class="pre">'sga',</span> <span class="pre">'sgi_pipe',</span> <span class="pre">'shn',</span> <span class="pre">'siff',</span> <span class="pre">'simbiosis_imx',</span> <span class="pre">'sln',</span> <span class="pre">'smjpeg',</span> <span class="pre">'smk',</span> <span class="pre">'smush',</span> <span class="pre">'sol',</span> <span class="pre">'sox',</span> <span class="pre">'spdif',</span> <span class="pre">'srt',</span> <span class="pre">'stl',</span> <span class="pre">'subviewer',</span> <span class="pre">'subviewer1',</span> <span class="pre">'sunrast_pipe',</span> <span class="pre">'sup',</span> <span class="pre">'svag',</span> <span class="pre">'svg_pipe',</span> <span class="pre">'svs',</span> <span class="pre">'swf',</span> <span class="pre">'tak',</span> <span class="pre">'tedcaptions',</span> <span class="pre">'thp',</span> <span class="pre">'tiertexseq',</span> <span class="pre">'tiff_pipe',</span> <span class="pre">'tmv',</span> <span class="pre">'truehd',</span> <span class="pre">'tta',</span> <span class="pre">'tty',</span> <span class="pre">'txd',</span> <span class="pre">'ty',</span> <span class="pre">'u16be',</span> <span class="pre">'u16le',</span> <span class="pre">'u24be',</span> <span class="pre">'u24le',</span> <span class="pre">'u32be',</span> <span class="pre">'u32le',</span> <span class="pre">'u8',</span> <span class="pre">'usm',</span> <span class="pre">'v210',</span> <span class="pre">'v210x',</span> <span class="pre">'v4l2',</span> <span class="pre">'vag',</span> <span class="pre">'vbn_pipe',</span> <span class="pre">'vc1',</span> <span class="pre">'vc1test',</span> <span class="pre">'vidc',</span> <span class="pre">'video4linux2',</span> <span class="pre">'vividas',</span> <span class="pre">'vivo',</span> <span class="pre">'vmd',</span> <span class="pre">'vobsub',</span> <span class="pre">'voc',</span> <span class="pre">'vpk',</span> <span class="pre">'vplayer',</span> <span class="pre">'vqf',</span> <span class="pre">'vvc',</span> <span class="pre">'w64',</span> <span class="pre">'wady',</span> <span class="pre">'wav',</span> <span class="pre">'wavarc',</span> <span class="pre">'wc3movie',</span> <span class="pre">'webm',</span> <span class="pre">'webm_dash_manifest',</span> <span class="pre">'webp_pipe',</span> <span class="pre">'webvtt',</span> <span class="pre">'wsaud',</span> <span class="pre">'wsd',</span> <span class="pre">'wsvqa',</span> <span class="pre">'wtv',</span> <span class="pre">'wv',</span> <span class="pre">'wve',</span> <span class="pre">'x11grab',</span> <span class="pre">'xa',</span> <span class="pre">'xbin',</span> <span class="pre">'xbm_pipe',</span> <span class="pre">'xmd',</span> <span class="pre">'xmv',</span> <span class="pre">'xpm_pipe',</span> <span class="pre">'xvag',</span> <span class="pre">'xwd_pipe',</span> <span class="pre">'xwma',</span> <span class="pre">'yop',</span> <span class="pre">'yuv4mpegpipe']</span></em><a class="headerlink" href="#ffpyplayer.tools.formats_in" title="Link to this definition"></a></dt>
+<dd><p>A list of all the formats (e.g. file formats) available for reading.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ffpyplayer.tools.formats_out">
+<span class="sig-prename descclassname"><span class="pre">tools.</span></span><span class="sig-name descname"><span class="pre">formats_out</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['3g2',</span> <span class="pre">'3gp',</span> <span class="pre">'a64',</span> <span class="pre">'ac3',</span> <span class="pre">'ac4',</span> <span class="pre">'adts',</span> <span class="pre">'adx',</span> <span class="pre">'aiff',</span> <span class="pre">'alaw',</span> <span class="pre">'alp',</span> <span class="pre">'alsa',</span> <span class="pre">'amr',</span> <span class="pre">'amv',</span> <span class="pre">'apm',</span> <span class="pre">'apng',</span> <span class="pre">'aptx',</span> <span class="pre">'aptx_hd',</span> <span class="pre">'argo_asf',</span> <span class="pre">'argo_cvg',</span> <span class="pre">'asf',</span> <span class="pre">'asf_stream',</span> <span class="pre">'ass',</span> <span class="pre">'ast',</span> <span class="pre">'au',</span> <span class="pre">'avi',</span> <span class="pre">'avif',</span> <span class="pre">'avm2',</span> <span class="pre">'avs2',</span> <span class="pre">'avs3',</span> <span class="pre">'bit',</span> <span class="pre">'caca',</span> <span class="pre">'caf',</span> <span class="pre">'cavsvideo',</span> <span class="pre">'chromaprint',</span> <span class="pre">'codec2',</span> <span class="pre">'codec2raw',</span> <span class="pre">'crc',</span> <span class="pre">'dash',</span> <span class="pre">'data',</span> <span class="pre">'daud',</span> <span class="pre">'dfpwm',</span> <span class="pre">'dirac',</span> <span class="pre">'dnxhd',</span> <span class="pre">'dts',</span> <span class="pre">'dv',</span> <span class="pre">'dvd',</span> <span class="pre">'eac3',</span> <span class="pre">'evc',</span> <span class="pre">'f32be',</span> <span class="pre">'f32le',</span> <span class="pre">'f4v',</span> <span class="pre">'f64be',</span> <span class="pre">'f64le',</span> <span class="pre">'fbdev',</span> <span class="pre">'ffmetadata',</span> <span class="pre">'fifo',</span> <span class="pre">'fifo_test',</span> <span class="pre">'film_cpk',</span> <span class="pre">'filmstrip',</span> <span class="pre">'fits',</span> <span class="pre">'flac',</span> <span class="pre">'flv',</span> <span class="pre">'framecrc',</span> <span class="pre">'framehash',</span> <span class="pre">'framemd5',</span> <span class="pre">'g722',</span> <span class="pre">'g723_1',</span> <span class="pre">'g726',</span> <span class="pre">'g726le',</span> <span class="pre">'gif',</span> <span class="pre">'gsm',</span> <span class="pre">'gxf',</span> <span class="pre">'h261',</span> <span class="pre">'h263',</span> <span class="pre">'h264',</span> <span class="pre">'hash',</span> <span class="pre">'hds',</span> <span class="pre">'hevc',</span> <span class="pre">'hls',</span> <span class="pre">'ico',</span> <span class="pre">'ilbc',</span> <span class="pre">'image2',</span> <span class="pre">'image2pipe',</span> <span class="pre">'ipod',</span> <span class="pre">'ircam',</span> <span class="pre">'ismv',</span> <span class="pre">'ivf',</span> <span class="pre">'jacosub',</span> <span class="pre">'kvag',</span> <span class="pre">'latm',</span> <span class="pre">'lrc',</span> <span class="pre">'m4v',</span> <span class="pre">'matroska',</span> <span class="pre">'matroska',</span> <span class="pre">'md5',</span> <span class="pre">'microdvd',</span> <span class="pre">'mjpeg',</span> <span class="pre">'mkvtimestamp_v2',</span> <span class="pre">'mlp',</span> <span class="pre">'mmf',</span> <span class="pre">'mov',</span> <span class="pre">'mp2',</span> <span class="pre">'mp3',</span> <span class="pre">'mp4',</span> <span class="pre">'mpeg',</span> <span class="pre">'mpeg1video',</span> <span class="pre">'mpeg2video',</span> <span class="pre">'mpegts',</span> <span class="pre">'mpjpeg',</span> <span class="pre">'mulaw',</span> <span class="pre">'mxf',</span> <span class="pre">'mxf_d10',</span> <span class="pre">'mxf_opatom',</span> <span class="pre">'null',</span> <span class="pre">'nut',</span> <span class="pre">'obu',</span> <span class="pre">'oga',</span> <span class="pre">'ogg',</span> <span class="pre">'ogv',</span> <span class="pre">'oma',</span> <span class="pre">'opengl',</span> <span class="pre">'opus',</span> <span class="pre">'oss',</span> <span class="pre">'psp',</span> <span class="pre">'pulse',</span> <span class="pre">'rawvideo',</span> <span class="pre">'rm',</span> <span class="pre">'roq',</span> <span class="pre">'rso',</span> <span class="pre">'rtp',</span> <span class="pre">'rtp_mpegts',</span> <span class="pre">'rtsp',</span> <span class="pre">'s16be',</span> <span class="pre">'s16le',</span> <span class="pre">'s24be',</span> <span class="pre">'s24le',</span> <span class="pre">'s32be',</span> <span class="pre">'s32le',</span> <span class="pre">'s8',</span> <span class="pre">'sap',</span> <span class="pre">'sbc',</span> <span class="pre">'scc',</span> <span class="pre">'sdl',</span> <span class="pre">'sdl2',</span> <span class="pre">'segment',</span> <span class="pre">'smjpeg',</span> <span class="pre">'smoothstreaming',</span> <span class="pre">'sox',</span> <span class="pre">'spdif',</span> <span class="pre">'spx',</span> <span class="pre">'srt',</span> <span class="pre">'ssegment',</span> <span class="pre">'stream_segment',</span> <span class="pre">'streamhash',</span> <span class="pre">'sup',</span> <span class="pre">'svcd',</span> <span class="pre">'swf',</span> <span class="pre">'tee',</span> <span class="pre">'truehd',</span> <span class="pre">'tta',</span> <span class="pre">'ttml',</span> <span class="pre">'u16be',</span> <span class="pre">'u16le',</span> <span class="pre">'u24be',</span> <span class="pre">'u24le',</span> <span class="pre">'u32be',</span> <span class="pre">'u32le',</span> <span class="pre">'u8',</span> <span class="pre">'uncodedframecrc',</span> <span class="pre">'v4l2',</span> <span class="pre">'vc1',</span> <span class="pre">'vc1test',</span> <span class="pre">'vcd',</span> <span class="pre">'vidc',</span> <span class="pre">'video4linux2',</span> <span class="pre">'vob',</span> <span class="pre">'voc',</span> <span class="pre">'vvc',</span> <span class="pre">'w64',</span> <span class="pre">'wav',</span> <span class="pre">'webm',</span> <span class="pre">'webm_chunk',</span> <span class="pre">'webm_dash_manifest',</span> <span class="pre">'webp',</span> <span class="pre">'webvtt',</span> <span class="pre">'wsaud',</span> <span class="pre">'wtv',</span> <span class="pre">'wv',</span> <span class="pre">'xv',</span> <span class="pre">'yuv4mpegpipe']</span></em><a class="headerlink" href="#ffpyplayer.tools.formats_out" title="Link to this definition"></a></dt>
+<dd><p>A list of all the formats (e.g. file formats) available for writing.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pic.html" class="btn btn-neutral float-left" title="Images" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2013, Matthew Einhorn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
