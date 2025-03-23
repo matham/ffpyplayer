@@ -707,12 +707,15 @@ def list_dshow_devices():
 
     # list devices
     list_dshow_opts(res, b'dummy', b'list_devices')
+    # primary dev name
     pname = re.compile(' *\[dshow *@ *[\w]+\] *"(.+)" *\\((video|audio)\\) *')
+    # alternate dev name
     apname = re.compile(' *\[dshow *@ *[\w]+\] *Alternative name *"(.+)" *')
     m = None
     for msg, level in res:
         message = msg.decode('utf8')
 
+        # do we match a primary name - i.e. next device
         m_temp = pname.match(message)
         if m_temp:
             m = m_temp
@@ -722,6 +725,7 @@ def list_dshow_devices():
             continue
 
         m_temp = apname.match(message)
+        # if we match alternate name and already have primary, then we're adding it
         if m_temp and m:
             curr[m_temp.group(1)] = []
             name_map[m_temp.group(1)] = m.group(1)
@@ -730,6 +734,8 @@ def list_dshow_devices():
         else:
             msg2 = message.encode('utf8')
             av_log(NULL, loglevels[level], '%s', msg2)
+
+        m = None
 
     # list video devices options
     vid_opts = re.compile(' *\[dshow *@ *[\w]+\] +(pixel_format|vcodec)=([\w]+) +min +s=\d+x\d+ +fps=(\d+)\

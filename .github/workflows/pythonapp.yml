@@ -19,11 +19,11 @@ jobs:
       FFMPEG_ROOT: ~/ff_deps/ffmpeg
     strategy:
       matrix:
-        python: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python: [ '3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4.2.2
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5.4.0
       with:
         python-version: ${{ matrix.python }}
     - name: Get dependencies
@@ -71,12 +71,12 @@ jobs:
         $env:FFMPEG_ROOT=(get-item $env:FFMPEG_ROOT).FullName
         python setup.py bdist_wheel
     - name: Upload wheel
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4.6.2
       with:
-        name: py_wheel
+        name: py_wheel-win-${{ matrix.python }}
         path: dist
     - name: Upload to GitHub Release
-      uses: softprops/action-gh-release@v0.1.15
+      uses: softprops/action-gh-release@v2.2.1
       if: startsWith(github.ref, 'refs/tags/')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,14 +124,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: windows_wheels_tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.2.2
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: 3.x
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.2.1
         with:
-          name: py_wheel
+          pattern: py_wheel-*
+          merge-multiple: true
           path: dist
       - name: Install
         run: |
@@ -158,14 +159,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: linux_wheels
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.2.2
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: 3.x
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.2.1
         with:
-          name: py_wheel
+          pattern: py_wheel-*
+          merge-multiple: true
           path: dist
       - name: Install
         run: |
@@ -197,26 +199,17 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         cibw_archs: [ x86_64 ]
-        cibw_build: [ 'cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64' ]
-#        include:
-#          - cibw_archs: aarch64
-#            cibw_build: cp37-manylinux_aarch64
-#          - cibw_archs: aarch64
-#            cibw_build: cp38-manylinux_aarch64
-#          - cibw_archs: aarch64
-#            cibw_build: cp39-manylinux_aarch64
-#          - cibw_archs: aarch64
-#            cibw_build: cp310-manylinux_aarch64
+        cibw_build: [ 'cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64' ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.2.2
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: 3.x
       - name: Set up QEMU
         if: ${{ matrix.cibw_archs == 'aarch64' }}
-        uses: docker/setup-qemu-action@v1
-      - uses: actions/cache@v3
+        uses: docker/setup-qemu-action@v3.6.0
+      - uses: actions/cache@v4.2.3
         id: deps-cache
         with:
           path: ffmpeg_build
@@ -233,12 +226,12 @@ jobs:
         run: |
           python -m cibuildwheel --output-dir dist
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: py_wheel
+          name: py_wheel-linux-${{ matrix.os }}-${{ matrix.cibw_archs }}
           path: dist
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v0.1.15
+        uses: softprops/action-gh-release@v2.2.1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -259,7 +252,7 @@ jobs:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
       CIBW_BUILD_VERBOSITY: 3
-      CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+      CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
       CIBW_ARCHS_MACOS: ${{ matrix.arch }}
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
         DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
@@ -268,15 +261,15 @@ jobs:
       matrix:
         arch: [ "x86_64", "arm64" ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.2.2
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: 3.x
 
       - name: Cache ffmpeg
         id: cache-ffmpeg
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.3
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}
           key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}
@@ -294,24 +287,25 @@ jobs:
           python -m cibuildwheel --output-dir dist
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: py_wheel
+          name: py_wheel-osx-${{ matrix.arch }}
           path: dist
 
   osx_wheels_fuse_test_upload:
     runs-on: macos-13
     needs: osx_wheels_create
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.2.2
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: 3.x
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.2.1
         with:
-          name: py_wheel
+          pattern: py_wheel-*
+          merge-multiple: true
           path: dist
 
       - name: Fuse FFmpeg arm64/x86
@@ -321,13 +315,13 @@ jobs:
           bash ../.ci/merge_osx_deps.sh
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: py_wheel
+          name: py_wheel-osx-fused
           path: dist
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v0.1.15
+        uses: softprops/action-gh-release@v2.2.1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -356,9 +350,9 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.2.2
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: 3.x
       - name: Install
