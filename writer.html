@@ -1,0 +1,312 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writer &mdash; FFPyPlayer  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Images" href="pic.html" />
+    <link rel="prev" title="Player" href="player.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FFPyPlayer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The FFPyPlayer API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="player.html">Player</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Writer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-ffpyplayer.writer"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.writer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ffmpeg-based-media-writer">FFmpeg based media writer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.writer.MediaWriter"><code class="docutils literal notranslate"><span class="pre">MediaWriter</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pic.html">Images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools.html">Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FFPyPlayer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="api.html">The FFPyPlayer API</a></li>
+      <li class="breadcrumb-item active">Writer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/writer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="writer">
+<span id="writer-api"></span><h1>Writer<a class="headerlink" href="#writer" title="Link to this heading"></a></h1>
+<section id="module-ffpyplayer.writer">
+<span id="ffpyplayer-writer"></span><h2><a class="reference internal" href="#module-ffpyplayer.writer" title="ffpyplayer.writer"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.writer</span></code></a><a class="headerlink" href="#module-ffpyplayer.writer" title="Link to this heading"></a></h2>
+<section id="ffmpeg-based-media-writer">
+<h3>FFmpeg based media writer<a class="headerlink" href="#ffmpeg-based-media-writer" title="Link to this heading"></a></h3>
+<p>A FFmpeg based python media writer. See <a class="reference internal" href="#ffpyplayer.writer.MediaWriter" title="ffpyplayer.writer.MediaWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">MediaWriter</span></code></a> for details.
+Currently writes only video.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="ffpyplayer.writer.MediaWriter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ffpyplayer.writer.</span></span><span class="sig-name descname"><span class="pre">MediaWriter</span></span><a class="headerlink" href="#ffpyplayer.writer.MediaWriter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>An FFmpeg based media writer class. Currently only supports video.</p>
+<p>With this class one can write images frames stored in many different pixel
+formats into a multi-stream video file using <a class="reference internal" href="#ffpyplayer.writer.MediaWriter.write_frame" title="ffpyplayer.writer.MediaWriter.write_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write_frame()</span></code></a>. All FFmpeg
+codecs and pixel formats are supported.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><cite>filename</cite>: str</dt><dd><p>The filename of the media file to create. Will be encoded using utf8
+berfore passing to FFmpeg.</p>
+</dd>
+<dt><cite>streams</cite>: list of dicts</dt><dd><p>A list of streams to create in the file. <code class="docutils literal notranslate"><span class="pre">streams</span></code>
+is a list of dicts, where each dict configures the corresponding stream.
+The keywords listed below are available. One can also specify default
+values for the keywords for all streams using <code class="docutils literal notranslate"><span class="pre">kwargs</span></code>. Keywords also
+found in <code class="docutils literal notranslate"><span class="pre">streams</span></code> will overwrite those in <code class="docutils literal notranslate"><span class="pre">kwargs</span></code>:</p>
+<blockquote>
+<div><dl>
+<dt><cite>pix_fmt_in</cite>: str</dt><dd><p>The pixel format of the <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a>
+to be passed to <a class="reference internal" href="#ffpyplayer.writer.MediaWriter.write_frame" title="ffpyplayer.writer.MediaWriter.write_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write_frame()</span></code></a> for this stream. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>.</p>
+</dd>
+<dt><cite>width_in</cite>: int</dt><dd><p>The width of the <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a> that will be
+passed to <a class="reference internal" href="#ffpyplayer.writer.MediaWriter.write_frame" title="ffpyplayer.writer.MediaWriter.write_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write_frame()</span></code></a> for this stream.</p>
+</dd>
+<dt><cite>height_in</cite>: int</dt><dd><p>The height of the <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a> that will be
+passed to <a class="reference internal" href="#ffpyplayer.writer.MediaWriter.write_frame" title="ffpyplayer.writer.MediaWriter.write_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write_frame()</span></code></a> for this stream.</p>
+</dd>
+<dt><cite>pix_fmt_out</cite>: str</dt><dd><p>The pixel format in which frames will be
+written to the file for this stream. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>. Defaults to <code class="docutils literal notranslate"><span class="pre">pix_fmt_in</span></code>
+if not provided. Not every pixel format is supported for each
+encoding codec, see <a class="reference internal" href="tools.html#ffpyplayer.tools.get_supported_pixfmts" title="ffpyplayer.tools.get_supported_pixfmts"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_supported_pixfmts()</span></code></a>
+for which pixel formats are supported for <code class="docutils literal notranslate"><span class="pre">codec</span></code>.</p>
+</dd>
+<dt><cite>width_out</cite>: int</dt><dd><p>The width at which frames will be written to the file for this
+stream. Defaults to <code class="docutils literal notranslate"><span class="pre">width_in</span></code> if not provided.</p>
+</dd>
+<dt><cite>height_out</cite>: int</dt><dd><p>The height at which frames will be written to the file for this
+stream. Defaults to <code class="docutils literal notranslate"><span class="pre">height_in</span></code> if not provided.</p>
+</dd>
+<dt><cite>codec</cite>: str</dt><dd><p>The codec used to write the frames to the file. Can be one of
+the encoding codecs in <a class="reference internal" href="tools.html#ffpyplayer.tools.codecs_enc" title="ffpyplayer.tools.codecs_enc"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.codecs_enc</span></code></a>.</p>
+<p>If not provided, it defaults to the default best codec for the format
+provided in <code class="docutils literal notranslate"><span class="pre">fmt</span></code> or guessed from the <code class="docutils literal notranslate"><span class="pre">filename</span></code>.
+See <code class="xref py py-func docutils literal notranslate"><span class="pre">ffpyplayer.tools.get_format_codecs()</span></code></p>
+</dd>
+<dt><cite>frame_rate</cite>: 2-tuple of ints</dt><dd><p>A 2-tuple of ints representing the frame rate to be used when writing
+the file. The first element is the numerator, while the second is the
+denuminator of a ratio describing the rate. E.g. (2997, 100) describes
+29.97 fps.</p>
+<p>The timestamps of the frames written using <a class="reference internal" href="#ffpyplayer.writer.MediaWriter.write_frame" title="ffpyplayer.writer.MediaWriter.write_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write_frame()</span></code></a> do
+not necessarily need to be multiples of the frame rate because they might be
+forced to matching timestamps if required. Not every frame rate is
+supported for each encoding codec, see
+<a class="reference internal" href="tools.html#ffpyplayer.tools.get_supported_framerates" title="ffpyplayer.tools.get_supported_framerates"><code class="xref py py-func docutils literal notranslate"><span class="pre">ffpyplayer.tools.get_supported_framerates()</span></code></a> for which frame
+rates are supported for <code class="docutils literal notranslate"><span class="pre">codec</span></code>.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd>
+<dt><cite>fmt</cite>: str</dt><dd><p>The format to use for the output. Can be one of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.formats_out" title="ffpyplayer.tools.formats_out"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.formats_out</span></code></a>. Defaults to empty string.
+If not provided, <code class="docutils literal notranslate"><span class="pre">filename</span></code> will be used determine the format,
+otherwise this arg will be used.</p>
+</dd>
+<dt><cite>lib_opts</cite>: dict or list of dicts</dt><dd><p>A dictionary of options that will be passed
+to the ffmpeg libraries, codecs, sws, and formats when opening them.
+This accepts most of the options that can be passed to ffmpeg libraries.
+See below for examples. Both the keywords and values must be strings.
+It can be passed a dict in which case it’ll be applied to all the streams
+or a list containing a dict for each stream.</p>
+</dd>
+<dt><cite>metadata</cite>: dict or list of dicts</dt><dd><p>Metadata that will be written to the streams, if
+supported by the stream. See below for examples. Both the keywords and
+values must be strings. It can be passed a dict in which case it’ll be
+applied to all the streams or a list containing a dict for each stream.
+If (these) metadata is not supported, it will silently fail to write them.</p>
+</dd>
+<dt><cite>overwrite</cite>: bool</dt><dd><p>Whether we should overwrite an existing file.
+If False, an error will be raised if the file already exists. If True,
+the file will be overwritten if it exists.</p>
+</dd>
+<dt><cite>**kwargs</cite>:</dt><dd><p>Accepts default values for all <code class="docutils literal notranslate"><span class="pre">streams</span></code> which will be used if these
+keywords are not provided for any stream.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>See <a class="reference internal" href="examples.html#write-simple"><span class="std std-ref">Writing video to file</span></a> and <a class="reference internal" href="examples.html#write-h264"><span class="std std-ref">Compressing video to h264</span></a> for examples.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.writer.MediaWriter.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.writer.MediaWriter.close" title="Link to this definition"></a></dt>
+<dd><p>Closes the writer and writes any frames cached and not yet written.</p>
+<p>Until called, or until the instance is deleted (and this is implicitly called)
+the file is not fully written.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>After calling this method, calling any other class method on this instance may
+result in a crash or program corruption.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.writer.MediaWriter.get_configuration">
+<span class="sig-name descname"><span class="pre">get_configuration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.writer.MediaWriter.get_configuration" title="Link to this definition"></a></dt>
+<dd><p>Returns the configuration parameters used to initialize all the streams for this
+instance.</p>
+<p>This is not the same as the dicts passed when creating the file because
+this uses the actual parameters used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list: List of dicts for each stream.</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ffpyplayer.writer</span><span class="w"> </span><span class="kn">import</span> <span class="n">MediaWriter</span>
+
+<span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">640</span><span class="p">,</span> <span class="mi">480</span>
+<span class="n">out_opts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pix_fmt_in&#39;</span><span class="p">:</span><span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="s1">&#39;width_in&#39;</span><span class="p">:</span><span class="n">w</span><span class="p">,</span> <span class="s1">&#39;height_in&#39;</span><span class="p">:</span><span class="n">h</span><span class="p">,</span> <span class="s1">&#39;codec&#39;</span><span class="p">:</span><span class="s1">&#39;rawvideo&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;frame_rate&#39;</span><span class="p">:(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+<span class="n">writer</span> <span class="o">=</span> <span class="n">MediaWriter</span><span class="p">(</span><span class="s1">&#39;output.avi&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">out_opts</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width_out</span><span class="o">=</span><span class="n">w</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">height_out</span><span class="o">=</span><span class="n">h</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="nb">print</span> <span class="n">writer</span><span class="o">.</span><span class="n">get_configuration</span><span class="p">()</span>
+<span class="p">[{</span><span class="s1">&#39;height_in&#39;</span><span class="p">:</span> <span class="mi">480</span><span class="p">,</span> <span class="s1">&#39;codec&#39;</span><span class="p">:</span> <span class="s1">&#39;rawvideo&#39;</span><span class="p">,</span> <span class="s1">&#39;width_in&#39;</span><span class="p">:</span> <span class="mi">640</span><span class="p">,</span> <span class="s1">&#39;frame_rate&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<span class="s1">&#39;pix_fmt_in&#39;</span><span class="p">:</span> <span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="s1">&#39;width_out&#39;</span><span class="p">:</span> <span class="mi">320</span><span class="p">,</span> <span class="s1">&#39;height_out&#39;</span><span class="p">:</span> <span class="mi">240</span><span class="p">,</span> <span class="s1">&#39;pix_fmt_out&#39;</span><span class="p">:</span> <span class="s1">&#39;rgb24&#39;</span><span class="p">},</span>
+<span class="p">{</span><span class="s1">&#39;height_in&#39;</span><span class="p">:</span> <span class="mi">480</span><span class="p">,</span> <span class="s1">&#39;codec&#39;</span><span class="p">:</span> <span class="s1">&#39;rawvideo&#39;</span><span class="p">,</span> <span class="s1">&#39;width_in&#39;</span><span class="p">:</span> <span class="mi">640</span><span class="p">,</span> <span class="s1">&#39;frame_rate&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<span class="s1">&#39;pix_fmt_in&#39;</span><span class="p">:</span> <span class="s1">&#39;rgb24&#39;</span><span class="p">,</span> <span class="s1">&#39;width_out&#39;</span><span class="p">:</span> <span class="mi">320</span><span class="p">,</span> <span class="s1">&#39;height_out&#39;</span><span class="p">:</span> <span class="mi">240</span><span class="p">,</span> <span class="s1">&#39;pix_fmt_out&#39;</span><span class="p">:</span> <span class="s1">&#39;rgb24&#39;</span><span class="p">}]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.writer.MediaWriter.write_frame">
+<span class="sig-name descname"><span class="pre">write_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Image</span> <span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">double</span> <span class="pre">pts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">stream=0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.writer.MediaWriter.write_frame" title="Link to this definition"></a></dt>
+<dd><p>Writes a <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a> frame to the specified stream.</p>
+<p>If the input data is different than the frame written to disk in either
+size or pixel format as specified when creating the stream, the frame
+is converted before writing. But the input image must match the size and
+format as that specified when creating this stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>img</cite>: <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a></dt><dd><p>The <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a> instance containing the frame
+to be written to disk.</p>
+</dd>
+<dt><cite>pts</cite>: float</dt><dd><p>The timestamp of this frame in video time. E.g. 0.5
+means the frame should be displayed by a player at 0.5 seconds after
+the video started playing. In a sense, the frame rate defines which
+timestamps are valid timestamps. However, this is not always the
+case, so if timestamps are invalid for a particular format, they are
+forced to valid values, if possible.</p>
+</dd>
+<dt><cite>stream</cite>: int</dt><dd><p>The stream number to which to write this frame. Defaults to 0.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>(int): The approximate number of bytes written to disk so far for this file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is not the same as the number of bytes passed to this function
+so far, because the encoders cache data before writing to disk.
+So although some frames may have been passed, the return value
+may not represent this.</p>
+<p>An extreme example is where the same frame is passed many times
+to h264; the encoder will only write this frame once when the Writer
+object is closed and encoders are flushed, so this function
+will only return 0.</p>
+</div>
+</p>
+</dd>
+</dl>
+<p>See <a class="reference internal" href="examples.html#examples"><span class="std std-ref">Examples</span></a> for its usage.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="player.html" class="btn btn-neutral float-left" title="Player" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pic.html" class="btn btn-neutral float-right" title="Images" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2013, Matthew Einhorn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
