@@ -84,7 +84,11 @@ make install
 cd ~/ffmpeg_sources
 curl -sLO "https://bitbucket.org/multicoreware/x265_git/downloads/x265_$X265_VERSION.tar.gz"
 tar xzf "x265_$X265_VERSION.tar.gz"
-cd x265_*/build/linux
+cd x265_*/
+# Backport patches to fix build on cmake >4.0.0
+patch -p1 < /io/.ci/x265_b354c009a60bcd6d7fc04014e200a1ee9c45c167.patch
+patch -p1 < /io/.ci/x265_51ae8e922bcc4586ad4710812072289af91492a8.patch
+cd build/linux
 cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$BUILD_DIR" -DENABLE_SHARED:bool=on ../../source
 make
 make install

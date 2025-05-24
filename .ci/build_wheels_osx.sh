@@ -82,7 +82,7 @@ tar xzf "v$BROTLI_VERSION.tar.gz"
 cd "brotli-$BROTLI_VERSION"
 mkdir out
 cd out
-cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DCMAKE_OSX_ARCHITECTURES="$ARCH" -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_INSTALL_PREFIX="$BUILD_PATH" -DCMAKE_OSX_ARCHITECTURES="$ARCH" -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 cmake --build . --config Release --target install
 
 
@@ -197,6 +197,9 @@ make install
 cd "$SRC_PATH"
 git clone https://bitbucket.org/multicoreware/x265_git.git --depth 1 --branch "Release_$X265_VERSION"
 cd x265_git
+# Backport patches to fix build on cmake >4.0.0
+patch -p1 < "$base_dir/.ci/x265_b354c009a60bcd6d7fc04014e200a1ee9c45c167.patch"
+patch -p1 < "$base_dir/.ci/x265_51ae8e922bcc4586ad4710812072289af91492a8.patch"
 if [ "$ARCH" = "arm64" ]; then
   patch -p1 < "$base_dir/.ci/apple_arm64_x265.patch"
   cd source
@@ -257,11 +260,8 @@ tar xzvf "libtheora-$LIBTHEORA_VERSION.tar.gz"
 cd "libtheora-$LIBTHEORA_VERSION"
 # https://bugs.gentoo.org/465450
 sed -i "" 's/png_\(sizeof\)/\1/g' examples/png2theora.c
-THEORA_ARCH=$ARCH
-if [ "$ARCH" = "arm64" ]; then
-  THEORA_ARCH=arm
-fi
-./configure --prefix="$BUILD_PATH" --enable-shared --host=$THEORA_ARCH-darwin
+THEORA_ARCH=$ARCH2
+./configure --prefix="$BUILD_PATH" --enable-shared --host=$THEORA_ARCH-apple-darwin
 make
 make install
 
