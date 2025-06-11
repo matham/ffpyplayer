@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; FFPyPlayer  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="Getting Started" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FFPyPlayer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="getting_started.html">Getting Started</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-binary-wheels">Using binary wheels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compiling">Compiling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compiling-ffpyplayer">Compiling ffpyplayer</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#sdl-and-compiling-ffmpeg">SDL and Compiling FFmpeg</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#windows">Windows</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#osx">OSX</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#linux">Linux</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">The FFPyPlayer API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FFPyPlayer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="getting_started.html">Getting Started</a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<span id="install"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<section id="using-binary-wheels">
+<h2>Using binary wheels<a class="headerlink" href="#using-binary-wheels" title="Link to this heading"></a></h2>
+<p>On windows 7+ (64 or 32 bit) and linux (64 bit), ffpyplayer wheels can be installed for
+python 3.5+ using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">ffpyplayer</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Although the ffpyplayer source code is licensed under the LGPL, the ffpyplayer wheels
+on PYPI are distributed under the GPL because the  FFmpeg binaries
+are GPL’d. For LGPL builds you can compile FFmpeg yourself using LGPL options.</p>
+</div>
+<p>For other OSs or to compile with master see below.</p>
+</section>
+<section id="compiling">
+<h2>Compiling<a class="headerlink" href="#compiling" title="Link to this heading"></a></h2>
+<section id="requirements">
+<h3>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h3>
+<p>To compile ffpyplayer we need:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Cython (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--upgrade</span> <span class="pre">cython~=3.0.11</span></code>).</p></li>
+<li><p>A c compiler e.g. gcc or MSVC.</p></li>
+<li><p>SDL2 or SDL1.2 (SDL1.2 is not recommended). See <span class="xref std std-ref">compille</span> for how to get it.</p></li>
+<li><p>SDL2_mixer If wanting to play multiple audio files simultaneously (<code class="docutils literal notranslate"><span class="pre">USE_SDL2_MIXER</span></code> must be set). See <span class="xref std std-ref">compille</span> for how to get it.</p></li>
+<li><p>A recent (2.x+, has been tested with 2.8) FFmpeg compiled with <code class="docutils literal notranslate"><span class="pre">--enable-shared</span></code>.
+See <span class="xref std std-ref">compille</span> for how to get it.</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="compiling-ffpyplayer">
+<h3>Compiling ffpyplayer<a class="headerlink" href="#compiling-ffpyplayer" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Download or compile FFMpeg and SDL2 as shown below and set the appropriate environment variables as needed.</p></li>
+<li><p>Install Cython with e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">cython</span><span class="o">~=</span><span class="mf">3.0.11</span>
+</pre></div>
+</div>
+</li>
+<li><p>You can select the FFmpeg libraries to be used by defining values for CONFIG_XXX.
+For example, CONFIG_AVFILTER=0 will disable inclusion of the FFmpeg avfilter libraries.
+See setup.py for all the available flags.</p></li>
+<li><p>To use SDL2_mixer, which is required when multiple audio files are to be played
+simultaneously (or even when they are open at the same time) environment variable <code class="docutils literal notranslate"><span class="pre">USE_SDL2_MIXER</span></code>
+must be set to 1 when compiling. SDL2_mixer binaries and headers must also be available.</p></li>
+<li><p>Finally, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">ffpyplayer</span>
+</pre></div>
+</div>
+<p>Or to install master, do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">matham</span><span class="o">/</span><span class="n">ffpyplayer</span><span class="o">/</span><span class="n">archive</span><span class="o">/</span><span class="n">master</span><span class="o">.</span><span class="n">zip</span>
+</pre></div>
+</div>
+<p>If you have a local directory with the ffpyplayer source code. To compile, you can run within that directory
+* <code class="docutils literal notranslate"><span class="pre">make</span></code> on linux, or
+* <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">build_ext</span> <span class="pre">--inplace</span></code>, or
+* <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> to also properly install it.</p>
+</li>
+</ul>
+<p>You should now be able to import ffpyplayer with <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">ffpyplayer</span></code>.</p>
+</section>
+</section>
+<section id="sdl-and-compiling-ffmpeg">
+<h2>SDL and Compiling FFmpeg<a class="headerlink" href="#sdl-and-compiling-ffmpeg" title="Link to this heading"></a></h2>
+<p>To use ffpyplayer, the compiled FFmpeg and SDL shared libraries must be available. Following are
+instructions for the various OSs.</p>
+<section id="windows">
+<h3>Windows<a class="headerlink" href="#windows" title="Link to this heading"></a></h3>
+<p>You can get pre-compiled FFmpeg libaries from <a class="reference external" href="http://ffmpeg.zeranoe.com/builds/">http://ffmpeg.zeranoe.com/builds/</a>. You need
+both the shared (which contains the .a files and headers) and the dev (which contains the dlls)
+downloads.</p>
+<p>You can download SDL2 from <a class="reference external" href="https://www.libsdl.org/release/">https://www.libsdl.org/release/</a>. 2.0.4 is the most recent
+<a class="reference external" href="https://www.libsdl.org/release/SDL2-devel-2.0.4-mingw.tar.gz">version</a>.</p>
+<p>You can download SDL2_mixer from <a class="reference external" href="https://www.libsdl.org/projects/SDL_mixer/">https://www.libsdl.org/projects/SDL_mixer/</a>. 2.0.1 is the most recent
+<a class="reference external" href="https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-2.0.1-mingw.tar.gz">version</a>.</p>
+<ul class="simple">
+<li><p>If there’s a root directory containing a <code class="docutils literal notranslate"><span class="pre">include</span></code> and <code class="docutils literal notranslate"><span class="pre">lib</span></code> directory, each containing the header
+and compiled binaries, respectively, then <code class="docutils literal notranslate"><span class="pre">FFMPEG_ROOT</span></code> and <code class="docutils literal notranslate"><span class="pre">SDL_ROOT</span></code> can be set to these
+root directories for ffmpeg and sdl, respectively. Otherwise,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SDL_LIB_DIR</span></code> and <code class="docutils literal notranslate"><span class="pre">FFMPEG_LIB_DIR</span></code> should point to a folder which contains the
+SDL and FFmpeg compiled shared libraries (<a href="#id2"><span class="problematic" id="id3">*</span></a>.dll), respectively.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FFMPEG_INCLUDE_DIR</span></code> should point to a directory which contains the FFmpeg header files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SDL_INCLUDE_DIR</span></code> should point to a directory containg the SDL headers. For SDL2,
+this directory contains a SDL2 named directory with all the headers.</p></li>
+</ul>
+<p>In addition, directories containing the SDL and FFmpeg shared libraries (<a href="#id4"><span class="problematic" id="id5">*</span></a>.dll) need to be added to the PATH.</p>
+</section>
+<section id="osx">
+<h3>OSX<a class="headerlink" href="#osx" title="Link to this heading"></a></h3>
+<p>You can get both FFmpeg and SDL2 using brew. You can install them using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">update</span>
+<span class="n">brew</span> <span class="n">install</span> <span class="n">sdl2</span> <span class="n">sdl2_mixer</span> <span class="n">ffmpeg</span>
+</pre></div>
+</div>
+<p>Otherwise, follow the Linux instructions.</p>
+</section>
+<section id="linux">
+<h3>Linux<a class="headerlink" href="#linux" title="Link to this heading"></a></h3>
+<section id="ubuntu-18-04">
+<h4>Ubuntu 18.04<a class="headerlink" href="#ubuntu-18-04" title="Link to this heading"></a></h4>
+<p>On Ubuntu 18.04, the following command will install the python, ffmpeg, and sdl2 dependencies:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span> <span class="n">install</span> <span class="n">ffmpeg</span> <span class="n">libavcodec</span><span class="o">-</span><span class="n">dev</span> <span class="n">libavdevice</span><span class="o">-</span><span class="n">dev</span> <span class="n">libavfilter</span><span class="o">-</span><span class="n">dev</span> <span class="n">libavformat</span><span class="o">-</span><span class="n">dev</span> \
+<span class="n">libavutil</span><span class="o">-</span><span class="n">dev</span> <span class="n">libswscale</span><span class="o">-</span><span class="n">dev</span> <span class="n">libswresample</span><span class="o">-</span><span class="n">dev</span> <span class="n">libpostproc</span><span class="o">-</span><span class="n">dev</span> <span class="n">libsdl2</span><span class="o">-</span><span class="n">dev</span> <span class="n">libsdl2</span><span class="o">-</span><span class="mf">2.0</span><span class="o">-</span><span class="mi">0</span> \
+<span class="n">libsdl2</span><span class="o">-</span><span class="n">mixer</span><span class="o">-</span><span class="mf">2.0</span><span class="o">-</span><span class="mi">0</span> <span class="n">libsdl2</span><span class="o">-</span><span class="n">mixer</span><span class="o">-</span><span class="n">dev</span> <span class="n">python3</span><span class="o">-</span><span class="n">dev</span>
+</pre></div>
+</div>
+</section>
+<section id="other-linux-platforms">
+<h4>Other Linux platforms<a class="headerlink" href="#other-linux-platforms" title="Link to this heading"></a></h4>
+<section id="ffmpeg">
+<h5>FFMpeg<a class="headerlink" href="#ffmpeg" title="Link to this heading"></a></h5>
+<p>Follow the instructions at <a class="reference external" href="https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu">https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu</a> to compile FFMpeg.
+However, those instructions detail how to build the static version. We need the shared
+version. This means that <code class="docutils literal notranslate"><span class="pre">--enable-shared</span></code> and <code class="docutils literal notranslate"><span class="pre">--extra-cflags=&quot;-fPIC&quot;</span></code> need to be added
+when compiling FFmpeg <strong>AND</strong> its dependencies. And if present, <code class="docutils literal notranslate"><span class="pre">--disable-shared</span></code> or
+<code class="docutils literal notranslate"><span class="pre">--enable-static</span></code> must be removed.</p>
+<p>Following that guide, <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/ffmpeg_build/lib</span></code> also needs
+to be executed for the compiled binaries to be found.</p>
+</section>
+<section id="sdl2">
+<h5>SDL2<a class="headerlink" href="#sdl2" title="Link to this heading"></a></h5>
+<p>SDL2 can usually be gotten from the package manager, e.g. in Ubuntu 16.04 you can do the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">update</span>
+<span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="o">-</span><span class="n">y</span> <span class="n">install</span> <span class="n">libsdl2</span><span class="o">-</span><span class="n">dev</span> <span class="n">libsdl2</span><span class="o">-</span><span class="n">mixer</span><span class="o">-</span><span class="n">dev</span>
+</pre></div>
+</div>
+</section>
+<section id="python-headers">
+<h5>Python Headers<a class="headerlink" href="#python-headers" title="Link to this heading"></a></h5>
+<p>The Python headers are required for compilation, on Ubuntu you can get it with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">python3</span><span class="o">-</span><span class="n">dev</span>
+</pre></div>
+</div>
+<p>For either ffmpeg or sdl2 if manually compiled, <code class="docutils literal notranslate"><span class="pre">PKG_CONFIG_PATH</span></code> will need to be set to the path
+containing the generated <cite>*.pc</cite> files and <code class="docutils literal notranslate"><span class="pre">pkg-config</span></code> will need to be available. <em>Otherwise,</em> if
+installed to a non-standard location, the paths to the compiled shared libraries and headers will need to be set with</p>
+<ul class="simple">
+<li><p>If there’s a root directory containing a <code class="docutils literal notranslate"><span class="pre">include</span></code> and <code class="docutils literal notranslate"><span class="pre">lib</span></code> directory, each containing the header
+and compiled binaries, respectively, then <code class="docutils literal notranslate"><span class="pre">FFMPEG_ROOT</span></code> and <code class="docutils literal notranslate"><span class="pre">SDL_ROOT</span></code> can be set to these
+root directories for ffmpeg and sdl, respectively. Otherwise,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SDL_LIB_DIR</span></code> and <code class="docutils literal notranslate"><span class="pre">FFMPEG_LIB_DIR</span></code> should point to a folder which contains the
+SDL and FFmpeg compiled shared libraries (<a href="#id6"><span class="problematic" id="id7">*</span></a>.so), respectively.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FFMPEG_INCLUDE_DIR</span></code> should point to a directory which contains the FFmpeg header files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SDL_INCLUDE_DIR</span></code> should point to a directory containg the SDL headers. For SDL2,
+this directory contains a SDL2 named directory with all the headers.</p></li>
+</ul>
+<p>In addition, directories containing the SDL and FFmpeg shared libraries (<a href="#id8"><span class="problematic" id="id9">*</span></a>.so) need to be added to the PATH.</p>
+<p>You can find a complete minimal example of compiling ffpyplayer on Ubuntu
+<a class="reference external" href="https://github.com/matham/ffpyplayer/blob/master/.travis.yml#L20">here</a>.
+A more complete example used to build the wheels is
+<a class="reference external" href="https://github.com/matham/ffpyplayer/blob/master/.travis/build-wheels.sh">here</a>.</p>
+</section>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2013, Matthew Einhorn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
