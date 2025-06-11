@@ -88,5 +88,5 @@ Converting images:
     >>> img2.get_pixel_format()
     'yuv420p'
     >>> planes = img2.to_bytearray()
-    >>> map(len, planes)
+    >>> [len(plane) for plane in planes]
     [50000, 12500, 12500, 0]
