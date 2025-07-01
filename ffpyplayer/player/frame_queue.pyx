@@ -162,7 +162,7 @@ cdef class FrameQueue(object):
             if player.img_convert_ctx == NULL:
                 av_log(NULL, AV_LOG_FATAL, b"Cannot initialize the conversion context\n")
                 raise_py_exception(b'Cannot initialize the conversion context.')
-            sws_scale(player.img_convert_ctx, src_frame.data, src_frame.linesize,
+            sws_scale(player.img_convert_ctx, <const unsigned char* const*>src_frame.data, src_frame.linesize,
                       0, vp.height, vp.frame.data, vp.frame.linesize)
             av_frame_unref(src_frame)
         return 0
