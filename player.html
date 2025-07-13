@@ -1,0 +1,842 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player &mdash; FFPyPlayer  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Writer" href="writer.html" />
+    <link rel="prev" title="The FFPyPlayer API" href="api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FFPyPlayer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The FFPyPlayer API</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Player</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-ffpyplayer.player"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.player</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ffmpeg-based-media-player">FFmpeg based media player</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ffpyplayer.player.MediaPlayer"><code class="docutils literal notranslate"><span class="pre">MediaPlayer</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="writer.html">Writer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pic.html">Images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools.html">Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FFPyPlayer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="api.html">The FFPyPlayer API</a></li>
+      <li class="breadcrumb-item active">Player</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/player.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="player">
+<span id="player-api"></span><h1>Player<a class="headerlink" href="#player" title="Link to this heading"></a></h1>
+<section id="module-ffpyplayer.player">
+<span id="ffpyplayer-player"></span><h2><a class="reference internal" href="#module-ffpyplayer.player" title="ffpyplayer.player"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ffpyplayer.player</span></code></a><a class="headerlink" href="#module-ffpyplayer.player" title="Link to this heading"></a></h2>
+<section id="ffmpeg-based-media-player">
+<h3>FFmpeg based media player<a class="headerlink" href="#ffmpeg-based-media-player" title="Link to this heading"></a></h3>
+<p>A FFmpeg based python media player. See <a class="reference internal" href="#ffpyplayer.player.MediaPlayer" title="ffpyplayer.player.MediaPlayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MediaPlayer</span></code></a> for details.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ffpyplayer.player.</span></span><span class="sig-name descname"><span class="pre">MediaPlayer</span></span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>An FFmpeg based media player.</p>
+<p>Was originally ported from FFplay. Most options offered in FFplay is
+also available here.</p>
+<p>The class provides a player interface to a media file. Video components
+of the file are returned with <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>. Audio is played directly
+using SDL. And subtitles are acquired either through the callback function
+(text subtitles only), or are overlaid directly using the subtitle filter.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All strings that are passed to the program, e.g. <code class="docutils literal notranslate"><span class="pre">filename</span></code> will first be
+internally encoded using utf-8 before handing off to FFmpeg.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If playing or even opening multiple audio files simultaneously
+SDL2_mixer is required. The audio parameters of the first audio file opened
+will set the audio output parameters for all the subsequent audio files opened
+until they are all closed and a new file is opened.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><cite>filename</cite>: str</dt><dd><p>The filename or url of the media object. This can be physical files,
+remote files or even webcam name’s e.g. for direct show or Video4Linux
+webcams. The <code class="docutils literal notranslate"><span class="pre">f</span></code> specifier in <code class="docutils literal notranslate"><span class="pre">ff_opts</span></code> can be used to indicate the
+format needed to open the file (e.g. dshow).</p>
+</dd>
+<dt><cite>callback</cite>: Function or ref to function or None</dt><dd><p>A function, which if not None will be called when a internal thread quits,
+when eof is reached (as determined by whichever is the main <code class="docutils literal notranslate"><span class="pre">sync</span></code> stream,
+audio or video), or when text subtitles are available. In future version it
+may be extended.</p>
+<p>The function takes two parameters, <code class="docutils literal notranslate"><span class="pre">selector</span></code>, and <code class="docutils literal notranslate"><span class="pre">value</span></code>.
+<code class="docutils literal notranslate"><span class="pre">selector</span></code> can be one of:</p>
+<dl>
+<dt><cite>eof</cite>:</dt><dd><p>When eof is reached. <code class="docutils literal notranslate"><span class="pre">value</span></code> is the empty string.</p>
+</dd>
+<dt><cite>display_sub</cite>:</dt><dd><p>When a new subtitle string is available. <code class="docutils literal notranslate"><span class="pre">value</span></code> will be a
+5-tuple of the form <code class="docutils literal notranslate"><span class="pre">(text,</span> <span class="pre">fmt,</span> <span class="pre">pts,</span> <span class="pre">start,</span> <span class="pre">end)</span></code>. Where</p>
+<p><cite>text</cite>: is the unicode text
+<cite>fmt</cite>: is the subtitle format e.g. ‘ass’
+<cite>pts</cite>: is the timestamp of the text
+<cite>start</cite>: is the time in video time when to start displaying the text
+<cite>end</cite>: is the time in video time when to end displaying the text</p>
+</dd>
+<dt><cite>exceptions or thread exits</cite>:</dt><dd><p>In case of an exception by the internal audio, video, subtitle, or read threads,
+or when these threads exit, it is called with a <code class="docutils literal notranslate"><span class="pre">value</span></code> of the error message
+or an empty string when an error is not available.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">selector</span></code> will be one of
+<code class="docutils literal notranslate"><span class="pre">audio:error</span></code>, <code class="docutils literal notranslate"><span class="pre">audio:exit</span></code>, <code class="docutils literal notranslate"><span class="pre">video:error</span></code>, <code class="docutils literal notranslate"><span class="pre">video:exit</span></code>,
+<code class="docutils literal notranslate"><span class="pre">subtitle:error</span></code>, <code class="docutils literal notranslate"><span class="pre">subtitle:exit</span></code>, <code class="docutils literal notranslate"><span class="pre">read:error</span></code>, or <code class="docutils literal notranslate"><span class="pre">read:exit</span></code>
+indicating which thread called and why.</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This functions gets called from a second internal thread.</p>
+</div>
+</dd>
+<dt><cite>loglevel</cite>: str</dt><dd><p>The level of logs to emit. Defaults to <code class="docutils literal notranslate"><span class="pre">'trace'</span></code>. Its value is one of the keys
+of <a class="reference internal" href="tools.html#ffpyplayer.tools.loglevels" title="ffpyplayer.tools.loglevels"><code class="xref py py-attr docutils literal notranslate"><span class="pre">loglevels</span></code></a>.</p>
+<p>Although log are also filtered globally according to the level of
+<a class="reference internal" href="tools.html#ffpyplayer.tools.set_loglevel" title="ffpyplayer.tools.set_loglevel"><code class="xref py py-attr docutils literal notranslate"><span class="pre">set_loglevel</span></code></a>, this is applied first to quickly filter
+logs generated by this instance (it’s not applied to internal ffmpeg logs).</p>
+</dd>
+<dt><cite>thread_lib</cite>: str</dt><dd><p>The threading library to use internally. Can be one of ‘SDL’ or ‘python’.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If the python threading library is used, care must be taken to delete
+the player before exiting python, otherwise it may hang. The reason is
+that the internal threads are created as non-daemon, consequently, when the
+python main thread exits, the internal threads will keep python alive.
+By deleting the player directly, the internal threads will be shut down
+before python exits.</p>
+</div>
+</dd>
+<dt><cite>audio_sink</cite>: str</dt><dd><p>Currently it must be ‘SDL’. Defaults to ‘SDL’.</p>
+</dd>
+<dt><cite>lib_opts</cite>: dict</dt><dd><p>A dictionary of options that will be passed to the ffmpeg libraries,
+codecs, sws, swr, and formats when opening them. This accepts most of the
+options that can be passed to FFplay. Examples are “threads”:”auto”,
+“lowres”:”1” etc. Both the keywords and values must be strings.
+See <a class="reference internal" href="examples.html#examples"><span class="std std-ref">Examples</span></a> for <cite>lib_opts</cite> usage examples.</p>
+</dd>
+<dt><cite>ff_opts</cite>: dict</dt><dd><p>A dictionary with options for the player. Following are
+the available options. Note, many options have identical names and meaning
+as in the FFplay options: www.ffmpeg.org/ffplay.html :</p>
+<dl>
+<dt><cite>paused</cite>: bool</dt><dd><p>If True, the player will be in a paused state after creation, otherwise,
+it will immediately start playing. Defaults to False.</p>
+</dd>
+<dt><cite>cpuflags</cite>: str</dt><dd><p>Similar to ffplay</p>
+</dd>
+<dt><cite>max_alloc</cite>: int</dt><dd><p>Set the maximum size that may me allocated in one block.</p>
+</dd>
+<dt><cite>infbuf</cite>: bool</dt><dd><p>If True, do not limit the input buffer size and read as much data as possible
+from the input as soon as possible. Enabled by default for realtime streams,
+where data may be dropped if not read in time. Use this option to enable
+infinite buffers for all inputs.</p>
+</dd>
+<dt><cite>framedrop</cite>: bool</dt><dd><p>Drop video frames if video is out of sync. Enabled by default if the master
+clock (<code class="docutils literal notranslate"><span class="pre">sync</span></code>) is not set to video. Use this option to enable/disable frame
+dropping for all master clock sources.</p>
+</dd>
+<dt><cite>loop</cite>: int</dt><dd><p>Loops movie playback &lt;number&gt; times. 0 means forever. Defaults to 1.</p>
+</dd>
+<dt><cite>autoexit</cite>: bool</dt><dd><p>If True, the player stops on eof. Defaults to False.</p>
+</dd>
+<dt><cite>lowres</cite>: int</dt><dd><p>low resolution decoding, 1-&gt; 1/2 size, 2-&gt;1/4 size, defaults to zero.</p>
+</dd>
+<dt><cite>drp</cite>: int</dt><dd><p>let decoder reorder pts 0=off 1=on -1=auto. Defaults to 0.</p>
+</dd>
+<dt><cite>genpts</cite>: bool</dt><dd><p>Generate missing pts even if it requires parsing future frames, defaults to False.</p>
+</dd>
+<dt><cite>fast</cite>: bool</dt><dd><p>Enable non-spec-compliant optimizations, defaults to False.</p>
+</dd>
+<dt><cite>stats</cite>: bool</dt><dd><p>Print several playback statistics, in particular show the stream duration,
+the codec parameters, the current position in the stream and the audio/video
+synchronisation drift. Defaults to False.</p>
+</dd>
+<dt><cite>pixel_format</cite>: str</dt><dd><p>Sets the pixel format. Note, this sets the format of the input file. For the output
+format see <code class="docutils literal notranslate"><span class="pre">out_fmt</span></code>.</p>
+</dd>
+<dt><cite>t</cite>: float</dt><dd><p>Play only <code class="docutils literal notranslate"><span class="pre">t</span></code> seconds of the audio/video. Defaults to the full audio/video.</p>
+</dd>
+<dt><cite>ss</cite>: float</dt><dd><p>Seek to pos <code class="docutils literal notranslate"><span class="pre">ss</span></code> into the file when starting. Note that in most formats it is not
+possible to seek exactly, so it will seek to the nearest seek point to <code class="docutils literal notranslate"><span class="pre">ss</span></code>.
+Defaults to the start of the file.</p>
+</dd>
+<dt><cite>sync</cite>: str</dt><dd><p>Set the master clock to audio, video, or external (ext). Default is audio.
+The master clock is used to control audio-video synchronization. Most
+media players use audio as master clock, but in some cases (streaming or
+high quality broadcast) it is necessary to change that. Also, setting
+it to video can ensure the reproducibility of timestamps of video frames.</p>
+</dd>
+<dt><cite>acodec, vcodec, and scodec</cite>: str</dt><dd><p>Forces a specific audio, video, and/or subtitle decoder. Defaults to None.</p>
+</dd>
+<dt><cite>ast</cite>: str</dt><dd><p>Select the desired audio stream. If this option is not specified, the “best” audio
+stream is selected in the program of the already selected video stream.
+See <a class="reference external" href="https://ffmpeg.org/ffplay.html#Stream-specifiers-1">https://ffmpeg.org/ffplay.html#Stream-specifiers-1</a> for the format.</p>
+</dd>
+<dt><cite>vst</cite>: str</dt><dd><p>Select the desired video stream. If this option is not specified, the “best” video
+stream is selected.
+See <a class="reference external" href="https://ffmpeg.org/ffplay.html#Stream-specifiers-1">https://ffmpeg.org/ffplay.html#Stream-specifiers-1</a> for the format.</p>
+</dd>
+<dt><cite>sst</cite>: str</dt><dd><p>Select the desired subtitle stream. If this option is not specified, the “best” audio
+stream is selected in the program of the already selected video or audio stream.
+See <a class="reference external" href="https://ffmpeg.org/ffplay.html#Stream-specifiers-1">https://ffmpeg.org/ffplay.html#Stream-specifiers-1</a> for the format.</p>
+</dd>
+<dt><cite>an</cite>: bool</dt><dd><p>Disable audio. Default to False.</p>
+</dd>
+<dt><cite>vn</cite>: bool</dt><dd><p>Disable video. Default to False.</p>
+</dd>
+<dt><cite>sn</cite>: bool</dt><dd><p>Disable subtitle. Default to False.</p>
+</dd>
+<dt><cite>f</cite>: str</dt><dd><p>Force the format to open the file with. E.g. dshow for webcams on windows.
+See <a class="reference internal" href="examples.html#dshow-example"><span class="std std-ref">Playing a webcam with DirectShow on windows</span></a> for an example. Defaults to none specified.</p>
+</dd>
+<dt><cite>vf</cite>: str or list of strings</dt><dd><p>The filtergraph(s) used to filter the video stream. A filtergraph is applied to the
+stream, and must have a single video input and a single video output.
+In the filtergraph, the input is associated to the label in, and the output
+to the label out. See the ffmpeg-filters manual for more information
+about the filtergraph syntax.</p>
+<p>Examples are ‘crop=100:100’ to crop, ‘vflip’ to flip horizontally, ‘subtitles=filename’
+to overlay subtitles from another media or text file etc. If a list of filters is
+specified, <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.select_video_filter" title="ffpyplayer.player.MediaPlayer.select_video_filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">select_video_filter()</span></code></a> can be used to select the desired filter.</p>
+<p>CONFIG_AVFILTER must be True (the default) when compiling in order to use this.
+Defaults to no filters.</p>
+</dd>
+<dt><cite>af</cite>: str</dt><dd><p>Similar to <code class="docutils literal notranslate"><span class="pre">vf</span></code>. However, unlike <code class="docutils literal notranslate"><span class="pre">vf</span></code>, <code class="docutils literal notranslate"><span class="pre">af</span></code> only accepts a single string
+filter and not a list of filters.</p>
+</dd>
+<dt><cite>x</cite>: int</dt><dd><p>The desired width of the output frames returned by <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>. Accepts the
+same values as the width parameter of <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.set_size" title="ffpyplayer.player.MediaPlayer.set_size"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_size()</span></code></a>.</p>
+</dd>
+<dt><cite>y</cite>: int</dt><dd><p>The desired height of the output frames returned by <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>. Accepts the
+same values as the height parameter of <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.set_size" title="ffpyplayer.player.MediaPlayer.set_size"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_size()</span></code></a>.</p>
+<p>CONFIG_AVFILTER must be True (the default) when compiling in order to use this.
+Defaults to 0.</p>
+</dd>
+<dt><cite>out_fmt</cite>: str</dt><dd><p>The desired pixel format for the data returned by <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>. Accepts
+the same value as <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.set_output_pix_fmt" title="ffpyplayer.player.MediaPlayer.set_output_pix_fmt"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_output_pix_fmt()</span></code></a> and can be
+one of <a class="reference internal" href="tools.html#ffpyplayer.tools.pix_fmts" title="ffpyplayer.tools.pix_fmts"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ffpyplayer.tools.pix_fmts</span></code></a>. Defaults to rgb24.</p>
+</dd>
+<dt><cite>autorotate</cite>: bool</dt><dd><p>Whether to automatically rotate the video according to presentation metadata.
+Defaults to True.</p>
+</dd>
+<dt><cite>volume</cite>: float</dt><dd><p>The default volume. A value between 0.0 - 1.0.</p>
+</dd>
+<dt><cite>find_stream_info</cite>: bool</dt><dd><p>Read and decode the streams to fill missing information with heuristics.
+Defaults to True.</p>
+</dd>
+<dt><cite>filter_threads</cite>: int</dt><dd><p>The number of filter threads per graph. Defaults to zero
+(determined by the number of available CPUs).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>For example, a simple player:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ffpyplayer.player</span><span class="w"> </span><span class="kn">import</span> <span class="n">MediaPlayer</span>
+<span class="n">player</span> <span class="o">=</span> <span class="n">MediaPlayer</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">frame</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;eof&#39;</span><span class="p">:</span>
+        <span class="k">break</span>
+    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">img</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="nb">print</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">img</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+<span class="c1"># which prints</span>
+<span class="mf">0.0</span> <span class="mf">0.0</span> <span class="n">rgb24</span> <span class="p">(</span><span class="mi">929280</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mf">0.0</span> <span class="mf">0.0611284</span> <span class="n">rgb24</span> <span class="p">(</span><span class="mi">929280</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mf">0.0411274433136</span> <span class="mf">0.1222568</span> <span class="n">rgb24</span> <span class="p">(</span><span class="mi">929280</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mf">0.122380971909</span> <span class="mf">0.1833852</span> <span class="n">rgb24</span> <span class="p">(</span><span class="mi">929280</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mf">0.121630907059</span> <span class="mf">0.2445136</span> <span class="n">rgb24</span> <span class="p">(</span><span class="mi">929280</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>See also <a class="reference internal" href="examples.html#examples"><span class="std std-ref">Examples</span></a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Most of the methods of this class are not thread safe. That is, they
+should not be called from different threads for the same instance
+without protecting them.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.close_player">
+<span class="sig-name descname"><span class="pre">close_player</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.close_player" title="Link to this definition"></a></dt>
+<dd><p>Closes the player and all resources.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>After calling this method, calling any other class method on this instance may
+result in a crash or program corruption.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_frame">
+<span class="sig-name descname"><span class="pre">get_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_refresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_frame" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the next available frame if ready.</p>
+<p>The frame is returned as a <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a>. If CONFIG_AVFILTER
+is True when compiling, or if the video pixel format is the same as the
+output pixel format, the Image returned is just a new reference to the internal
+buffers and no copying occurs (see <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a>), otherwise
+the buffers are newly created and copied.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>force_refresh</cite>: bool</dt><dd><p>If True, a new instance of the last frame will be returned again.
+Defaults to False.</p>
+</dd>
+<dt><cite>show</cite>: bool</dt><dd><p>If True a image is returned as normal, if False, no image will be
+returned, even when one is available. Can be useful if we just need
+the timestamps or when <code class="docutils literal notranslate"><span class="pre">force_refresh</span></code> to just get the timestamps.
+Defaults to True.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>A 2-tuple of (frame, val)</cite> where</dt><dd><p><cite>frame</cite>: is None or a 2-tuple
+<cite>val</cite>: is either ‘paused’, ‘eof’, or a float</p>
+</dd>
+</dl>
+<p>If <code class="docutils literal notranslate"><span class="pre">val</span></code> is either <code class="docutils literal notranslate"><span class="pre">'paused'</span></code> or <code class="docutils literal notranslate"><span class="pre">'eof'</span></code> then <code class="docutils literal notranslate"><span class="pre">frame</span></code> is None.</p>
+<p>Otherwise, if <code class="docutils literal notranslate"><span class="pre">frame</span></code> is not None, <code class="docutils literal notranslate"><span class="pre">val</span></code> is the realtime time from now
+one should wait before displaying this frame to the user to achieve a play
+rate of 1.0.</p>
+<p>Finally, if <code class="docutils literal notranslate"><span class="pre">frame</span></code> is not None then it’s a 2-tuple of <code class="docutils literal notranslate"><span class="pre">(image,</span> <span class="pre">pts)</span></code> where:</p>
+<blockquote>
+<div><dl class="simple">
+<dt><cite>image</cite>: The <a class="reference internal" href="pic.html#ffpyplayer.pic.Image" title="ffpyplayer.pic.Image"><code class="xref py py-class docutils literal notranslate"><span class="pre">ffpyplayer.pic.Image</span></code></a> instance containing</dt><dd><p>the frame. The size of the image can change because the output
+can be resized dynamically (see <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.set_size" title="ffpyplayer.player.MediaPlayer.set_size"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_size()</span></code></a>). If <cite>show</cite> was
+False, it will be None.</p>
+</dd>
+<dt><cite>pts</cite>: The presentation timestamp of this frame. This is the time</dt><dd><p>when the frame should be displayed to the user in video time (i.e.
+not realtime).</p>
+</dd>
+</dl>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The audio plays at a normal play rate, independent of when and if
+this function is called. Therefore, ‘eof’ will only be received when
+the audio is complete, even if all the frames have been read (unless
+audio is disabled or sync is set to video). I.e. a None frame will
+be sent after all the frames have been read until eof.</p>
+</div>
+<p>For example, playing as soon as frames are read:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">frame</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;eof&#39;</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">break</span>
+<span class="gp">... </span>    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="s1">&#39;not ready&#39;</span>
+<span class="gp">... </span>    <span class="k">else</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">img</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">frame</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">img</span>
+<span class="go">not ready</span>
+<span class="go">0.0 0.0 &lt;ffpyplayer.pic.Image object at 0x023D17B0&gt;</span>
+<span class="go">not ready</span>
+<span class="go">0.0351264476776 0.0611284 &lt;ffpyplayer.pic.Image object at 0x023D1828&gt;</span>
+<span class="go">0.096254825592 0.1222568 &lt;ffpyplayer.pic.Image object at 0x02411800&gt;</span>
+<span class="go">not ready</span>
+<span class="go">0.208511352539 0.1833852 &lt;ffpyplayer.pic.Image object at 0x02411B70&gt;</span>
+</pre></div>
+</div>
+<p>vs displaying frames at their proper times:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">frame</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;eof&#39;</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">break</span>
+<span class="gp">... </span>    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="s1">&#39;not ready&#39;</span>
+<span class="gp">... </span>    <span class="k">else</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">img</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">frame</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">img</span>
+<span class="gp">... </span>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+<span class="go">not ready</span>
+<span class="go">0.0 0.0 &lt;ffpyplayer.pic.Image object at 0x02411800&gt;</span>
+<span class="go">not ready</span>
+<span class="go">0.0351274013519 0.0611284 &lt;ffpyplayer.pic.Image object at 0x02411878&gt;</span>
+<span class="go">0.0602538585663 0.1222568 &lt;ffpyplayer.pic.Image object at 0x024118A0&gt;</span>
+<span class="go">0.122507572174 0.1833852 &lt;ffpyplayer.pic.Image object at 0x024118C8&gt;</span>
+<span class="go">...</span>
+<span class="go">0.0607514381409 1.222568 &lt;ffpyplayer.pic.Image object at 0x02411B70&gt;</span>
+<span class="go">0.0618767738342 1.2836964 &lt;ffpyplayer.pic.Image object at 0x02411B98&gt;</span>
+<span class="go">0.0610010623932 1.3448248 &lt;ffpyplayer.pic.Image object at 0x02411BC0&gt;</span>
+<span class="go">0.0611264705658 1.4059532 &lt;ffpyplayer.pic.Image object at 0x02411BE8&gt;</span>
+</pre></div>
+</div>
+<p>Or when the output format is yuv420p:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">player</span> <span class="o">=</span> <span class="n">MediaPlayer</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">callback</span><span class="p">),</span>
+<span class="gp">... </span><span class="n">ff_opts</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;out_fmt&#39;</span><span class="p">:</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">frame</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;eof&#39;</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">break</span>
+<span class="gp">... </span>    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="s1">&#39;not ready&#39;</span>
+<span class="gp">... </span>    <span class="k">else</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">img</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">frame</span>
+<span class="gp">... </span>        <span class="nb">print</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">get_pixel_format</span><span class="p">(),</span> <span class="n">img</span><span class="o">.</span><span class="n">get_buffer_size</span><span class="p">()</span>
+<span class="gp">... </span>        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">0.0 0.0 yuv420p (309760, 77440, 77440, 0)</span>
+<span class="go">0.0361273288727 0.0611284 yuv420p (309760, 77440, 77440, 0)</span>
+<span class="go">0.0502526760101 0.1222568 yuv420p (309760, 77440, 77440, 0)</span>
+<span class="go">0.12150645256 0.1833852 yuv420p (309760, 77440, 77440, 0)</span>
+<span class="go">0.122756242752 0.2445136 yuv420p (309760, 77440, 77440, 0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_metadata">
+<span class="sig-name descname"><span class="pre">get_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_metadata" title="Link to this definition"></a></dt>
+<dd><p>Returns metadata of the file being played.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>dict:</dt><dd><p>Media file metadata. e.g. <cite>frame_rate</cite> is reported as a
+numerator and denominator. src and sink video sizes correspond to
+the frame size of the original video, and the frames returned by
+<a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>, respectively. <cite>src_pix_fmt</cite> is the pixel format
+of the original input stream. ‘aspect_ratio’ is the source to
+display aspect ratio as a numerator and denominator. Duration
+is the file duration and defaults to None until updated.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">()</span>
+<span class="go">{&#39;duration&#39;: 71.972, &#39;sink_vid_size&#39;: (0, 0), &#39;src_vid_size&#39;:</span>
+<span class="go"> (704, 480), &#39;frame_rate&#39;: (13978, 583),</span>
+<span class="go"> &#39;title&#39;: &#39;The Melancholy of Haruhi Suzumiya: Special Ending&#39;,</span>
+<span class="go"> &#39;src_pix_fmt&#39;: &#39;yuv420p&#39;}</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The dictionary returned will have default values until the file is
+open and read. Because a second thread is created and used to read
+the file, when the constructor returns the dict might still have
+the default values.</p>
+<p>After the first frame is read, the dictionary entries are correct
+with respect to the file metadata. Alternatively, you can wait
+until the desired parameter is updated from its default value.
+Note, the metadata dict will be updated even if the video is
+paused.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some paramteres can change as the streams are manipulated (e.g. the
+frame size and source format parameters).</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_mute">
+<span class="sig-name descname"><span class="pre">get_mute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_mute" title="Link to this definition"></a></dt>
+<dd><p>Returns whether the player is muted.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_output_pix_fmt">
+<span class="sig-name descname"><span class="pre">get_output_pix_fmt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_output_pix_fmt" title="Link to this definition"></a></dt>
+<dd><p>Returns the pixel fmt in which output images are returned when calling
+<a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-attr docutils literal notranslate"><span class="pre">get_frame</span></code></a>.</p>
+<p>You can set the output format by specifying <code class="docutils literal notranslate"><span class="pre">out_fmt</span></code> in <code class="docutils literal notranslate"><span class="pre">ff_opts</span></code>
+when creating this instance. Also, if avfilter is enabled, you can
+change it dynamically with <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.set_output_pix_fmt" title="ffpyplayer.player.MediaPlayer.set_output_pix_fmt"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_output_pix_fmt()</span></code></a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">player</span><span class="o">.</span><span class="n">get_output_pix_fmt</span><span class="p">())</span>
+<span class="go">rgb24</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_pause">
+<span class="sig-name descname"><span class="pre">get_pause</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_pause" title="Link to this definition"></a></dt>
+<dd><p>Returns whether the player is paused.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_programs">
+<span class="sig-name descname"><span class="pre">get_programs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_programs" title="Link to this definition"></a></dt>
+<dd><p>Returns a list of available program IDs.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">player</span><span class="o">.</span><span class="n">get_programs</span><span class="p">())</span>
+<span class="go">[0, 1, 2, 3, 4]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_pts">
+<span class="sig-name descname"><span class="pre">get_pts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_pts" title="Link to this definition"></a></dt>
+<dd><p>Returns the elapsed play time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt><cite>float</cite>:</dt><dd><p>The amount of the time that the file has been playing.
+The time is from the clock used for the player (default is audio,
+see <code class="docutils literal notranslate"><span class="pre">sync</span></code> options). If the clock is based on video, it should correspond
+with the pts from get_frame.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.get_volume">
+<span class="sig-name descname"><span class="pre">get_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.get_volume" title="Link to this definition"></a></dt>
+<dd><p>Returns the volume of the audio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><cite>float</cite>: A value between 0.0 - 1.0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.request_channel">
+<span class="sig-name descname"><span class="pre">request_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action=u'cycle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">requested_stream=-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.request_channel" title="Link to this definition"></a></dt>
+<dd><p>Opens or closes a stream dynamically.</p>
+<p>This function may result in seeking when opening a new stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>stream_type</cite>: str</dt><dd><p>The stream group on which to operate. Can be one of <code class="docutils literal notranslate"><span class="pre">'audio'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'video'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'subtitle'</span></code>.</p>
+</dd>
+<dt><cite>action</cite>: str</dt><dd><p>The action to perform. Can be one of <code class="docutils literal notranslate"><span class="pre">'open'</span></code>, <code class="docutils literal notranslate"><span class="pre">'close'</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">'cycle'</span></code>. A value of ‘cycle’ will close the current stream and
+open the next stream in this group.</p>
+</dd>
+<dt><cite>requested_stream</cite>: int</dt><dd><p>The stream to open next when <code class="docutils literal notranslate"><span class="pre">action</span></code> is <code class="docutils literal notranslate"><span class="pre">'cycle'</span></code> or <code class="docutils literal notranslate"><span class="pre">'open'</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">-1</span></code>, the next stream will be opened. Otherwise, this stream will
+be attempted to be opened.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.request_program">
+<span class="sig-name descname"><span class="pre">request_program</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">requested_program</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.request_program" title="Link to this definition"></a></dt>
+<dd><p>Opens video, audio and subtitle streams associated with a program.</p>
+<p>This closes all current streams and opens the first video, audio and
+subtitle streams found in the program.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>requested_program</cite>: int</dt><dd><p>The program ID.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.seek">
+<span class="sig-name descname"><span class="pre">seek</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seek_by_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accurate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.seek" title="Link to this definition"></a></dt>
+<dd><p>Seeks in the current streams.</p>
+<p>Seeks to the desired timepoint as close as possible while not exceeding
+that time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pts</cite>: float</dt><dd><p>The timestamp to seek to (in seconds).</p>
+</dd>
+<dt><cite>relative</cite>: bool</dt><dd><p>Whether the pts parameter is interpreted as the
+time offset from the current stream position (can be negative if True).</p>
+</dd>
+<dt><cite>seek_by_bytes</cite>: bool or <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></dt><dd><p>Whether we seek based on the position in bytes or in time. In some
+instances seeking by bytes may be more accurate (don’t ask me which).
+If <code class="docutils literal notranslate"><span class="pre">'auto'</span></code>, the default, it is automatically decided based on
+the media.</p>
+</dd>
+<dt><cite>accurate</cite>: bool</dt><dd><p>Whether to do finer seeking if we didn’t seek directly to the requested
+frame. This is likely to be slower because after the coarser seek,
+we have to walk through the frames until the requested frame is
+reached. If paused or we reached eof this is ignored. Defaults to True.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">1016.392</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mf">200.</span><span class="p">,</span> <span class="n">accurate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">1249.876</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="n">relative</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">accurate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">198.49</span>
+</pre></div>
+</div>
+<p>Note that it may take a few calls to get new frames after seeking.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.seek_to_chapter">
+<span class="sig-name descname"><span class="pre">seek_to_chapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">increment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accurate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.seek_to_chapter" title="Link to this definition"></a></dt>
+<dd><p>Seeks forwards or backwards (if negative) by <code class="docutils literal notranslate"><span class="pre">increment</span></code> chapters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>increment</cite>: int</dt><dd><p>The number of chapters to seek forwards or backwards to.</p>
+</dd>
+<dt><cite>accurate</cite>: bool</dt><dd><p>Whether to do finer seeking if we didn’t seek directly to the requested
+frame. This is likely to be slower because after the coarser seek,
+we have to walk through the frames until the requested frame is
+reached. Defaults to True.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.select_video_filter">
+<span class="sig-name descname"><span class="pre">select_video_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.select_video_filter" title="Link to this definition"></a></dt>
+<dd><p>Selects the video filter to use from among the list of filters passed
+with the ff_opts <cite>vf</cite> options.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.set_mute">
+<span class="sig-name descname"><span class="pre">set_mute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.set_mute" title="Link to this definition"></a></dt>
+<dd><p>Mutes or un-mutes the audio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>state</cite>: bool</dt><dd><p>Whether to mute or unmute the audio.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.set_output_pix_fmt">
+<span class="sig-name descname"><span class="pre">set_output_pix_fmt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_fmt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.set_output_pix_fmt" title="Link to this definition"></a></dt>
+<dd><p>Sets the pixel fmt in which output images are returned when calling
+<a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">set_output_pix_fmt</span><span class="p">(</span><span class="s1">&#39;yuv420p&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>sets the output format to use. This will only take effect on images that
+have not been queued yet so it may take a few calls to <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>
+to reflect the new pixel format.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>if CONFIG_AVFILTER was False when compiling, this function will raise
+an exception.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.set_pause">
+<span class="sig-name descname"><span class="pre">set_pause</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.set_pause" title="Link to this definition"></a></dt>
+<dd><p>Pauses or un-pauses the file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>state</cite>: bool</dt><dd><p>Whether to pause or un-pause the player.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.set_size">
+<span class="sig-name descname"><span class="pre">set_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">width=-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">height=-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.set_size" title="Link to this definition"></a></dt>
+<dd><p>Dynamically sets the size of the frames returned by <a class="reference internal" href="#ffpyplayer.player.MediaPlayer.get_frame" title="ffpyplayer.player.MediaPlayer.get_frame"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_frame()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>width, height</cite>: int</dt><dd><p>The width and height of the output frames.
+A value of 0 will set that parameter to the source width/height.
+A value of -1 for one of the parameters, will result in a value of that
+parameter that maintains the original aspect ratio.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(704, 480)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(704, 480)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(704, 480)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(704, 480)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 200)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 200)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 200)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 480)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">player</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 480)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 480)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">player</span><span class="o">.</span><span class="n">get_frame</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
+<span class="go">(200, 136)</span>
+</pre></div>
+</div>
+<p>Note, that it takes a few calls to flush the old frames.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>if CONFIG_AVFILTER was False when compiling, this function will raise
+an error.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.set_volume">
+<span class="sig-name descname"><span class="pre">set_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.set_volume" title="Link to this definition"></a></dt>
+<dd><p>Sets the volume of the audio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>volume</cite>: float</dt><dd><p>A value between 0.0 - 1.0.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ffpyplayer.player.MediaPlayer.toggle_pause">
+<span class="sig-name descname"><span class="pre">toggle_pause</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ffpyplayer.player.MediaPlayer.toggle_pause" title="Link to this definition"></a></dt>
+<dd><p>Toggles the player’s pause state.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="api.html" class="btn btn-neutral float-left" title="The FFPyPlayer API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="writer.html" class="btn btn-neutral float-right" title="Writer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2013, Matthew Einhorn.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
