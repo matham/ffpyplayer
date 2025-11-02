@@ -57,7 +57,7 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-curl -kLO "https://cfhcable.dl.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
+curl -kLO "https://downloads.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
 tar xzf "lame-$LAME_VERSION.tar.gz"
 cd "lame-$LAME_VERSION"
 ./configure --prefix="$BUILD_DIR" --enable-nasm --enable-shared;

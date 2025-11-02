@@ -14,7 +14,7 @@ export PATH="$BUILD_PATH/bin:/usr/local/bin/:$PATH"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig:/usr/lib/pkgconfig/:$PKG_CONFIG_PATH"
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang"
-export MACOSX_DEPLOYMENT_TARGET=10.13
+export MACOSX_DEPLOYMENT_TARGET=11.0
 
 if [ "$ARCH" = "x86_64" ]; then
   ARCH2=x86_64
@@ -127,7 +127,7 @@ if [ "$ARCH" = "x86_64" ]; then
   arg=("--enable-nasm")
 fi
 cd "$SRC_PATH";
-curl -kLO "https://cfhcable.dl.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
+curl -kLO "https://downloads.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
 tar xzf "lame-$LAME_VERSION.tar.gz"
 cd "lame-$LAME_VERSION"
 git apply "$base_dir/.ci/libmp3lame-symbols.patch"
