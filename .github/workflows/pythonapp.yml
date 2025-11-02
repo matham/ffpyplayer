@@ -19,11 +19,12 @@ jobs:
       FFMPEG_ROOT: ~/ff_deps/ffmpeg
     strategy:
       matrix:
-        python: [ '3.9', '3.10', '3.11', '3.12', '3.13']
+        # TODO: Add free-threaded 3.14t
+        python: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
-    - uses: actions/checkout@v4.2.2
+    - uses: actions/checkout@v5.0.0
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v5.4.0
+      uses: actions/setup-python@v6.0.0
       with:
         python-version: ${{ matrix.python }}
     - name: Get dependencies
@@ -71,12 +72,12 @@ jobs:
         $env:FFMPEG_ROOT=(get-item $env:FFMPEG_ROOT).FullName
         python setup.py bdist_wheel
     - name: Upload wheel
-      uses: actions/upload-artifact@v4.6.2
+      uses: actions/upload-artifact@v5.0.0
       with:
         name: py_wheel-win-${{ matrix.python }}
         path: dist
     - name: Upload to GitHub Release
-      uses: softprops/action-gh-release@v2.2.1
+      uses: softprops/action-gh-release@v2.4.1
       if: startsWith(github.ref, 'refs/tags/')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -129,12 +130,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: windows_wheels_tests
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
       - name: Set up Python 3.x
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v6.0.0
         with:
           python-version: 3.x
-      - uses: actions/download-artifact@v4.2.1
+      - uses: actions/download-artifact@v6.0.0
         with:
           pattern: py_wheel-*
           merge-multiple: true
@@ -169,12 +170,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: linux_wheels
     steps:
-      - uses: actions/checkout@v4.2.2
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v5.4.0
+      - uses: actions/checkout@v5.0.0
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6.0.0
         with:
-          python-version: 3.x
-      - uses: actions/download-artifact@v4.2.1
+          python-version: 3.13  # 3.14 fails!
+      - uses: actions/download-artifact@v6.0.0
         with:
           pattern: py_wheel-*
           merge-multiple: true
@@ -215,12 +216,12 @@ jobs:
             cibw_archs: 'aarch64'
             cibw_build: 'cp39-manylinux_aarch64 cp310-manylinux_aarch64 cp311-manylinux_aarch64 cp312-manylinux_aarch64 cp313-manylinux_aarch64'
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
       - name: Set up Python 3.x
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v6.0.0
         with:
           python-version: 3.x
-      - uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4.3.0
         id: deps-cache
         with:
           path: ffmpeg_build
@@ -231,18 +232,20 @@ jobs:
           mkdir dist
           docker run --rm -v `pwd`:/io:rw quay.io/pypa/manylinux2014_${{ matrix.cibw_archs }} /io/.ci/build-wheels.sh
       - name: Install cibuildwheel
+        # TODO: Upgrade to cibuildwheel~=3.2.1
         run: |
           python -m pip install cibuildwheel~=2.23.3
+
       - name: Make wheels
         run: |
           python -m cibuildwheel --output-dir dist
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: py_wheel-linux-${{ matrix.os }}-${{ matrix.cibw_archs }}
           path: dist
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2.2.1
+        uses: softprops/action-gh-release@v2.4.1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -272,15 +275,15 @@ jobs:
       matrix:
         arch: [ "x86_64", "arm64" ]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
       - name: Set up Python
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v6.0.0
         with:
           python-version: 3.x
 
       - name: Cache ffmpeg
         id: cache-ffmpeg
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4.3.0
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}
           key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}
@@ -289,6 +292,7 @@ jobs:
         run: bash .ci/build_wheels_osx.sh "${{ matrix.arch }}"
 
       - name: Install cibuildwheel
+        # TODO: Upgrade to cibuildwheel~=3.2.1
         run: |
           python -m pip install cibuildwheel~=2.23.3
       - name: Build wheels
@@ -298,7 +302,7 @@ jobs:
           python -m cibuildwheel --output-dir dist
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: py_wheel-osx-${{ matrix.arch }}
           path: dist
@@ -307,13 +311,13 @@ jobs:
     runs-on: macos-13
     needs: osx_wheels_create
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
       - name: Set up Python
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v6.0.0
         with:
           python-version: 3.x
 
-      - uses: actions/download-artifact@v4.2.1
+      - uses: actions/download-artifact@v6.0.0
         with:
           pattern: py_wheel-*
           merge-multiple: true
@@ -326,13 +330,13 @@ jobs:
           bash ../.ci/merge_osx_deps.sh
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: py_wheel-osx-fused
           path: dist
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2.2.1
+        uses: softprops/action-gh-release@v2.4.1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -361,9 +365,9 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
       - name: Set up Python 3.x
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v6.0.0
         with:
           python-version: 3.x
       - name: Install
