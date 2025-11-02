@@ -127,7 +127,7 @@ if [ "$ARCH" = "x86_64" ]; then
   arg=("--enable-nasm")
 fi
 cd "$SRC_PATH";
-curl -kLO "https://cfhcable.dl.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
+curl -kLO "https://downloads.sourceforge.net/project/lame/lame/$LAME_VERSION/lame-$LAME_VERSION.tar.gz"
 tar xzf "lame-$LAME_VERSION.tar.gz"
 cd "lame-$LAME_VERSION"
 git apply "$base_dir/.ci/libmp3lame-symbols.patch"
