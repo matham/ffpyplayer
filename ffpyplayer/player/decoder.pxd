@@ -26,10 +26,10 @@ cdef class Decoder(object):
         MTGenerator mt_gen
 
     cdef int decoder_init(self, MTGenerator mt_gen, AVCodecContext *avctx, FFPacketQueue queue,
-                           MTCond empty_queue_cond) nogil except 1
+                           MTCond empty_queue_cond) except 1 nogil
     cdef void decoder_destroy(self) nogil
     cdef void set_seek_pos(self, double seek_req_pos) nogil
     cdef int is_seeking(self) nogil
-    cdef int decoder_abort(self, FrameQueue fq) nogil except 1
-    cdef int decoder_start(self, int_void_func func, const char *thread_name, void *arg) nogil except 1
-    cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2
+    cdef int decoder_abort(self, FrameQueue fq) except 1 nogil
+    cdef int decoder_start(self, int_void_func func, const char *thread_name, void *arg) except 1 nogil
+    cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) except? 2 nogil
