@@ -44,10 +44,14 @@ Playing a file:
     >>> import time
 
     >>> player = MediaPlayer(filename)
-    >>> val = ''
-    >>> while val != 'eof':
+    >>> while True:
     ...     frame, val = player.get_frame()
-    ...     if val != 'eof' and frame is not None:
+    ...     if val == 'eof':
+    ...         break
+    ...     if frame is None:
+    ...         time.sleep(0.01)
+    ...         print('not ready')
+    ...     else:
     ...         img, t = frame
     ...         # display img
 
