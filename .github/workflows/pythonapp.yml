@@ -236,7 +236,12 @@ jobs:
         if: ${{ steps.deps-cache.outputs.cache-hit != 'true' }}
         run: |
           mkdir dist
+          source .ci/dep_versions.sh
+          git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git git_deps/x264
+          git clone --depth 1 --branch "v$FDK_VERSION" https://github.com/mstorsjo/fdk-aac.git git_deps/fdk-aac
+          git clone --depth 1 --branch "v$LIBVPX_VERSION" https://chromium.googlesource.com/webm/libvpx.git git_deps/libvpx
           docker run --rm -v `pwd`:/io:rw quay.io/pypa/manylinux2014_${{ matrix.cibw_archs }} /io/.ci/build-wheels.sh
+          rm -rf git_deps
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel~=3.4.1

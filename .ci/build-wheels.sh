@@ -12,6 +12,15 @@ export PKG_CONFIG_PATH="$BUILD_DIR/lib/pkgconfig:$BUILD_DIR/lib64/pkgconfig:/usr
 
 mkdir ~/ffmpeg_sources
 
+# git in the manylinux2014 image fails to clone over https, so CI clones these on the host into /io/git_deps
+clone_dep() {
+  if [ -d "/io/git_deps/$1" ]; then
+    cp -r "/io/git_deps/$1" "$1"
+  else
+    git clone --depth 1 --branch "$2" "$3" "$1"
+  fi
+}
+
 
 cd ~/ffmpeg_sources;
 curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL2-$SDL_VERSION.tar.gz"
@@ -49,7 +58,7 @@ make install;
 make distclean;
 
 cd ~/ffmpeg_sources;
-git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git
+clone_dep x264 stable https://code.videolan.org/videolan/x264.git
 cd x264
 ./configure --prefix="$BUILD_DIR" --bindir="$BUILD_DIR/bin" --enable-shared --extra-cflags="-fPIC";
 make;
@@ -94,7 +103,7 @@ make
 make install
 
 cd ~/ffmpeg_sources
-git clone --depth 1 --branch "v$FDK_VERSION" https://github.com/mstorsjo/fdk-aac.git
+clone_dep fdk-aac "v$FDK_VERSION" https://github.com/mstorsjo/fdk-aac.git
 cd fdk-aac
 git apply /io/.ci/fdk.patch
 autoreconf -fiv
@@ -135,7 +144,7 @@ make
 make install
 
 cd ~/ffmpeg_sources
-git clone --depth 1 --branch "v$LIBVPX_VERSION" https://chromium.googlesource.com/webm/libvpx.git
+clone_dep libvpx "v$LIBVPX_VERSION" https://chromium.googlesource.com/webm/libvpx.git
 cd libvpx
 ./configure --prefix="$BUILD_DIR" --disable-examples  --as=yasm --enable-shared --disable-unit-tests
 make
