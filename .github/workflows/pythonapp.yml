@@ -265,7 +265,7 @@ jobs:
           twine upload dist/*
 
   osx_wheels_create:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     env:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
@@ -291,7 +291,7 @@ jobs:
         uses: actions/cache@v4.2.3
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}
-          key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}
+          key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}-${{ hashFiles('.ci/dep_versions.sh') }}
       - name: Build FFmpeg
         if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/build_wheels_osx.sh "${{ matrix.arch }}"
@@ -312,7 +312,7 @@ jobs:
           path: dist
 
   osx_wheels_fuse_test_upload:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: osx_wheels_create
     steps:
       - uses: actions/checkout@v4.2.2
