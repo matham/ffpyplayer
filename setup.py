@@ -376,7 +376,10 @@ with open('README.rst') as fh:
 
 setup_requires = []
 if declare_cython:
-    setup_requires.append('cython~=3.0.11')
+    if sys.version_info < (3, 14):
+        setup_requires.append('cython~=3.0.11')
+    else:
+        setup_requires.append('cython~=3.1.8')
 
 setup(name='ffpyplayer',
       version=ffpyplayer.__version__,
@@ -400,6 +403,7 @@ setup(name='ffpyplayer',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: BSD :: FreeBSD',
