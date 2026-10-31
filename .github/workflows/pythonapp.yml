@@ -19,7 +19,7 @@ jobs:
       FFMPEG_ROOT: ~/ff_deps/ffmpeg
     strategy:
       matrix:
-        python: [ '3.9', '3.10', '3.11', '3.12', '3.13']
+        python: [ '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
     - uses: actions/checkout@v4.2.2
     - name: Set up Python ${{ matrix.python }}
@@ -61,7 +61,7 @@ jobs:
         ls $env:FFMPEG_ROOT
     - name: Install pip deps
       run: |
-        python -m pip install --upgrade pip virtualenv wheel setuptools cython~=3.0.11 pytest
+        python -m pip install --upgrade pip virtualenv wheel setuptools "cython~=3.0.11; python_version < '3.14'" "cython~=3.1.8; python_version >= '3.14'" pytest
     - name: Make sdist
       if: matrix.python == '3.13'
       run: python setup.py sdist --formats=gztar
@@ -130,10 +130,10 @@ jobs:
     needs: windows_wheels_tests
     steps:
       - uses: actions/checkout@v4.2.2
-      - name: Set up Python 3.x
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5.4.0
         with:
-          python-version: 3.x
+          python-version: '3.14'
       - uses: actions/download-artifact@v4.2.1
         with:
           pattern: py_wheel-*
@@ -170,10 +170,10 @@ jobs:
     needs: linux_wheels
     steps:
       - uses: actions/checkout@v4.2.2
-      - name: Set up Python 3.13
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5.4.0
         with:
-          python-version: 3.13  # 3.14 fails!
+          python-version: '3.14'
       - uses: actions/download-artifact@v4.2.1
         with:
           pattern: py_wheel-*
@@ -197,10 +197,17 @@ jobs:
 
   linux_wheels:
     env:
-      CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig:$HOME/ffmpeg_build/lib64/pkgconfig LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$HOME/ffmpeg_build/lib64:$LD_LIBRARY_PATH"
+      CIBW_ENVIRONMENT_LINUX: "USE_SDL2_MIXER=0 PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig:$HOME/ffmpeg_build/lib64/pkgconfig"
+      # LD_LIBRARY_PATH only for repair: ffmpeg_build's OpenSSL would shadow the one the image's Pythons need for pip
+      CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
+        LD_LIBRARY_PATH=$HOME/ffmpeg_build/lib:$HOME/ffmpeg_build/lib64:$LD_LIBRARY_PATH
+        auditwheel repair -w {dest_dir} {wheel}
       CIBW_BUILD_VERBOSITY: 3
       CIBW_BUILD: ${{ matrix.cibw_build }}
       CIBW_ARCHS: ${{ matrix.cibw_archs }}
+      CIBW_BUILD_FRONTEND: pip
+      CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+      CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
       CIBW_BEFORE_ALL_LINUX: >
         cp -r `pwd`/ffmpeg_build $HOME/ffmpeg_build &&
         source .ci/yum_deps.sh
@@ -210,16 +217,16 @@ jobs:
         include:
           - os: ubuntu-latest
             cibw_archs: 'x86_64'
-            cibw_build: 'cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64'
+            cibw_build: 'cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64 cp314-manylinux_x86_64'
           - os: ubuntu-24.04-arm
             cibw_archs: 'aarch64'
-            cibw_build: 'cp39-manylinux_aarch64 cp310-manylinux_aarch64 cp311-manylinux_aarch64 cp312-manylinux_aarch64 cp313-manylinux_aarch64'
+            cibw_build: 'cp39-manylinux_aarch64 cp310-manylinux_aarch64 cp311-manylinux_aarch64 cp312-manylinux_aarch64 cp313-manylinux_aarch64 cp314-manylinux_aarch64'
     steps:
       - uses: actions/checkout@v4.2.2
-      - name: Set up Python 3.x
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5.4.0
         with:
-          python-version: 3.x
+          python-version: '3.14'
       - uses: actions/cache@v4.2.3
         id: deps-cache
         with:
@@ -229,10 +236,15 @@ jobs:
         if: ${{ steps.deps-cache.outputs.cache-hit != 'true' }}
         run: |
           mkdir dist
+          source .ci/dep_versions.sh
+          git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git git_deps/x264
+          git clone --depth 1 --branch "v$FDK_VERSION" https://github.com/mstorsjo/fdk-aac.git git_deps/fdk-aac
+          git clone --depth 1 --branch "v$LIBVPX_VERSION" https://chromium.googlesource.com/webm/libvpx.git git_deps/libvpx
           docker run --rm -v `pwd`:/io:rw quay.io/pypa/manylinux2014_${{ matrix.cibw_archs }} /io/.ci/build-wheels.sh
+          rm -rf git_deps
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel~=2.23.3
+          python -m pip install cibuildwheel~=3.4.1
       - name: Make wheels
         run: |
           python -m cibuildwheel --output-dir dist
@@ -258,12 +270,13 @@ jobs:
           twine upload dist/*
 
   osx_wheels_create:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     env:
       USE_SDL2_MIXER: 0
       FFMPEG_BUILD_PATH: "ffmpeg_build"
       CIBW_BUILD_VERBOSITY: 3
-      CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
+      CIBW_BUILD_FRONTEND: pip
+      CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
       CIBW_ARCHS_MACOS: ${{ matrix.arch }}
       CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
         DYLD_FALLBACK_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel} &&
@@ -276,21 +289,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5.4.0
         with:
-          python-version: 3.x
+          python-version: '3.14'
 
       - name: Cache ffmpeg
         id: cache-ffmpeg
         uses: actions/cache@v4.2.3
         with:
           path: ~/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}
-          key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}
+          key: ${{ runner.os }}-ffmpeg-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ env.MACOSX_DEPLOYMENT_TARGET_ARM }}-${{ hashFiles('.ci/build_wheels_osx.sh') }}-${{ hashFiles('.ci/dep_versions.sh') }}
       - name: Build FFmpeg
         if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         run: bash .ci/build_wheels_osx.sh "${{ matrix.arch }}"
 
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel~=2.23.3
+          python -m pip install cibuildwheel~=3.4.1
       - name: Build wheels
         run: |
           export REPAIR_LIBRARY_PATH="$HOME/${{ env.FFMPEG_BUILD_PATH }}_${{ matrix.arch }}/lib"
@@ -304,14 +317,14 @@ jobs:
           path: dist
 
   osx_wheels_fuse_test_upload:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: osx_wheels_create
     steps:
       - uses: actions/checkout@v4.2.2
       - name: Set up Python
         uses: actions/setup-python@v5.4.0
         with:
-          python-version: 3.x
+          python-version: '3.14'
 
       - uses: actions/download-artifact@v4.2.1
         with:
@@ -362,10 +375,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
-      - name: Set up Python 3.x
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5.4.0
         with:
-          python-version: 3.x
+          python-version: '3.14'
       - name: Install
         run: |
           sudo apt update

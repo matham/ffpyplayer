@@ -289,7 +289,7 @@ cdef class SWScale(object):
         return dst
 
 
-cdef int raise_exec(object ecls) nogil except 1:
+cdef int raise_exec(object ecls) except 1 nogil:
     with gil:
         raise ecls()
 
@@ -443,7 +443,7 @@ cdef class Image(object):
     def __dealloc__(self):
         av_frame_free(&self.frame)
 
-    cdef int cython_init(self, AVFrame *frame) nogil except 1:
+    cdef int cython_init(self, AVFrame *frame) except 1 nogil:
         '''Can be called only once after object creation and it creates a internal
         reference to ``frame``.
         '''

@@ -19,11 +19,11 @@ cdef class FFPacketQueue(object):
         int serial
         MTCond cond
 
-    cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil except 1
-    cdef int packet_queue_put_nullpacket(FFPacketQueue self, AVPacket *pkt, int stream_index) nogil except 1
-    cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil except 1
-    cdef int packet_queue_flush(FFPacketQueue self) nogil except 1
-    cdef int packet_queue_abort(FFPacketQueue self) nogil except 1
-    cdef int packet_queue_start(FFPacketQueue self) nogil except 1
+    cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) except 1 nogil
+    cdef int packet_queue_put_nullpacket(FFPacketQueue self, AVPacket *pkt, int stream_index) except 1 nogil
+    cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) except 1 nogil
+    cdef int packet_queue_flush(FFPacketQueue self) except 1 nogil
+    cdef int packet_queue_abort(FFPacketQueue self) except 1 nogil
+    cdef int packet_queue_start(FFPacketQueue self) except 1 nogil
     # return < 0 if aborted, 0 if no packet and > 0 if packet.
-    cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil except 0
+    cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) except 0 nogil

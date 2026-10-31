@@ -18,7 +18,7 @@ cdef class Image(object):
     cdef list byte_planes
     cdef AVPixelFormat pix_fmt
 
-    cdef int cython_init(self, AVFrame *frame) nogil except 1
+    cdef int cython_init(self, AVFrame *frame) except 1 nogil
     cpdef is_ref(Image self)
     cpdef is_key_frame(Image self)
     cpdef get_linesizes(Image self, keep_align=*)

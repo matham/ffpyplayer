@@ -20,7 +20,7 @@ cdef class Decoder(object):
 
     cdef int decoder_init(
             self, MTGenerator mt_gen, AVCodecContext *avctx, FFPacketQueue queue,
-            MTCond empty_queue_cond) nogil except 1:
+            MTCond empty_queue_cond) except 1 nogil:
         self.pkt = av_packet_alloc()
 
         with gil:
@@ -52,7 +52,7 @@ cdef class Decoder(object):
     cdef int is_seeking(self) nogil:
         return self.seeking and self.seek_req_pos != -1
 
-    cdef int decoder_abort(self, FrameQueue fq) nogil except 1:
+    cdef int decoder_abort(self, FrameQueue fq) except 1 nogil:
         self.queue.packet_queue_abort()
         fq.frame_queue_signal()
         self.decoder_tid.wait_thread(NULL)
@@ -61,14 +61,14 @@ cdef class Decoder(object):
         self.queue.packet_queue_flush()
         return 0
 
-    cdef int decoder_start(self, int_void_func func, const char *thread_name, void *arg) nogil except 1:
+    cdef int decoder_start(self, int_void_func func, const char *thread_name, void *arg) except 1 nogil:
         self.queue.packet_queue_start()
         with gil:
             self.decoder_tid = MTThread(self.mt_gen.mt_src)
             self.decoder_tid.create_thread(func, thread_name, arg)
         return 0
 
-    cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) nogil except? 2:
+    cdef int decoder_decode_frame(self, AVFrame *frame, AVSubtitle *sub, int decoder_reorder_pts) except? 2 nogil:
         cdef int ret = AVERROR(EAGAIN)
         cdef int got_frame
         cdef AVRational tb

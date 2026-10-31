@@ -28,7 +28,7 @@ cdef class FFPacketQueue(object):
             self.packet_queue_flush()
             av_fifo_freep(&self.pkt_list)
 
-    cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) nogil except 1:
+    cdef int packet_queue_put_private(FFPacketQueue self, AVPacket *pkt) except 1 nogil:
         cdef MyAVPacketList pkt1
         cdef int ret
 
@@ -53,7 +53,7 @@ cdef class FFPacketQueue(object):
         self.cond.cond_signal()
         return 0
 
-    cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) nogil except 1:
+    cdef int packet_queue_put(FFPacketQueue self, AVPacket *pkt) except 1 nogil:
         cdef AVPacket *pkt1 = av_packet_alloc()
         cdef int ret = -1
 
@@ -71,11 +71,11 @@ cdef class FFPacketQueue(object):
 
         return ret
 
-    cdef int packet_queue_put_nullpacket(FFPacketQueue self, AVPacket *pkt, int stream_index) nogil except 1:
+    cdef int packet_queue_put_nullpacket(FFPacketQueue self, AVPacket *pkt, int stream_index) except 1 nogil:
         pkt.stream_index = stream_index
         return self.packet_queue_put(pkt)
 
-    cdef int packet_queue_flush(FFPacketQueue self) nogil except 1:
+    cdef int packet_queue_flush(FFPacketQueue self) except 1 nogil:
         cdef MyAVPacketList pkt1
         cdef int ret = 0
 
@@ -93,14 +93,14 @@ cdef class FFPacketQueue(object):
         self.cond.unlock()
         return ret
 
-    cdef int packet_queue_abort(FFPacketQueue self) nogil except 1:
+    cdef int packet_queue_abort(FFPacketQueue self) except 1 nogil:
         self.cond.lock()
         self.abort_request = 1
         self.cond.cond_signal()
         self.cond.unlock()
         return 0
 
-    cdef int packet_queue_start(FFPacketQueue self) nogil except 1:
+    cdef int packet_queue_start(FFPacketQueue self) except 1 nogil:
         self.cond.lock()
         self.abort_request = 0
         self.serial += 1
@@ -108,7 +108,7 @@ cdef class FFPacketQueue(object):
         return 0
 
     # return < 0 if aborted, 0 if no packet and > 0 if packet.
-    cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) nogil except 0:
+    cdef int packet_queue_get(FFPacketQueue self, AVPacket *pkt, int block, int *serial) except 0 nogil:
         cdef MyAVPacketList pkt1
         cdef int ret = 0
 

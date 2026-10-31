@@ -272,7 +272,7 @@ cd libvpx
 sed -i.original -e 's/-march=armv8-a//g' build/make/configure.sh
 
 if [ "$ARCH" = "x86_64" ]; then
-    arg=("--as=yasm")
+    arg=("--as=yasm" "--target=x86_64-darwin20-gcc")
     LDFLAGS_VPX="$LDFLAGS"
 else
     arg=("--target=$ARCH-darwin20-gcc")
