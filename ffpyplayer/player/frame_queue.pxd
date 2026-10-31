@@ -38,25 +38,25 @@ cdef class FrameQueue(object):
         int requested_alloc
 
     cdef void frame_queue_unref_item(self, Frame *vp) nogil
-    cdef int frame_queue_signal(self) nogil except 1
+    cdef int frame_queue_signal(self) except 1 nogil
     cdef int is_empty(self) nogil
     cdef Frame *frame_queue_peek(self) nogil
     cdef Frame *frame_queue_peek_next(self) nogil
     cdef Frame *frame_queue_peek_last(self) nogil
     cdef Frame *frame_queue_peek_writable(self) nogil
     cdef Frame *frame_queue_peek_readable(self) nogil
-    cdef int frame_queue_push(self) nogil except 1
-    cdef int frame_queue_next(self) nogil except 1
+    cdef int frame_queue_push(self) except 1 nogil
+    cdef int frame_queue_next(self) except 1 nogil
     cdef int frame_queue_prev(self) nogil
     cdef int frame_queue_nb_remaining(self) nogil
     cdef int64_t frame_queue_last_pos(self) nogil
     cdef int copy_picture(self, Frame *vp, AVFrame *src_frame,
-                          VideoSettings *player) nogil except 1
+                          VideoSettings *player) except 1 nogil
     cdef int peep_alloc(self) nogil
     cdef int queue_picture(
         self, AVFrame *src_frame, double pts, double duration, int64_t pos,
         int serial, AVPixelFormat out_fmt, int *abort_request,
-        VideoSettings *player) nogil except 1
-    cdef int alloc_picture(self) nogil except 1
+        VideoSettings *player) except 1 nogil
+    cdef int alloc_picture(self) except 1 nogil
     cdef int copy_picture(self, Frame *vp, AVFrame *src_frame,
-                           VideoSettings *player) nogil except 1
+                           VideoSettings *player) except 1 nogil

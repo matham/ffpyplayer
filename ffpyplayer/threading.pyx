@@ -51,23 +51,23 @@ cdef class MTMutex(object):
         elif self.lib == Py_MT:
             Py_DECREF(<PyObject *>self.mutex)
 
-    cdef int lock(MTMutex self) nogil except 2:
+    cdef int lock(MTMutex self) except 2 nogil:
         if self.lib == SDL_MT:
             return SDL_mutexP(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
             return self._lock_py()
 
-    cdef int _lock_py(MTMutex self) nogil except 2:
+    cdef int _lock_py(MTMutex self) except 2 nogil:
         with gil:
             return not (<object>self.mutex).acquire()
 
-    cdef int unlock(MTMutex self) nogil except 2:
+    cdef int unlock(MTMutex self) except 2 nogil:
         if self.lib == SDL_MT:
             return SDL_mutexV(<SDL_mutex *>self.mutex)
         elif self.lib == Py_MT:
             return self._unlock_py()
 
-    cdef int _unlock_py(MTMutex self) nogil except 2:
+    cdef int _unlock_py(MTMutex self) except 2 nogil:
         with gil:
             (<object>self.mutex).release()
         return 0
@@ -95,41 +95,41 @@ cdef class MTCond(object):
         elif self.lib == Py_MT:
             Py_DECREF(<PyObject *>self.cond)
 
-    cdef int lock(MTCond self) nogil except 2:
+    cdef int lock(MTCond self) except 2 nogil:
         self.mutex.lock()
 
-    cdef int unlock(MTCond self) nogil except 2:
+    cdef int unlock(MTCond self) except 2 nogil:
         self.mutex.unlock()
 
-    cdef int cond_signal(MTCond self) nogil except 2:
+    cdef int cond_signal(MTCond self) except 2 nogil:
         if self.lib == SDL_MT:
             return SDL_CondSignal(<SDL_cond *>self.cond)
         elif self.lib == Py_MT:
             return self._cond_signal_py()
 
-    cdef int _cond_signal_py(MTCond self) nogil except 2:
+    cdef int _cond_signal_py(MTCond self) except 2 nogil:
         with gil:
             (<object>self.cond).notify()
         return 0
 
-    cdef int cond_wait(MTCond self) nogil except 2:
+    cdef int cond_wait(MTCond self) except 2 nogil:
         if self.lib == SDL_MT:
             return SDL_CondWait(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex)
         elif self.lib == Py_MT:
             return self._cond_wait_py()
 
-    cdef int _cond_wait_py(MTCond self) nogil except 2:
+    cdef int _cond_wait_py(MTCond self) except 2 nogil:
         with gil:
             (<object>self.cond).wait()
         return 0
 
-    cdef int cond_wait_timeout(MTCond self, uint32_t val) nogil except 2:
+    cdef int cond_wait_timeout(MTCond self, uint32_t val) except 2 nogil:
         if self.lib == SDL_MT:
             return SDL_CondWaitTimeout(<SDL_cond *>self.cond, <SDL_mutex *>self.mutex.mutex, val)
         elif self.lib == Py_MT:
             return self._cond_wait_timeout_py(val)
 
-    cdef int _cond_wait_timeout_py(MTCond self, uint32_t val) nogil except 2:
+    cdef int _cond_wait_timeout_py(MTCond self, uint32_t val) except 2 nogil:
         with gil:
             (<object>self.cond).wait(val / 1000.)
         return 0
@@ -147,7 +147,7 @@ cdef class MTThread(object):
         if self.lib == Py_MT and self.thread != NULL:
             Py_DECREF(<PyObject *>self.thread)
 
-    cdef int create_thread(MTThread self, int_void_func func, const char *thread_name, void *arg) nogil except 2:
+    cdef int create_thread(MTThread self, int_void_func func, const char *thread_name, void *arg) except 2 nogil:
         if self.lib == SDL_MT:
             with gil:
                 self.thread = SDL_CreateThread(func, thread_name, arg)
@@ -163,7 +163,7 @@ cdef class MTThread(object):
                 thread.start()
         return 0
 
-    cdef int wait_thread(MTThread self, int *status) nogil except 2:
+    cdef int wait_thread(MTThread self, int *status) except 2 nogil:
         if self.lib == SDL_MT:
             if self.thread != NULL:
                 SDL_WaitThread(<SDL_Thread *>self.thread, status)
@@ -246,7 +246,7 @@ cdef class MTGenerator(object):
     def __cinit__(MTGenerator self, MT_lib mt_src, **kwargs):
         self.mt_src = mt_src
 
-    cdef int delay(MTGenerator self, int delay) nogil except 2:
+    cdef int delay(MTGenerator self, int delay) except 2 nogil:
         if self.mt_src == SDL_MT:
             SDL_Delay(delay)
         elif self.mt_src == Py_MT:

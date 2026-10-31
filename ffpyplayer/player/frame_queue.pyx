@@ -7,7 +7,7 @@ include "../includes/inline_funcs.pxi"
 cdef extern from "string.h" nogil:
     void * memset(void *, int, size_t)
 
-cdef void raise_py_exception(msg) nogil except *:
+cdef void raise_py_exception(msg) except * nogil:
     with gil:
         raise Exception(tcode(msg))
 
@@ -49,7 +49,7 @@ cdef class FrameQueue(object):
         av_frame_unref(vp.frame)
         avsubtitle_free(&vp.sub)
 
-    cdef int frame_queue_signal(self) nogil except 1:
+    cdef int frame_queue_signal(self) except 1 nogil:
         self.cond.lock()
         self.cond.cond_signal()
         self.cond.unlock()
@@ -91,7 +91,7 @@ cdef class FrameQueue(object):
 
         return &self.queue[(self.rindex + self.rindex_shown) % self.max_size]
 
-    cdef int frame_queue_push(self) nogil except 1:
+    cdef int frame_queue_push(self) except 1 nogil:
         self.windex += 1
         if self.windex == self.max_size:
             self.windex = 0
@@ -102,7 +102,7 @@ cdef class FrameQueue(object):
         self.cond.unlock()
         return 0
 
-    cdef int frame_queue_next(self) nogil except 1:
+    cdef int frame_queue_next(self) except 1 nogil:
         if self.keep_last and not self.rindex_shown:
             self.rindex_shown = 1
             return 0
@@ -137,7 +137,7 @@ cdef class FrameQueue(object):
             return -1
 
     cdef int copy_picture(self, Frame *vp, AVFrame *src_frame,
-                           VideoSettings *player) nogil except 1:
+                           VideoSettings *player) except 1 nogil:
         cdef const AVDictionaryEntry *e
         cdef const AVClass *cls
         cdef const AVOption *o
@@ -167,7 +167,7 @@ cdef class FrameQueue(object):
             av_frame_unref(src_frame)
         return 0
 
-    cdef int alloc_picture(self) nogil except 1:
+    cdef int alloc_picture(self) except 1 nogil:
         ''' allocate a picture (needs to do that in main thread to avoid
         potential locking problems '''
         cdef Frame *vp
@@ -206,7 +206,7 @@ cdef class FrameQueue(object):
     cdef int queue_picture(
             self, AVFrame *src_frame, double pts, double duration, int64_t pos,
             int serial, AVPixelFormat out_fmt, int *abort_request,
-            VideoSettings *player) nogil except 1:
+            VideoSettings *player) except 1 nogil:
         cdef Frame *vp
 
         IF 0:# and defined(DEBUG_SYNC):
