@@ -124,7 +124,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04  # Ubuntu 26.04: apt install libpostproc-dev fails #201
+          - os: ubuntu-latest
           - os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     needs: windows_wheels_tests
@@ -143,8 +143,15 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
-          sudo apt install -y libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
+          sudo apt install -y libavutil-dev libswscale-dev libswresample-dev libsdl2-dev libsdl2-2.0-0
           sudo apt install -y libsdl2-mixer-2.0-0 libsdl2-mixer-dev
+          # libpostproc-dev was removed in Ubuntu 26.04, so find a alternative
+          sudo apt install -y libpostproc-dev || sudo apt install -y python3-av python3-ffmpeg-progress-yield python3-ha-ffmpeg python3-imageio-ffmpeg 
+          # python-ffmpeg-progress-yield-doc
+          # python3-av
+          # python3-ffmpeg-progress-yield
+          # python3-ha-ffmpeg
+          # python3-imageio-ffmpeg
           python3 -m pip install pytest
 
           root=`pwd`
@@ -164,7 +171,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04  # Ubuntu 26.04: apt install libpostproc-dev fails #201
+          - os: ubuntu-latest
           - os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     needs: linux_wheels
@@ -372,7 +379,7 @@ jobs:
           pytest "$name/tests"
 
   docs:
-    runs-on: ubuntu-24.04  # Ubuntu 26.04: apt install libpostproc-dev fails #201
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Set up Python 3.15
@@ -383,8 +390,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install ffmpeg libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev
-          sudo apt install libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libsdl2-dev libsdl2-2.0-0
+          sudo apt install libavutil-dev libswscale-dev libswresample-dev libsdl2-dev libsdl2-2.0-0
           sudo apt install libsdl2-mixer-2.0-0 libsdl2-mixer-dev
+          sudo apt install -y libpostproc-dev || true  # Was removed in Ubuntu 26.04, so ignore errors
 
           python -m pip install --upgrade pip virtualenv wheel setuptools sphinx sphinx_rtd_theme
           python -m pip install -e .
